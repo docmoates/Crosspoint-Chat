@@ -150,7 +150,17 @@ details.route summary{font-size:12px;color:var(--fg-3)}
 .topic .t small{display:block;color:var(--fg-3);margin-top:4px}
 .topic .btns{display:flex;gap:4px;flex:none;flex-wrap:wrap}
 .topic-stack{font-size:11px;color:var(--fg-3);margin-left:auto;flex:none}
-.sb-sub{padding-left:28px;font-size:12px;color:var(--fg-3)}
+.sb-row{position:relative}.sb-row .sb-item{padding-right:28px}
+.sb-chev{position:absolute;right:4px;top:4px;width:22px;height:22px;border-radius:5px;display:grid;place-items:center;color:var(--fg-3)}
+.sb-chev svg{width:14px;height:14px;transition:transform .15s}
+.sb-chat.open .sb-chev svg{transform:rotate(90deg)}
+.sb-subs{display:none;flex-direction:column;margin:2px 0 4px 14px;padding-left:8px;border-left:1px solid var(--line-2)}
+.sb-chat.open .sb-subs{display:flex}
+.sb-item.sub{font-size:12.5px;padding:4px 8px;color:var(--fg-2)}
+.sb-item.sub .sdot{width:6px;height:6px}
+.sb-item.sub.on{color:var(--fg)}
+.sb-item.sub.add{color:var(--fg-3)}
+.sb-state{margin-left:auto;font-size:10px;color:var(--fg-3);padding-left:6px}
 .tool-card .inner{display:flex;flex-direction:column;gap:8px}
 .result{display:flex;gap:10px;align-items:flex-start}
 .result .fav{width:16px;height:16px;border-radius:4px;background:var(--line-2);flex:none;margin-top:3px}
@@ -384,8 +394,15 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
     <div class="sb-scroll">
       <div class="sb-group">
         <div class="eyebrow">Pinned</div>
-        <button class="sb-item on" data-go="chat"><span class="dot"></span><span>OpenRouter streaming adapter</span><span class="topic-stack">2 sub-chats</span></button>
-        <div class="sb-sub">Part 1 · adapter + fallback (open) · Part 2 · email to chair (open)</div>
+        <div class="sb-chat open">
+          <div class="sb-row"><button class="sb-item on" data-go="chat"><span class="dot"></span><span>OpenRouter streaming adapter</span></button><button class="sb-chev" data-toggle-sub title="Show sub-chats"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button></div>
+          <div class="sb-subs">
+            <button class="sb-item sub" data-go="chat"><span class="sdot ok"></span><span>Part 1 · OpenRouter adapter + 429 fallback</span><span class="sb-state">open</span></button>
+            <button class="sb-item sub on" data-go="chat"><span class="sdot ok"></span><span>Part 2 · Email to chair</span><span class="sb-state">open</span></button>
+            <button class="sb-item sub" data-go="chat"><span class="sdot off"></span><span>Part 0 · Pick a streaming library</span><span class="sb-state">paused</span></button>
+            <button class="sb-item sub add"><svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M12 5v14M5 12h14"/></svg><span>New sub-chat</span></button>
+          </div>
+        </div>
         <button class="sb-item" data-go="agent"><svg viewBox="0 0 24 24"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg><span>Workspace: crosspoint-api</span></button>
       </div>
       <div class="sb-group">
@@ -536,7 +553,7 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
             <span class="ic"><svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M4 6h16M4 12h10M4 18h6"/></svg></span>
             <div class="t">
               <b>New sub-chat · Part 2: email to chair · Part 1 stays open</b>
-              Part 1 (adapter + 429 fallback) still has a diff under review, so it is kept in full. You can switch back any time, or drag messages between sub-chats. It will be compressed to a short summary only after 8 turns or 2 hours without a reference, and reopened automatically if you mention it.
+              Part 1 (adapter + 429 fallback) still has a diff under review, so it is kept in full. Switch between them in the sidebar under this chat, or drag messages between sub-chats. It will be compressed to a short summary only after 8 turns or 2 hours without a reference, and reopened automatically if you mention it.
               <small>Phi-4 mini on this PC · 2 sub-chats open · 14,900 tokens in context · nothing compressed</small>
             </div>
             <div class="btns"><button class="btn sm">Pause Part 1 now</button><button class="btn sm">Keep all</button></div>
@@ -1049,7 +1066,9 @@ draw(document.getElementById(<span class="s">"c"</span>), data);
     try{location.hash=name}catch(e){}
   }
   document.addEventListener('click',e=>{
+    if(e.target.closest('[data-toggle-sub]')){const c=e.target.closest('.sb-chat');c.classList.toggle('open');return;}
     const go=e.target.closest('[data-go]'); if(go){show(go.dataset.go); const t=go.dataset.tabGo; if(t)setTab(t); return;}
+    const tsub=e.target.closest('[data-toggle-sub]'); if(tsub){tsub.closest('.sb-chat').classList.toggle('open');e.stopPropagation();return;}
     if(e.target.closest('[data-toggle-art]')){app.classList.toggle('artifact-open');return;}
     if(e.target.closest('[data-open-sb]')){sb.classList.add('open');scrim.classList.add('open');return;}
     if(e.target.closest('[data-close-sb]')||e.target===scrim){closeSb();return;}
