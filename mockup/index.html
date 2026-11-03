@@ -47,13 +47,11 @@ code,pre,.mono{font-family:var(--mono)}
 .sb-nav .sb-item{font-weight:500;color:var(--fg)}
 .sb-nav .sb-item.on{background:var(--panel);box-shadow:0 0 0 1px var(--line)}
 /* Model tags */
-.mtag{font-size:10px;padding:1px 6px;border-radius:999px;background:var(--panel-2);color:var(--fg-2);border:1px solid var(--line);white-space:nowrap}
-.mtag.coding{color:#6d28d9;border-color:#c4b5fd;background:rgba(124,58,237,.08)}
-.mtag.images{color:#be185d;border-color:#f9a8d4;background:rgba(190,24,93,.08)}
-.mtag.cheap{color:#15803d;border-color:#86efac;background:rgba(21,128,61,.08)}
-.mtag.vision{color:#0369a1;border-color:#7dd3fc;background:rgba(3,105,161,.08)}
-.mtag.reasoning{color:#b45309;border-color:#fcd34d;background:rgba(180,83,9,.08)}
-.mtag.local{color:var(--fg-2)}
+.mtag{--tc:var(--fg-2);font-size:10px;padding:1px 6px;border-radius:999px;color:var(--tc);border:1px solid color-mix(in srgb,var(--tc) 45%,transparent);background:color-mix(in srgb,var(--tc) 10%,transparent);white-space:nowrap}
+.swatches{display:flex;gap:6px}
+.swatches button{width:18px;height:18px;border-radius:50%;border:2px solid transparent}
+.swatches button.on{border-color:var(--fg)}
+.tagedit select{border:1px dashed var(--line-2);background:transparent;border-radius:999px;font-size:11px;padding:1px 6px;color:var(--fg-3);outline:none}
 .mtags{display:flex;gap:4px;flex-wrap:wrap}
 .menu-item .mtags{margin-left:6px}
 .menu-item .right{margin-left:auto}
@@ -64,8 +62,6 @@ code,pre,.mono{font-family:var(--mono)}
 .tagedit{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
 .tagedit .mtag{cursor:pointer}
 .tagedit .mtag::after{content:" ×";opacity:.5}
-.tagedit input{border:1px dashed var(--line-2);background:transparent;border-radius:999px;font-size:11px;padding:1px 8px;width:76px;outline:none}
-.tagedit input:focus{border-color:var(--accent)}
 /* Artifacts gallery */
 .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
 .gcard{text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
@@ -498,17 +494,15 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
       <div class="composer-wrap">
         <div class="composer">
           <textarea id="composer" rows="1" placeholder="Message Crosspoint… (/ for commands, @ for files)"></textarea>
-          <div class="chips">
-            <span class="pill on"><svg viewBox="0 0 24 24" style="width:13px;height:13px"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg> Web search</span>
-            <span class="pill on">Code interpreter</span>
-            <span class="pill">GitHub MCP</span>
-            <span class="pill">Filesystem MCP</span>
-          </div>
           <div class="row">
-            <button class="iconbtn" title="Attach"><svg viewBox="0 0 24 24"><path d="m21 11.5-8.5 8.5a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8-8"/></svg></button>
             <div class="slash">
-              <button class="iconbtn" id="toolsBtn" title="Tools"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg></button>
-              <div class="menu" id="toolsMenu">
+              <button class="iconbtn" id="toolsBtn" title="Add files, tools and connectors"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+              <div class="menu" id="toolsMenu" style="max-height:min(70vh,560px);overflow:auto">
+                <div class="eyebrow">Add</div>
+                <button class="menu-item"><svg viewBox="0 0 24 24"><path d="m21 11.5-8.5 8.5a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8-8"/></svg> Upload files or images</button>
+                <button class="menu-item"><svg viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h2l1.5-2h5L16 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></svg> Take photo</button>
+                <button class="menu-item"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Add from GitHub or Drive</button>
+                <button class="menu-item"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg> Add project knowledge</button>
                 <div class="eyebrow">Tools</div>
                 <button class="menu-item"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg> Web search <span class="switch on"></span></button>
                 <button class="menu-item"><svg viewBox="0 0 24 24"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg> Code interpreter <span class="switch on"></span></button>
@@ -516,18 +510,21 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
                 <button class="menu-item"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg> Deep research <span class="switch"></span></button>
                 <button class="menu-item"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 22h8M12 18v4"/></svg> Computer use <span class="switch"></span></button>
                 <button class="menu-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M12 8v8"/></svg> Image generation <span class="switch"></span></button>
-                <div class="eyebrow">MCP servers</div>
+                <div class="eyebrow">Connectors (MCP)</div>
                 <button class="menu-item">GitHub <span class="sub">12 tools</span><span class="switch on"></span></button>
                 <button class="menu-item">Filesystem <span class="sub">7 tools</span><span class="switch"></span></button>
                 <button class="menu-item">Google Calendar <span class="sub">6 tools</span><span class="switch"></span></button>
+                <button class="menu-item" data-go="settings" data-tab-go="mcp"><span class="muted">Manage connectors…</span></button>
                 <div class="eyebrow">Skills</div>
-                <button class="menu-item">/syllabus · /quiz · /apa-cite <span class="right">auto</span></button>
+                <button class="menu-item">/syllabus <span class="sub">Course syllabus from objectives</span></button>
+                <button class="menu-item">/quiz <span class="sub">Quiz items from objectives</span></button>
+                <button class="menu-item">/apa-cite <span class="sub">APA 7 references</span></button>
               </div>
             </div>
             <div class="slash">
               <button class="pill" id="modelBtn">Claude Sonnet 5.5 <svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="m6 9 6 6 6-6"/></svg></button>
               <div class="menu model-menu" id="modelMenu">
-                <div class="tagfilter" id="tagFilter"><button class="on" data-tag="">All</button><button data-tag="coding">coding</button><button data-tag="images">images</button><button data-tag="vision">vision</button><button data-tag="reasoning">reasoning</button><button data-tag="cheap">cheap</button><button data-tag="local">local</button></div>
+                <div class="tagfilter" id="tagFilter"><button class="on" data-tag="">All</button></div>
                 <div class="eyebrow">OpenRouter</div>
                 <button class="menu-item on" data-tags="coding vision reasoning">Claude Sonnet 5.5 <span class="sub">anthropic/claude-sonnet-5.5 · 1M ctx</span><span class="right">$3 / $15</span></button>
                 <button class="menu-item" data-tags="coding vision images reasoning">GPT-5.5 <span class="sub">openai/gpt-5.5 · 400K ctx</span><span class="right">$2.5 / $10</span></button>
@@ -684,7 +681,7 @@ Tests: 1 failed, 20 passed · 2.4s
           </div>
         </div></div>
       </div>
-      <div class="composer-wrap"><div class="composer"><textarea rows="1" placeholder="Tell the agent what to change…"></textarea><div class="row"><button class="iconbtn"><svg viewBox="0 0 24 24"><path d="m21 11.5-8.5 8.5a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8-8"/></svg></button><span class="pill">Opus 5.5</span><span class="grow"></span><button class="send"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div></div></div>
+      <div class="composer-wrap"><div class="composer"><textarea rows="1" placeholder="Tell the agent what to change…"></textarea><div class="row"><button class="iconbtn" title="Add files, tools and connectors"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button><span class="pill">Opus 5.5</span><span class="grow"></span><button class="send"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div></div></div>
     </section>
 
     <!-- ---- DEEP RESEARCH ---- -->
@@ -768,17 +765,25 @@ Tests: 1 failed, 20 passed · 2.4s
               </tbody></table></div>
               <button class="btn sm" style="margin-top:10px">Add rule</button>
             </div>
-            <div class="card"><h3>Model tags <span class="tag">filter the model picker · type a tag and press Enter · click a tag to remove</span></h3>
+            <div class="card"><h3>Your tags <span class="tag">you decide the tags; they filter the model picker</span></h3>
+              <div class="tagedit" id="tagRegistry" style="margin-bottom:10px"></div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input class="input" id="newTag" placeholder="New tag, e.g. writing" style="width:180px">
+                <span class="swatches" id="swatches"></span>
+                <button class="btn sm primary" id="addTagBtn">Add tag</button>
+              </div>
+            </div>
+            <div class="card"><h3>Tags per model <span class="tag">pick from your tags · click a tag to remove it</span></h3>
               <div class="tablewrap"><table id="tagTable"><thead><tr><th>Model</th><th>Provider</th><th>Tags</th></tr></thead><tbody>
-                <tr data-model="Claude Sonnet 5.5"><td>Claude Sonnet 5.5</td><td class="muted">OpenRouter</td><td><div class="tagedit"><span class="mtag coding">coding</span><span class="mtag vision">vision</span><span class="mtag reasoning">reasoning</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
-                <tr data-model="GPT-5.5"><td>GPT-5.5</td><td class="muted">OpenRouter</td><td><div class="tagedit"><span class="mtag coding">coding</span><span class="mtag vision">vision</span><span class="mtag images">images</span><span class="mtag reasoning">reasoning</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
-                <tr data-model="Gemini 3 Pro"><td>Gemini 3 Pro</td><td class="muted">OpenRouter</td><td><div class="tagedit"><span class="mtag vision">vision</span><span class="mtag images">images</span><span class="mtag reasoning">reasoning</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
-                <tr data-model="DeepSeek V4"><td>DeepSeek V4</td><td class="muted">OpenRouter</td><td><div class="tagedit"><span class="mtag coding">coding</span><span class="mtag cheap">cheap</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
-                <tr data-model="FLUX 2 Pro"><td>FLUX 2 Pro</td><td class="muted">OpenRouter</td><td><div class="tagedit"><span class="mtag images">images</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
-                <tr data-model="Claude Opus 5.5"><td>Claude Opus 5.5</td><td class="muted">Anthropic</td><td><div class="tagedit"><span class="mtag coding">coding</span><span class="mtag vision">vision</span><span class="mtag reasoning">reasoning</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
-                <tr data-model="Claude Haiku 5.5"><td>Claude Haiku 5.5</td><td class="muted">Anthropic</td><td><div class="tagedit"><span class="mtag cheap">cheap</span><span class="mtag vision">vision</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
-                <tr data-model="Llama 4 70B"><td>Llama 4 70B</td><td class="muted">LM Studio</td><td><div class="tagedit"><span class="mtag local">local</span><span class="mtag cheap">cheap</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
-                <tr data-model="Qwen3 Coder"><td>Qwen3 Coder</td><td class="muted">Groq</td><td><div class="tagedit"><span class="mtag coding">coding</span><span class="mtag cheap">cheap</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
+                <tr data-model="Claude Sonnet 5.5"><td>Claude Sonnet 5.5</td><td class="muted">OpenRouter</td><td></td></tr>
+                <tr data-model="GPT-5.5"><td>GPT-5.5</td><td class="muted">OpenRouter</td><td></td></tr>
+                <tr data-model="Gemini 3 Pro"><td>Gemini 3 Pro</td><td class="muted">OpenRouter</td><td></td></tr>
+                <tr data-model="DeepSeek V4"><td>DeepSeek V4</td><td class="muted">OpenRouter</td><td></td></tr>
+                <tr data-model="FLUX 2 Pro"><td>FLUX 2 Pro</td><td class="muted">OpenRouter</td><td></td></tr>
+                <tr data-model="Claude Opus 5.5"><td>Claude Opus 5.5</td><td class="muted">Anthropic</td><td></td></tr>
+                <tr data-model="Claude Haiku 5.5"><td>Claude Haiku 5.5</td><td class="muted">Anthropic</td><td></td></tr>
+                <tr data-model="Llama 4 70B"><td>Llama 4 70B</td><td class="muted">LM Studio</td><td></td></tr>
+                <tr data-model="Qwen3 Coder"><td>Qwen3 Coder</td><td class="muted">Groq</td><td></td></tr>
               </tbody></table></div>
             </div>
           </section>
@@ -954,9 +959,12 @@ draw(document.getElementById(<span class="s">"c"</span>), data);
     const seg=e.target.closest('.seg button'); if(seg){seg.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===seg));return;}
     if(e.target.closest('#toolsBtn')){toggleMenu('#toolsMenu');return;}
     if(e.target.closest('#modelBtn')){toggleMenu('#modelMenu');return;}
-    const tf=e.target.closest('#tagFilter button'); if(tf){$$('#tagFilter button').forEach(b=>b.classList.toggle('on',b===tf));filterModels(tf.dataset.tag);e.stopPropagation();return;}
+    const tf=e.target.closest('#tagFilter button'); if(tf){activeFilter=tf.dataset.tag;$$('#tagFilter button').forEach(b=>b.classList.toggle('on',b===tf));filterModels(activeFilter);e.stopPropagation();return;}
     const mi=e.target.closest('#modelMenu .menu-item'); if(mi){$$('#modelMenu .menu-item').forEach(b=>b.classList.toggle('on',b===mi));$('#modelBtn').firstChild.textContent=mi.firstChild.textContent.trim()+' ';closeMenus();return;}
-    const rm=e.target.closest('.tagedit .mtag'); if(rm){const row=rm.closest('tr');rm.remove();syncTags(row);return;}
+    const rm=e.target.closest('#tagTable .mtag'); if(rm){const row=rm.closest('tr');modelTags[row.dataset.model]=modelTags[row.dataset.model].filter(t=>t!==rm.dataset.t);renderAllTags();return;}
+    const rg=e.target.closest('#tagRegistry .mtag'); if(rg){const t=rg.dataset.t;delete userTags[t];Object.keys(modelTags).forEach(m=>modelTags[m]=modelTags[m].filter(x=>x!==t));renderAllTags();return;}
+    const swb=e.target.closest('#swatches button'); if(swb){$$('#swatches button').forEach(b=>b.classList.toggle('on',b===swb));return;}
+    if(e.target.closest('#addTagBtn')){addUserTag();return;}
     const ts=e.target.closest('[data-theme-set]'); if(ts){const v=ts.dataset.themeSet; if(v)document.documentElement.dataset.theme=v; else delete document.documentElement.dataset.theme; $$('#themeSeg button').forEach(b=>b.classList.toggle('on',b===ts));return;}
     if(e.target.closest('#palTheme')){toggleTheme();return;}
     if(e.target===pal){openPal(false);return;}
@@ -977,27 +985,47 @@ draw(document.getElementById(<span class="s">"c"</span>), data);
   });
   const ta=$('#composer'); ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(200,ta.scrollHeight)+'px';});
 
-  // Model tags: picker chips, filter, and the settings editor
+  // Model tags. The user owns the tag list (Settings > Models > Your tags) and assigns tags per model.
+  // Example data below stands in for what the real app would store per user.
+  const PALETTE=['#6d28d9','#be185d','#15803d','#0369a1','#b45309','#0f766e','#64748b','#dc2626'];
+  const userTags={coding:'#6d28d9',images:'#be185d',cheap:'#15803d',vision:'#0369a1',reasoning:'#b45309',local:'#64748b'};
+  const modelTags={};
+  $$('#modelMenu .menu-item[data-tags]').forEach(i=>{modelTags[i.firstChild.textContent.trim()]=tagsOf(i);});
   function tagsOf(item){return (item.dataset.tags||'').split(' ').filter(Boolean);}
-  function renderChips(item){
-    let box=item.querySelector('.mtags'); if(!box){box=document.createElement('span');box.className='mtags';item.querySelector('.sub').after(box);}
-    box.innerHTML=tagsOf(item).map(t=>'<span class="mtag '+t+'">'+t+'</span>').join('');
+  function chip(t,extra){return '<span class="mtag" data-t="'+t+'" style="--tc:'+(userTags[t]||'var(--fg-2)')+'"'+(extra||'')+'>'+t+'</span>';}
+  let activeFilter='';
+  function renderAllTags(){
+    // picker chips + filter
+    $$('#modelMenu .menu-item[data-tags]').forEach(item=>{
+      const name=item.firstChild.textContent.trim(), tags=(modelTags[name]||[]).filter(t=>userTags[t]);
+      item.dataset.tags=tags.join(' ');
+      let box=item.querySelector('.mtags'); if(!box){box=document.createElement('span');box.className='mtags';item.querySelector('.sub').after(box);}
+      box.innerHTML=tags.map(t=>chip(t)).join('');
+    });
+    if(activeFilter&&!userTags[activeFilter])activeFilter='';
+    $('#tagFilter').innerHTML='<button'+(activeFilter?'':' class="on"')+' data-tag="">All</button>'+Object.keys(userTags).map(t=>'<button data-tag="'+t+'"'+(activeFilter===t?' class="on"':'')+'>'+t+'</button>').join('');
+    filterModels(activeFilter);
+    // settings: registry + per-model editors
+    $('#tagRegistry').innerHTML=Object.keys(userTags).map(t=>chip(t,' title="Remove tag"')).join('')||'<span class="faint">No tags yet.</span>';
+    $$('#tagTable tr[data-model]').forEach(row=>{
+      const name=row.dataset.model, tags=(modelTags[name]||[]).filter(t=>userTags[t]);
+      const free=Object.keys(userTags).filter(t=>!tags.includes(t));
+      row.lastElementChild.innerHTML='<div class="tagedit">'+tags.map(t=>chip(t,' title="Remove"')).join('')+
+        (free.length?'<select aria-label="Add tag"><option value="">+ tag</option>'+free.map(t=>'<option>'+t+'</option>').join('')+'</select>':'')+'</div>';
+    });
+    if(!$('#swatches').children.length)$('#swatches').innerHTML=PALETTE.map((c,i)=>'<button data-c="'+c+'" style="background:'+c+'"'+(i?'':' class="on"')+' title="Tag color"></button>').join('');
   }
-  function filterModels(tag){$$('#modelMenu .menu-item').forEach(i=>i.classList.toggle('hide',!!tag&&!tagsOf(i).includes(tag)));}
-  function syncTags(row){
-    const name=row.dataset.model, tags=[...row.querySelectorAll('.mtag')].map(s=>s.textContent.trim());
-    const item=$$('#modelMenu .menu-item').find(i=>i.firstChild.textContent.trim()===name);
-    if(item){item.dataset.tags=tags.join(' ');renderChips(item);}
-    const known=new Set($$('#tagFilter button').map(b=>b.dataset.tag));
-    tags.forEach(t=>{if(!known.has(t)){const b=document.createElement('button');b.dataset.tag=t;b.textContent=t;$('#tagFilter').appendChild(b);}});
+  function filterModels(tag){$$('#modelMenu .menu-item[data-tags]').forEach(i=>i.classList.toggle('hide',!!tag&&!tagsOf(i).includes(tag)));}
+  function addUserTag(){
+    const inp=$('#newTag'), t=inp.value.trim().toLowerCase().replace(/[^a-z0-9-]/g,''); if(!t||userTags[t])return;
+    userTags[t]=($('#swatches .on')||{}).dataset?.c||PALETTE[0]; inp.value=''; renderAllTags();
   }
-  $$('#modelMenu .menu-item').forEach(renderChips);
-  $$('.tagedit input').forEach(inp=>inp.addEventListener('keydown',e=>{
-    if(e.key!=='Enter')return; e.preventDefault();
-    const t=inp.value.trim().toLowerCase().replace(/[^a-z0-9-]/g,''); if(!t)return;
-    const box=inp.parentElement; if([...box.querySelectorAll('.mtag')].some(s=>s.textContent.trim()===t)){inp.value='';return;}
-    const s=document.createElement('span');s.className='mtag '+t;s.textContent=t;inp.before(s);inp.value='';syncTags(inp.closest('tr'));
-  }));
+  $('#newTag').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addUserTag();}});
+  document.addEventListener('change',e=>{
+    const sel=e.target.closest('#tagTable select'); if(!sel||!sel.value)return;
+    const m=sel.closest('tr').dataset.model; (modelTags[m]=modelTags[m]||[]).push(sel.value); renderAllTags();
+  });
+  renderAllTags();
   const h=(location.hash||'').slice(1);
   if(screens[h])show(h);
 })();
