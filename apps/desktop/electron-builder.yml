@@ -1,0 +1,41 @@
+appId: com.docmoates.crosspoint
+productName: Crosspoint Chat
+copyright: Copyright (c) 2026 Michael Moates
+directories:
+  buildResources: build
+  output: release/${version}
+files:
+  - out/**
+  - package.json
+  - '!**/*.{map,ts,tsx}'
+  - '!src/**'
+  - '!test/**'
+asarUnpack:
+  - '**/node_modules/better-sqlite3/**'
+  - '**/*.node'
+protocols:
+  - name: Crosspoint Chat
+    schemes:
+      - crosspoint
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  executableName: Crosspoint Chat
+  # Unsigned builds are allowed; set CSC_LINK / CSC_KEY_PASSWORD in the environment to sign.
+  signAndEditExecutable: true
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Crosspoint Chat
+  uninstallDisplayName: Crosspoint Chat
+  artifactName: Crosspoint-Chat-Setup-${version}.${ext}
+publish:
+  provider: github
+  owner: docmoates
+  repo: Crosspoint-Chat
+  releaseType: release
+npmRebuild: true
