@@ -1,0 +1,928 @@
+<!doctype html>
+<title>Crosspoint Chat</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 3-pane app shell (sidebar | thread | artifact), collapsing to a single column with a drawer and a bottom composer under 900px. */
+:root{
+  --bg:#f6f7f8; --panel:#ffffff; --panel-2:#eef0f2; --line:#dfe3e7; --line-2:#cbd1d7;
+  --fg:#141a1f; --fg-2:#4b5660; --fg-3:#7c8792;
+  --accent:#0f766e; --accent-soft:#d9efec; --accent-fg:#ffffff;
+  --user-bubble:#e8edf1; --thinking:#f3f0e8;
+  --ok:#16a34a; --warn:#d97706; --bad:#dc2626;
+  --font:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"Geist Mono",ui-monospace,Consolas,monospace;
+  --r:10px; --r-lg:16px;
+  --shadow:0 10px 30px rgba(20,26,31,.12);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1316; --panel:#161b1f; --panel-2:#1e2529; --line:#262e34; --line-2:#36414a;
+  --fg:#e8ecef; --fg-2:#aab4bd; --fg-3:#6f7c87;
+  --accent:#2dd4bf; --accent-soft:#163a37; --accent-fg:#06201d;
+  --user-bubble:#222b31; --thinking:#231f17;
+  --shadow:0 10px 30px rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1316; --panel:#161b1f; --panel-2:#1e2529; --line:#262e34; --line-2:#36414a;
+  --fg:#e8ecef; --fg-2:#aab4bd; --fg-3:#6f7c87;
+  --accent:#2dd4bf; --accent-soft:#163a37; --accent-fg:#06201d;
+  --user-bubble:#222b31; --thinking:#231f17;
+  --shadow:0 10px 30px rgba(0,0,0,.5); color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 var(--font);display:flex;flex-direction:column;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+h1,h2,h3{margin:0;text-wrap:balance;font-weight:600}
+code,pre,.mono{font-family:var(--mono)}
+.muted{color:var(--fg-2)}.faint{color:var(--fg-3)}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-3);font-weight:600}
+
+/* Screen switcher (reviewer bar) */
+#switcher{display:flex;gap:4px;align-items:center;padding:6px max(12px,env(safe-area-inset-right,0px)) 6px max(12px,env(safe-area-inset-left,0px));background:var(--fg);color:var(--bg);font-size:12px;overflow-x:auto;flex:none}
+#switcher .lbl{opacity:.6;margin-right:6px;white-space:nowrap}
+#switcher button{padding:4px 10px;border-radius:999px;color:inherit;opacity:.75;white-space:nowrap}
+#switcher button.on{background:var(--accent);color:var(--accent-fg);opacity:1}
+#switcher .spacer{flex:1}
+
+/* App shell */
+#app{flex:1;min-height:0;display:grid;grid-template-columns:260px 1fr 0}
+#app.artifact-open{grid-template-columns:260px 1fr minmax(380px,44%)}
+.screen{display:none;min-width:0;min-height:0}
+.screen.on{display:flex;flex-direction:column}
+
+/* Sidebar */
+#sidebar{background:var(--panel-2);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;padding-left:env(safe-area-inset-left,0px)}
+.sb-top{padding:12px 12px 6px;display:flex;align-items:center;gap:8px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:600;flex:1}
+.brand .logo{width:24px;height:24px;border-radius:7px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-size:12px;font-weight:700}
+.iconbtn{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:var(--fg-2)}
+.iconbtn:hover{background:var(--line)}
+.newchat{margin:6px 12px;display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r);background:var(--panel);border:1px solid var(--line);font-weight:500}
+.newchat kbd{margin-left:auto}
+kbd{font:11px var(--mono);color:var(--fg-3);border:1px solid var(--line-2);border-radius:4px;padding:0 5px}
+.sb-search{margin:0 12px 8px;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r);color:var(--fg-3);background:transparent}
+.sb-scroll{flex:1;overflow-y:auto;padding:0 8px 8px}
+.sb-group{margin-top:12px}
+.sb-group .eyebrow{padding:4px 8px 6px}
+.sb-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;color:var(--fg-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;text-align:left}
+.sb-item:hover{background:var(--line)}
+.sb-item.on{background:var(--panel);color:var(--fg);box-shadow:0 0 0 1px var(--line)}
+.sb-item span{overflow:hidden;text-overflow:ellipsis}
+.sb-item .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
+.sb-bottom{border-top:1px solid var(--line);padding:10px 12px;display:flex;align-items:center;gap:10px}
+.avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#7c3aed);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}
+.sb-bottom .who{flex:1;min-width:0;line-height:1.2}
+.sb-bottom .who small{display:block;color:var(--fg-3)}
+
+/* Main column */
+#main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--bg)}
+.topbar{height:48px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--line);flex:none;background:var(--bg)}
+.topbar .title{font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-size:12px;color:var(--fg-2);white-space:nowrap}
+.pill.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.thread{flex:1;overflow-y:auto;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.thread-inner{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+.msg{display:flex;flex-direction:column;gap:6px;min-width:0}
+.msg.user{align-items:flex-end}
+.msg.user .bubble{background:var(--user-bubble);padding:10px 14px;border-radius:var(--r-lg) var(--r-lg) 4px var(--r-lg);max-width:80%}
+.msg .meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--fg-3)}
+.msg .meta .model{display:inline-flex;align-items:center;gap:4px;color:var(--fg-2)}
+.msg .body{max-width:68ch;display:flex;flex-direction:column;gap:12px;min-width:0}
+.msg .body p{margin:0}
+.msg .body ul{margin:0;padding-left:20px}
+.attach{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);background:var(--panel);border-radius:8px;font-size:12px;color:var(--fg-2)}
+.actions{display:flex;gap:2px;opacity:.65}
+.actions button{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;color:var(--fg-2)}
+.actions button:hover{background:var(--line)}
+.actions .cost{margin-left:6px;align-self:center;font-size:11px;color:var(--fg-3);font-variant-numeric:tabular-nums}
+.cite{font-size:10px;vertical-align:super;color:var(--accent);font-weight:600;margin-left:1px}
+
+/* collapsible block */
+details.block{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);overflow:hidden}
+details.block summary{list-style:none;display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;color:var(--fg-2);font-size:13px}
+details.block summary::-webkit-details-marker{display:none}
+details.block summary .chev{margin-left:auto;transition:transform .15s}
+details.block[open] summary .chev{transform:rotate(90deg)}
+details.block .inner{border-top:1px solid var(--line);padding:10px 12px;font-size:13px;color:var(--fg-2)}
+details.thinking{background:var(--thinking)}
+.tool-card .inner{display:flex;flex-direction:column;gap:8px}
+.result{display:flex;gap:10px;align-items:flex-start}
+.result .fav{width:16px;height:16px;border-radius:4px;background:var(--line-2);flex:none;margin-top:3px}
+.result a{color:var(--fg);text-decoration:none;font-weight:500}
+.result small{display:block;color:var(--fg-3)}
+.status-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--fg-3)}
+.spin{width:12px;height:12px;border:2px solid var(--line-2);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+
+pre.code{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;font-size:12.5px;line-height:1.55}
+pre.code .bar{display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--line);font-family:var(--font);font-size:12px;color:var(--fg-3)}
+pre.code .bar button{margin-left:auto;display:inline-flex;align-items:center;gap:4px;color:var(--fg-2)}
+pre.code .bar button+button{margin-left:0}
+pre.code .src{padding:12px 14px;overflow-x:auto;display:block}
+.k{color:#7c3aed}.s{color:#0e7490}.c{color:var(--fg-3)}.f{color:#b45309}
+:root[data-theme="dark"] .k{color:#c4b5fd}:root[data-theme="dark"] .s{color:#67e8f9}:root[data-theme="dark"] .f{color:#fcd34d}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .k{color:#c4b5fd}:root:not([data-theme="light"]) .s{color:#67e8f9}:root:not([data-theme="light"]) .f{color:#fcd34d}}
+.diff{font-size:12px;line-height:1.6;overflow-x:auto}
+.diff div{padding:0 10px;white-space:pre}
+.diff .add{background:rgba(22,163,74,.12);color:var(--fg)}
+.diff .del{background:rgba(220,38,38,.12);color:var(--fg)}
+.diff .hunk{color:var(--fg-3)}
+.artifact-chip{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);width:100%;text-align:left}
+.artifact-chip:hover{border-color:var(--accent)}
+.artifact-chip .ic{width:36px;height:36px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.artifact-chip b{display:block;font-weight:500}
+.artifact-chip small{color:var(--fg-3)}
+.artifact-chip .v{margin-left:auto;font-size:11px;color:var(--fg-3)}
+
+/* Composer */
+.composer-wrap{flex:none;padding:8px max(16px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:var(--bg)}
+.composer{max-width:760px;margin:0 auto;border:1px solid var(--line-2);background:var(--panel);border-radius:var(--r-lg);box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.composer:focus-within{border-color:var(--accent)}
+.composer textarea{width:100%;border:0;background:transparent;resize:none;padding:12px 14px 4px;min-height:48px;max-height:200px;outline:none}
+.composer .chips{display:flex;gap:6px;padding:0 10px 6px;flex-wrap:wrap}
+.composer .row{display:flex;align-items:center;gap:4px;padding:4px 8px 8px}
+.composer .row .grow{flex:1}
+.send{width:32px;height:32px;border-radius:50%;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center}
+.hint{max-width:760px;margin:6px auto 0;font-size:11px;color:var(--fg-3);text-align:center}
+.slash{position:relative}
+.menu{position:absolute;bottom:calc(100% + 6px);left:0;min-width:260px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:6px;z-index:5;display:none}
+.menu.open{display:block}
+.menu .eyebrow{padding:6px 8px 4px}
+.menu-item{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:7px;width:100%;text-align:left}
+.menu-item:hover{background:var(--panel-2)}
+.menu-item .sub{display:block;font-size:11px;color:var(--fg-3)}
+.menu-item .right{margin-left:auto;font-size:11px;color:var(--fg-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.menu-item .tick{margin-left:auto;color:var(--accent)}
+.switch{width:30px;height:18px;border-radius:999px;background:var(--line-2);position:relative;margin-left:auto;flex:none}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s}
+.switch.on{background:var(--accent)}.switch.on::after{left:14px}
+.model-menu{min-width:340px}
+.model-menu .menu-item.on{background:var(--accent-soft)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;font-size:12px}
+.seg button{padding:3px 10px;border-radius:999px;color:var(--fg-2)}
+.seg button.on{background:var(--fg);color:var(--bg)}
+
+/* Artifact pane */
+#artpane{border-left:1px solid var(--line);background:var(--panel);display:none;flex-direction:column;min-width:0;min-height:0}
+#app.artifact-open #artpane{display:flex}
+.art-head{height:48px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--line);flex:none}
+.art-head .title{flex:1;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabs{display:flex;gap:2px;background:var(--panel-2);border-radius:8px;padding:2px}
+.tabs button{padding:4px 10px;border-radius:6px;font-size:12px;color:var(--fg-2)}
+.tabs button.on{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.art-body{flex:1;overflow:auto;min-height:0}
+.art-view{display:none;height:100%}
+.art-view.on{display:block}
+.preview-frame{padding:20px;min-height:100%;background:var(--bg)}
+.demo-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;max-width:420px;margin:0 auto;font-size:13px}
+.demo-card h3{font-size:15px;margin-bottom:10px}
+.bars{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:120px;margin:10px 0}
+.bars div{background:var(--accent);border-radius:4px 4px 0 0;opacity:.85}
+.bars div:last-child{opacity:1}
+.ax{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;font-size:10px;color:var(--fg-3);text-align:center}
+.versions{padding:12px;display:flex;flex-direction:column;gap:6px}
+.ver{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid var(--line)}
+.ver.on{border-color:var(--accent);background:var(--accent-soft)}
+.ver b{font-weight:500}.ver small{color:var(--fg-3);margin-left:auto;white-space:nowrap}
+.art-foot{border-top:1px solid var(--line);padding:8px 12px;display:flex;gap:6px;flex:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);font-size:13px;font-weight:500;color:var(--fg)}
+.btn:hover{background:var(--panel-2)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:transparent}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:4px 9px;font-size:12px}
+.doc-art{padding:28px;max-width:60ch;margin:0 auto;line-height:1.65}
+.doc-art h2{font-size:20px;margin-bottom:8px}
+.doc-art p{margin:0 0 12px}
+
+/* Generic page screens */
+.page{flex:1;overflow:auto;padding:24px max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px))}
+.page-inner{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.page h1{font-size:22px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.card h3{font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.list{display:flex;flex-direction:column}
+.list .row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);min-width:0}
+.list .row:first-child{border-top:0}
+.list .row .grow{flex:1;min-width:0}
+.list .row .grow small{display:block;color:var(--fg-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sdot{width:8px;height:8px;border-radius:50%;flex:none}
+.sdot.ok{background:var(--ok)}.sdot.warn{background:var(--warn)}.sdot.bad{background:var(--bad)}.sdot.off{background:var(--line-2)}
+.input{width:100%;padding:8px 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--panel);min-width:0}
+textarea.input{min-height:80px;resize:vertical}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--fg-2);min-width:0}
+.formrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 10px;border-top:1px solid var(--line)}
+th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
+.tablewrap{overflow-x:auto}
+
+/* Agent workspace */
+.ws{flex:1;display:grid;grid-template-columns:220px 1fr 300px;grid-template-rows:1fr 180px;min-height:0;gap:0}
+.ws>div{border-right:1px solid var(--line);min-width:0;min-height:0;display:flex;flex-direction:column;background:var(--panel)}
+.ws .files{grid-row:1/3}
+.ws .right{grid-row:1/3;border-right:0;background:var(--bg)}
+.ws .editor{background:var(--bg)}
+.ws .term{border-top:1px solid var(--line);background:#0b0f12;color:#cfd8df}
+.ws .ph{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);font-size:12px;color:var(--fg-2);flex:none}
+.tree{padding:6px 8px;overflow:auto;font-size:13px}
+.tree div{padding:3px 6px;border-radius:5px;white-space:nowrap;display:flex;gap:6px;align-items:center;color:var(--fg-2)}
+.tree div.on{background:var(--accent-soft);color:var(--fg)}
+.tree .d1{padding-left:18px}.tree .d2{padding-left:30px}
+.tree .mod{margin-left:auto;font-size:10px;color:var(--warn);font-weight:600}
+.term pre{margin:0;padding:10px 12px;overflow:auto;font-size:12px;line-height:1.5;flex:1}
+.term .p{color:#2dd4bf}.term .ok{color:#4ade80}.term .err{color:#f87171}
+.editor .src{padding:12px 14px;overflow:auto;font-size:12.5px;line-height:1.55;font-family:var(--mono);flex:1}
+.editor .src div{white-space:pre}
+.editor .ln{display:inline-block;width:28px;color:var(--fg-3);user-select:none}
+.right .inner{padding:12px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.tasklist{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.tasklist div{display:flex;gap:8px;align-items:flex-start}
+.tasklist .box{width:14px;height:14px;border:1.5px solid var(--line-2);border-radius:4px;flex:none;margin-top:3px}
+.tasklist .done .box{background:var(--accent);border-color:var(--accent)}
+.tasklist .done{color:var(--fg-3);text-decoration:line-through}
+.tasklist .cur{font-weight:500}
+.perm{border:1px solid var(--warn);background:var(--panel)}
+.perm h3{color:var(--warn)}
+.perm code{display:block;background:var(--panel-2);padding:6px 8px;border-radius:6px;font-size:12px;margin:6px 0 10px}
+.perm .btns{display:flex;gap:6px;flex-wrap:wrap}
+
+/* Research */
+.steps{display:flex;flex-direction:column;gap:0}
+.step{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.step:first-child{border-top:0}
+.step .ic{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--accent-soft);color:var(--accent)}
+.step.todo .ic{background:var(--panel-2);color:var(--fg-3)}
+.step .t{flex:1;min-width:0}
+.step .t small{display:block;color:var(--fg-3)}
+.progress{height:6px;border-radius:999px;background:var(--panel-2);overflow:hidden}
+.progress div{height:100%;background:var(--accent);width:62%}
+.srcs{display:flex;flex-wrap:wrap;gap:6px}
+.srcs span{font-size:12px;padding:3px 8px;border:1px solid var(--line);border-radius:999px;color:var(--fg-2)}
+
+/* Settings */
+.settings{flex:1;display:grid;grid-template-columns:220px 1fr;min-height:0}
+.snav{border-right:1px solid var(--line);padding:16px 8px;overflow:auto;background:var(--panel-2)}
+.snav button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:7px 10px;border-radius:8px;color:var(--fg-2)}
+.snav button.on{background:var(--panel);color:var(--fg);box-shadow:0 0 0 1px var(--line)}
+.spane{overflow:auto;padding:24px max(16px,env(safe-area-inset-right,0px)) 40px 24px}
+.spane>section{display:none;max-width:720px;flex-direction:column;gap:16px}
+.spane>section.on{display:flex}
+.spane h2{font-size:18px}
+.setting{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.setting:first-of-type{border-top:0}
+.setting .grow{flex:1;min-width:0}.setting .grow small{display:block;color:var(--fg-3)}
+.note{display:flex;gap:10px;padding:10px 12px;border-radius:8px;background:var(--accent-soft);color:var(--fg);font-size:13px;align-items:flex-start}
+.note a{color:var(--accent);font-weight:500}
+.tag{font-size:11px;padding:2px 7px;border-radius:999px;background:var(--panel-2);color:var(--fg-2);white-space:nowrap}
+
+/* Command palette */
+#palette{position:fixed;inset:0;background:rgba(10,14,18,.45);display:none;align-items:flex-start;justify-content:center;padding:10vh 16px 0;z-index:20}
+#palette.open{display:flex}
+.pal{width:100%;max-width:620px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.pal .in{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.pal input{flex:1;border:0;background:transparent;outline:none;font-size:15px}
+.pal .body{max-height:60vh;overflow:auto;padding:6px}
+.pal .menu-item .kbd{margin-left:auto}
+
+/* Drawer / mobile */
+#scrim{position:fixed;inset:0;background:rgba(10,14,18,.4);display:none;z-index:9}
+#scrim.open{display:block}
+.mob-only{display:none!important}
+@media (max-width:900px){
+  #app,#app.artifact-open{grid-template-columns:1fr}
+  #sidebar{position:fixed;left:0;top:0;bottom:0;width:280px;z-index:10;transform:translateX(-100%);transition:transform .2s;box-shadow:none}
+  #sidebar.open{transform:none;box-shadow:var(--shadow)}
+  .mob-only{display:inline-flex!important}
+  .desk-only{display:none!important}
+  #artpane{position:fixed;inset:0;z-index:12;border:0}
+  #artpane .art-head{padding-top:env(safe-area-inset-top,0px);height:auto;min-height:48px}
+  .ws{grid-template-columns:1fr;grid-template-rows:auto auto auto auto}
+  .ws .files,.ws .right{grid-row:auto}
+  .ws>div{border-right:0;border-bottom:1px solid var(--line)}
+  .ws .files .tree{max-height:160px}
+  .settings{grid-template-columns:1fr}
+  .snav{display:flex;gap:4px;overflow-x:auto;padding:8px;border-right:0;border-bottom:1px solid var(--line)}
+  .snav button{width:auto;white-space:nowrap}
+  .spane{padding:16px}
+  .grid2,.formrow{grid-template-columns:1fr}
+  .msg.user .bubble{max-width:92%}
+  .composer .chips{display:none}
+  .thread{padding-top:16px}
+}
+</style>
+
+<div id="switcher" role="navigation" aria-label="Screen switcher">
+  <span class="lbl">MOCKUP</span>
+  <button data-go="chat" class="on">Chat</button>
+  <button data-go="chat-art">Artifacts</button>
+  <button data-go="projects">Projects</button>
+  <button data-go="agent">Agent</button>
+  <button data-go="research">Research</button>
+  <button data-go="settings">Settings</button>
+  <button data-go="palette">⌘K</button>
+  <span class="spacer"></span>
+  <button id="themeBtn" title="Toggle theme">Theme</button>
+</div>
+
+<div id="scrim"></div>
+
+<div id="app">
+  <!-- ========== SIDEBAR ========== -->
+  <aside id="sidebar">
+    <div class="sb-top">
+      <div class="brand"><span class="logo">X</span> Crosspoint</div>
+      <button class="iconbtn desk-only" title="Collapse"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>
+      <button class="iconbtn mob-only" data-close-sb title="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <button class="newchat" data-go="chat"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> New chat <kbd>Ctrl N</kbd></button>
+    <button class="sb-search" data-go="palette"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg> Search chats <kbd style="margin-left:auto">Ctrl K</kbd></button>
+    <div class="sb-scroll">
+      <div class="sb-group">
+        <div class="eyebrow">Projects</div>
+        <button class="sb-item" data-go="projects"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Crosspoint Chat build</span></button>
+        <button class="sb-item"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>PSYC 301 course</span></button>
+        <button class="sb-item"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Grant: NIH R03</span></button>
+      </div>
+      <div class="sb-group">
+        <div class="eyebrow">Pinned</div>
+        <button class="sb-item on" data-go="chat"><span class="dot"></span><span>OpenRouter streaming adapter</span></button>
+        <button class="sb-item" data-go="agent"><svg viewBox="0 0 24 24"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg><span>Workspace: crosspoint-api</span></button>
+      </div>
+      <div class="sb-group">
+        <div class="eyebrow">Today</div>
+        <button class="sb-item" data-go="research"><span>Deep research: pgvector vs Qdrant</span></button>
+        <button class="sb-item"><span>Rewrite syllabus intro paragraph</span></button>
+        <button class="sb-item"><span>Cloudflare Access for single user</span></button>
+      </div>
+      <div class="sb-group">
+        <div class="eyebrow">Yesterday</div>
+        <button class="sb-item"><span>Compare MCP transports</span></button>
+        <button class="sb-item"><span>Quiz items: operant conditioning</span></button>
+        <button class="sb-item"><span>Android PWA share target</span></button>
+      </div>
+      <div class="sb-group">
+        <div class="eyebrow">Previous 7 days</div>
+        <button class="sb-item"><span>Docker sandbox limits</span></button>
+        <button class="sb-item"><span>Email to department chair</span></button>
+      </div>
+    </div>
+    <div class="sb-bottom">
+      <div class="avatar">MM</div>
+      <div class="who">Michael<small>$4.21 this month · 1.3M tokens</small></div>
+      <button class="iconbtn" data-go="settings" title="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </div>
+  </aside>
+
+  <!-- ========== MAIN ========== -->
+  <main id="main">
+
+    <!-- ---- CHAT ---- -->
+    <section class="screen on" id="s-chat">
+      <div class="topbar">
+        <button class="iconbtn mob-only" data-open-sb title="Menu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+        <div class="title">OpenRouter streaming adapter</div>
+        <span class="pill desk-only"><span class="dot"></span> OpenRouter</span>
+        <button class="pill" data-toggle-art title="Open artifact"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M14 4v16"/></svg><span class="desk-only">Artifact</span></button>
+        <button class="iconbtn" title="More"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button>
+      </div>
+
+      <div class="thread">
+        <div class="thread-inner">
+
+          <div class="msg user">
+            <div class="attach"><svg viewBox="0 0 24 24"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg> providers.ts · 4.1 KB</div>
+            <div class="bubble">Write the OpenRouter adapter for our ChatProvider interface. It needs streaming, tool calls and a usage event at the end. Check what the current OpenRouter docs say about the reasoning param.</div>
+            <div class="actions"><button title="Edit"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button title="Copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button></div>
+          </div>
+
+          <div class="msg assistant">
+            <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg> Claude Sonnet 5.5</span> · via OpenRouter · thinking: medium</div>
+            <div class="body">
+              <details class="block thinking">
+                <summary><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg> Thought for 14 seconds <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary>
+                <div class="inner">The interface wants an AsyncIterable of typed events. OpenRouter follows the OpenAI Chat Completions shape, so I will wrap the SSE stream and map delta.tool_calls into tool_call events, buffering arguments by index until finish_reason arrives. Usage comes in the final chunk when stream_options.include_usage is set. I should verify the reasoning parameter name before writing it.</div>
+              </details>
+
+              <details class="block tool-card" open>
+                <summary><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg> Searched the web: <em>openrouter reasoning parameter streaming</em> <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary>
+                <div class="inner">
+                  <div class="result"><span class="fav"></span><div><a href="#">Reasoning tokens · OpenRouter docs</a><small>openrouter.ai/docs/use-cases/reasoning-tokens</small></div></div>
+                  <div class="result"><span class="fav"></span><div><a href="#">Streaming · OpenRouter API reference</a><small>openrouter.ai/docs/api-reference/streaming</small></div></div>
+                  <div class="result"><span class="fav"></span><div><a href="#">Usage accounting · OpenRouter docs</a><small>openrouter.ai/docs/use-cases/usage-accounting</small></div></div>
+                </div>
+              </details>
+
+              <p>OpenRouter takes a single <code>reasoning</code> object with either <code>effort</code> or <code>max_tokens</code>, and streams the reasoning text back as <code>delta.reasoning</code><span class="cite">1</span>. Usage arrives in the last chunk when you set <code>stream_options.include_usage</code><span class="cite">3</span>. Here is the adapter:</p>
+
+              <pre class="code"><span class="bar"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg> openrouter.ts <button title="Copy"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg> Copy</button><button>Apply to workspace</button></span><span class="src"><span class="k">export</span> <span class="k">async function</span>* <span class="f">stream</span>(req: ChatRequest): AsyncIterable&lt;ChatEvent&gt; {
+  <span class="k">const</span> res = <span class="k">await</span> fetch(<span class="s">`${BASE}/chat/completions`</span>, {
+    method: <span class="s">"POST"</span>,
+    headers: { Authorization: <span class="s">`Bearer ${key}`</span>, <span class="s">"Content-Type"</span>: <span class="s">"application/json"</span> },
+    body: JSON.stringify({
+      model: req.model, messages: toOpenAI(req.messages), tools: req.tools,
+      stream: <span class="k">true</span>, stream_options: { include_usage: <span class="k">true</span> },
+      reasoning: req.effort ? { effort: req.effort } : <span class="k">undefined</span>,
+    }),
+  });
+  <span class="k">for await</span> (<span class="k">const</span> chunk <span class="k">of</span> sse(res.body)) {
+    <span class="k">const</span> d = chunk.choices?.[0]?.delta;
+    <span class="k">if</span> (d?.reasoning) <span class="k">yield</span> { type: <span class="s">"thinking"</span>, text: d.reasoning };
+    <span class="k">if</span> (d?.content)   <span class="k">yield</span> { type: <span class="s">"text"</span>, text: d.content };
+    <span class="k">if</span> (d?.tool_calls) <span class="k">yield</span>* bufferToolCalls(d.tool_calls);
+    <span class="k">if</span> (chunk.usage)  <span class="k">yield</span> { type: <span class="s">"usage"</span>, ...chunk.usage, cost: chunk.usage.cost };
+  }
+  <span class="k">yield</span> { type: <span class="s">"done"</span> };
+}</span></pre>
+
+              <details class="block tool-card">
+                <summary><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Edited <code>packages/providers/src/index.ts</code> <span class="tag">+3 −1</span> <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary>
+                <div class="inner diff"><div class="hunk">@@ -1,4 +1,6 @@</div><div> export * from "./anthropic";</div><div class="del">-export * from "./openai-compat";</div><div class="add">+export * from "./openai-compat";</div><div class="add">+export * from "./openrouter";</div><div class="add">+export { registry } from "./registry";</div></div>
+              </details>
+
+              <button class="artifact-chip" data-toggle-art>
+                <span class="ic"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 4 3 5-7"/></svg></span>
+                <span><b>Provider latency comparison</b><small>Interactive chart · HTML</small></span>
+                <span class="v">v3</span>
+              </button>
+
+              <p class="faint" style="font-size:12px">Sources: <span class="cite">1</span> Reasoning tokens · OpenRouter docs &nbsp; <span class="cite">3</span> Usage accounting · OpenRouter docs</p>
+            </div>
+            <div class="actions">
+              <button title="Copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+              <button title="Regenerate"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button>
+              <button title="Branch"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 8v8M18 10c0 4-12 2-12 8"/></svg></button>
+              <button title="Good"><svg viewBox="0 0 24 24"><path d="M7 11v9H4v-9zM7 11l4-8a2 2 0 0 1 2 2v4h5a2 2 0 0 1 2 2l-1.5 7a2 2 0 0 1-2 2H7"/></svg></button>
+              <button title="Bad"><svg viewBox="0 0 24 24"><path d="M17 13V4h3v9zM17 13l-4 8a2 2 0 0 1-2-2v-4H6a2 2 0 0 1-2-2l1.5-7a2 2 0 0 1 2-2H17"/></svg></button>
+              <span class="cost">2,184 in · 611 out · $0.014</span>
+            </div>
+          </div>
+
+          <div class="msg user"><div class="bubble">Now make it fall back to the Anthropic direct adapter when OpenRouter returns 429.</div></div>
+
+          <div class="msg assistant">
+            <div class="meta"><span class="model">Claude Sonnet 5.5</span> · via OpenRouter</div>
+            <div class="body">
+              <div class="status-row"><span class="spin"></span> Reading <code>packages/providers/src/registry.ts</code>…</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="composer-wrap">
+        <div class="composer">
+          <textarea id="composer" rows="1" placeholder="Message Crosspoint… (/ for commands, @ for files)"></textarea>
+          <div class="chips">
+            <span class="pill on"><svg viewBox="0 0 24 24" style="width:13px;height:13px"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg> Web search</span>
+            <span class="pill on">Code interpreter</span>
+            <span class="pill">GitHub MCP</span>
+            <span class="pill">Filesystem MCP</span>
+          </div>
+          <div class="row">
+            <button class="iconbtn" title="Attach"><svg viewBox="0 0 24 24"><path d="m21 11.5-8.5 8.5a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8-8"/></svg></button>
+            <div class="slash">
+              <button class="iconbtn" id="toolsBtn" title="Tools"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg></button>
+              <div class="menu" id="toolsMenu">
+                <div class="eyebrow">Tools</div>
+                <button class="menu-item"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg> Web search <span class="switch on"></span></button>
+                <button class="menu-item"><svg viewBox="0 0 24 24"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg> Code interpreter <span class="switch on"></span></button>
+                <button class="menu-item"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M14 4v16"/></svg> Artifacts / Canvas <span class="switch on"></span></button>
+                <button class="menu-item"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg> Deep research <span class="switch"></span></button>
+                <button class="menu-item"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 22h8M12 18v4"/></svg> Computer use <span class="switch"></span></button>
+                <button class="menu-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M12 8v8"/></svg> Image generation <span class="switch"></span></button>
+                <div class="eyebrow">MCP servers</div>
+                <button class="menu-item">GitHub <span class="sub">12 tools</span><span class="switch on"></span></button>
+                <button class="menu-item">Filesystem <span class="sub">7 tools</span><span class="switch"></span></button>
+                <button class="menu-item">Google Calendar <span class="sub">6 tools</span><span class="switch"></span></button>
+                <div class="eyebrow">Skills</div>
+                <button class="menu-item">/syllabus · /quiz · /apa-cite <span class="right">auto</span></button>
+              </div>
+            </div>
+            <div class="slash">
+              <button class="pill" id="modelBtn">Claude Sonnet 5.5 <svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="m6 9 6 6 6-6"/></svg></button>
+              <div class="menu model-menu" id="modelMenu">
+                <div class="eyebrow">OpenRouter</div>
+                <button class="menu-item on">Claude Sonnet 5.5 <span class="sub">anthropic/claude-sonnet-5.5 · 1M ctx</span><span class="right">$3 / $15</span></button>
+                <button class="menu-item">GPT-5.5 <span class="sub">openai/gpt-5.5 · 400K ctx</span><span class="right">$2.5 / $10</span></button>
+                <button class="menu-item">Gemini 3 Pro <span class="sub">google/gemini-3-pro · 2M ctx</span><span class="right">$2 / $12</span></button>
+                <button class="menu-item">DeepSeek V4 <span class="sub">deepseek/deepseek-v4 · 164K ctx</span><span class="right">$0.3 / $1.2</span></button>
+                <div class="eyebrow">Anthropic direct</div>
+                <button class="menu-item">Claude Opus 5.5 <span class="sub">caching · PDF · computer use</span><span class="right">$15 / $75</span></button>
+                <button class="menu-item">Claude Haiku 5.5 <span class="sub">titles, summaries, routing</span><span class="right">$0.8 / $4</span></button>
+                <div class="eyebrow">Custom endpoints</div>
+                <button class="menu-item">Llama 4 70B <span class="sub">LM Studio · 192.168.1.20:1234</span><span class="right">free</span></button>
+                <button class="menu-item">Qwen3 Coder <span class="sub">Groq · OpenAI-compatible</span><span class="right">$0.4 / $1.6</span></button>
+                <div class="eyebrow" style="padding-top:10px">Thinking</div>
+                <div style="padding:2px 8px 6px"><span class="seg"><button>Off</button><button>Low</button><button class="on">Medium</button><button>High</button><button>Max</button></span></div>
+              </div>
+            </div>
+            <span class="grow"></span>
+            <button class="iconbtn" title="Voice"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+            <button class="send" title="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+          </div>
+        </div>
+        <div class="hint desk-only">Enter to send · Shift+Enter for a new line · Keys and limits managed in admin.docmoates.com</div>
+      </div>
+    </section>
+
+    <!-- ---- PROJECTS ---- -->
+    <section class="screen" id="s-projects">
+      <div class="topbar"><button class="iconbtn mob-only" data-open-sb><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><div class="title">Project · Crosspoint Chat build</div><button class="btn sm">Share</button><button class="btn sm primary" data-go="chat">New chat in project</button></div>
+      <div class="page"><div class="page-inner">
+        <div>
+          <h1>Crosspoint Chat build</h1>
+          <p class="muted" style="margin:4px 0 0">Everything about designing and shipping the chat app. Default model: Claude Sonnet 5.5. MCP: GitHub, Filesystem.</p>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <h3><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h7"/></svg> Instructions</h3>
+            <textarea class="input" id="projInstr">You are the lead engineer on Crosspoint Chat, a self-hosted web chat app at ai.docmoates.com. Stack: React + Vite PWA, Hono API, Postgres + pgvector, Docker sandboxes. Provider keys live in admin.docmoates.com; never ask for them. Prefer TypeScript, Zod schemas, and small PRs. Cite docs when API shapes matter.</textarea>
+          </div>
+          <div class="card">
+            <h3><svg viewBox="0 0 24 24"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg> Knowledge <span class="tag">18% of context</span></h3>
+            <div class="list">
+              <div class="row"><svg viewBox="0 0 24 24"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg><div class="grow">PLAN.md<small>Build plan · 11 KB · indexed</small></div><span class="tag">md</span></div>
+              <div class="row"><svg viewBox="0 0 24 24"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg><div class="grow">OpenRouter API reference<small>Fetched URL · 84 KB · 212 chunks</small></div><span class="tag">web</span></div>
+              <div class="row"><svg viewBox="0 0 24 24"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg><div class="grow">schema.sql<small>Postgres schema · 6 KB</small></div><span class="tag">sql</span></div>
+              <div class="row"><svg viewBox="0 0 24 24"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg><div class="grow">mockup-feedback.pdf<small>Annotated screenshots · 2.3 MB</small></div><span class="tag">pdf</span></div>
+            </div>
+            <div style="margin-top:10px;display:flex;gap:6px"><button class="btn sm">Add files</button><button class="btn sm">Add URL</button><button class="btn sm">Sync GitHub repo</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Chats in this project</h3>
+          <div class="list">
+            <button class="row sb-item" data-go="chat"><div class="grow">OpenRouter streaming adapter<small>Today · 14 messages · $0.31</small></div></button>
+            <button class="row sb-item" data-go="agent"><div class="grow">Workspace: crosspoint-api<small>Today · agent run · 3 files changed</small></div></button>
+            <button class="row sb-item" data-go="research"><div class="grow">Deep research: pgvector vs Qdrant<small>Today · report ready</small></div></button>
+            <button class="row sb-item"><div class="grow">Docker sandbox limits<small>4 days ago</small></div></button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Project memory</h3>
+          <div class="list">
+            <div class="row"><div class="grow">Admin app exposes config at an internal HTTP endpoint, not direct DB access.<small>Decided Nov 3</small></div><button class="btn sm">Edit</button></div>
+            <div class="row"><div class="grow">Web search provider is Brave; key lives in admin under "tool providers".<small>Decided Nov 2</small></div><button class="btn sm">Edit</button></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+
+    <!-- ---- AGENT WORKSPACE ---- -->
+    <section class="screen" id="s-agent">
+      <div class="topbar"><button class="iconbtn mob-only" data-open-sb><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><div class="title">Workspace · crosspoint-api <span class="tag">feature/fallback-chain</span></div><span class="pill desk-only"><span class="dot"></span> sandbox running</span><button class="btn sm">Plan mode</button><button class="btn sm primary">Create PR</button></div>
+      <div class="ws">
+        <div class="files">
+          <div class="ph"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Files</div>
+          <div class="tree">
+            <div>apps/</div>
+            <div class="d1">api/</div>
+            <div class="d2">src/</div>
+            <div class="d2 on">routes/chat.ts <span class="mod">M</span></div>
+            <div class="d2">agent/loop.ts <span class="mod">M</span></div>
+            <div class="d2">agent/permissions.ts <span class="mod">A</span></div>
+            <div class="d1">web/</div>
+            <div class="d1">worker/</div>
+            <div>packages/</div>
+            <div class="d1">providers/</div>
+            <div class="d2">openrouter.ts</div>
+            <div class="d2">anthropic.ts</div>
+            <div class="d2">registry.ts</div>
+            <div>docker-compose.yml</div>
+            <div>package.json</div>
+          </div>
+        </div>
+        <div class="editor">
+          <div class="ph"><span class="mono">apps/api/src/routes/chat.ts</span><span class="tag">modified</span><span style="margin-left:auto" class="tabs"><button class="on">Diff</button><button>File</button></span></div>
+          <div class="src">
+<div><span class="ln">41</span>  <span class="k">const</span> chain = [req.model, ...fallbacksFor(req.model)];</div>
+<div class="diff"><div class="add"><span class="ln">42</span>+ <span class="k">for</span> (<span class="k">const</span> [i, model] <span class="k">of</span> chain.entries()) {</div><div class="add"><span class="ln">43</span>+   <span class="k">try</span> {</div><div class="add"><span class="ln">44</span>+     <span class="k">return</span> <span class="k">yield</span>* registry.get(model).stream({ ...req, model });</div><div class="add"><span class="ln">45</span>+   } <span class="k">catch</span> (e) {</div><div class="add"><span class="ln">46</span>+     <span class="k">if</span> (!isRateLimit(e) || i === chain.length - 1) <span class="k">throw</span> e;</div><div class="add"><span class="ln">47</span>+     <span class="k">yield</span> { type: <span class="s">"notice"</span>, text: <span class="s">`Rate limited on ${model}, trying ${chain[i+1]}`</span> };</div><div class="add"><span class="ln">48</span>+   }</div><div class="add"><span class="ln">49</span>+ }</div><div class="del"><span class="ln">42</span>- <span class="k">return</span> <span class="k">yield</span>* registry.get(req.model).stream(req);</div></div>
+<div><span class="ln">50</span>}</div>
+          </div>
+          <div style="display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--line)"><button class="btn sm primary">Accept</button><button class="btn sm">Reject</button><button class="btn sm">Accept all (3 files)</button></div>
+        </div>
+        <div class="term">
+          <div class="ph" style="color:#8b98a3;border-color:#1f272d"><svg viewBox="0 0 24 24"><path d="m4 17 6-6-6-6M12 19h8"/></svg> Terminal <span class="tag" style="background:#1f272d;color:#8b98a3">sandbox · no network</span></div>
+          <pre><span class="p">$</span> pnpm test --filter api
+<span class="ok">✓</span> routes/chat.test.ts (12)
+<span class="ok">✓</span> agent/loop.test.ts (8)
+<span class="err">✗</span> agent/permissions.test.ts › denies shell by default
+   expected "ask", received "allow"
+Tests: 1 failed, 20 passed · 2.4s
+<span class="p">$</span> <span style="opacity:.6">▍</span></pre>
+        </div>
+        <div class="right"><div class="inner">
+          <div>
+            <div class="eyebrow" style="margin-bottom:8px">Plan</div>
+            <div class="tasklist">
+              <div class="done"><span class="box"></span>Read registry and chat route</div>
+              <div class="done"><span class="box"></span>Add fallback chain with 429 detection</div>
+              <div class="cur"><span class="box"></span>Fix permissions default (test failing)</div>
+              <div><span class="box"></span>Run full test suite</div>
+              <div><span class="box"></span>Commit and open PR</div>
+            </div>
+          </div>
+          <div class="card perm">
+            <h3><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 2.3 18a2 2 0 0 0 1.7 3h16a2 2 0 0 0 1.7-3l-8-14.1a2 2 0 0 0-3.4 0z"/></svg> Permission needed</h3>
+            <div class="muted" style="font-size:13px">The agent wants to run a command in the sandbox:</div>
+            <code>pnpm test --filter api -- permissions</code>
+            <div class="btns"><button class="btn sm primary">Allow once</button><button class="btn sm">Always for pnpm test</button><button class="btn sm danger">Deny</button></div>
+          </div>
+          <div class="card">
+            <h3>Run</h3>
+            <div class="list" style="font-size:13px">
+              <div class="row"><div class="grow">Model</div><span class="muted">Opus 5.5 (direct)</span></div>
+              <div class="row"><div class="grow">Steps</div><span class="muted">14 / 50</span></div>
+              <div class="row"><div class="grow">Cost so far</div><span class="muted mono">$0.62</span></div>
+              <div class="row"><div class="grow">Subagents</div><span class="muted">1 (test reader, Haiku)</span></div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:10px"><button class="btn sm">Pause</button><button class="btn sm danger">Stop</button></div>
+          </div>
+        </div></div>
+      </div>
+      <div class="composer-wrap"><div class="composer"><textarea rows="1" placeholder="Tell the agent what to change…"></textarea><div class="row"><button class="iconbtn"><svg viewBox="0 0 24 24"><path d="m21 11.5-8.5 8.5a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8-8"/></svg></button><span class="pill">Opus 5.5</span><span class="grow"></span><button class="send"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div></div></div>
+    </section>
+
+    <!-- ---- DEEP RESEARCH ---- -->
+    <section class="screen" id="s-research">
+      <div class="topbar"><button class="iconbtn mob-only" data-open-sb><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><div class="title">Deep research · pgvector vs Qdrant for project knowledge</div><button class="btn sm">Cancel</button></div>
+      <div class="page"><div class="page-inner" style="max-width:760px">
+        <div class="msg user"><div class="bubble">Deep research: should Crosspoint use pgvector or Qdrant for project knowledge files? Single user, maybe 50k chunks, same VPS as Postgres.</div></div>
+        <div class="card">
+          <h3><span class="spin"></span> Researching · step 4 of 6 · 3 min elapsed</h3>
+          <div class="progress"><div></div></div>
+          <div class="steps" style="margin-top:12px">
+            <div class="step"><span class="ic"><svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="m5 12 5 5L20 7"/></svg></span><div class="t">Clarified scope<small>Single-user, ~50k chunks, co-located with Postgres, cost-sensitive</small></div></div>
+            <div class="step"><span class="ic"><svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="m5 12 5 5L20 7"/></svg></span><div class="t">Planned 5 search threads<small>Benchmarks · ops overhead · filtering · hybrid search · migration cost</small></div></div>
+            <div class="step"><span class="ic"><svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="m5 12 5 5L20 7"/></svg></span><div class="t">Gathered 23 sources (4 parallel searchers, Haiku)<small>Discarded 9 as outdated or marketing</small></div></div>
+            <div class="step"><span class="ic"><span class="spin"></span></span><div class="t">Reading and extracting claims<small>14 sources · 2 min remaining</small></div></div>
+            <div class="step todo"><span class="ic">5</span><div class="t">Cross-check contradictions<small>Opus</small></div></div>
+            <div class="step todo"><span class="ic">6</span><div class="t">Write report with citations<small>Becomes a document artifact</small></div></div>
+          </div>
+          <div style="margin-top:12px" class="eyebrow">Sources so far</div>
+          <div class="srcs" style="margin-top:6px"><span>pgvector README</span><span>pgvector 0.8 HNSW notes</span><span>Qdrant benchmarks</span><span>Supabase: pgvector vs Pinecone</span><span>ANN-Benchmarks</span><span>Jonathan Katz blog</span><span>+8 more</span></div>
+        </div>
+        <div class="card" style="opacity:.75">
+          <h3>Report preview (draft)</h3>
+          <p class="muted" style="margin:0 0 8px;font-size:13px">Recommendation forming: pgvector with HNSW on the existing Postgres is adequate to roughly 1M chunks for one user, and removes a service from the Compose stack. Qdrant wins on filtered queries at scale and on payload-heavy filtering, which this workload does not need.<span class="cite">3</span><span class="cite">7</span></p>
+          <button class="artifact-chip" data-toggle-art><span class="ic"><svg viewBox="0 0 24 24"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg></span><span><b>Vector store decision</b><small>Document · updating live</small></span><span class="v">draft</span></button>
+        </div>
+      </div></div>
+    </section>
+
+    <!-- ---- SETTINGS ---- -->
+    <section class="screen" id="s-settings">
+      <div class="topbar"><button class="iconbtn mob-only" data-open-sb><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><div class="title">Settings</div></div>
+      <div class="settings">
+        <nav class="snav">
+          <button class="on" data-tab="general">General</button>
+          <button data-tab="providers">Providers</button>
+          <button data-tab="models">Models</button>
+          <button data-tab="mcp">MCP servers</button>
+          <button data-tab="skills">Skills</button>
+          <button data-tab="memory">Memory</button>
+          <button data-tab="personal">Personalization</button>
+          <button data-tab="voice">Voice</button>
+          <button data-tab="tasks">Scheduled tasks</button>
+          <button data-tab="data">Data</button>
+        </nav>
+        <div class="spane">
+          <section class="on" data-pane="general">
+            <h2>General</h2>
+            <div class="setting"><div class="grow">Theme<small>Follows system by default</small></div><span class="seg"><button>Light</button><button>Dark</button><button class="on">System</button></span></div>
+            <div class="setting"><div class="grow">Language<small>Interface and default response language</small></div><select class="input" style="width:auto"><option>English (US)</option><option>Español</option></select></div>
+            <div class="setting"><div class="grow">Send with Enter<small>Shift+Enter inserts a newline</small></div><span class="switch on"></span></div>
+            <div class="setting"><div class="grow">Install as app<small>Add to home screen on Android; opens full screen</small></div><button class="btn sm">Install</button></div>
+            <div class="setting"><div class="grow">Notifications<small>When agent runs, research or scheduled tasks finish</small></div><span class="switch on"></span></div>
+          </section>
+          <section data-pane="providers">
+            <h2>Providers</h2>
+            <div class="note"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg><div>API keys, spend limits and allowed models are managed in <a href="https://admin.docmoates.com">admin.docmoates.com</a>. This page is read-only and refreshes every minute.</div></div>
+            <div class="card"><div class="list">
+              <div class="row"><span class="sdot ok"></span><div class="grow">OpenRouter<small>Key ok · 214 models · $18.40 remaining credit</small></div><span class="tag">primary</span></div>
+              <div class="row"><span class="sdot ok"></span><div class="grow">Anthropic (direct)<small>Key ok · caching + PDF + computer use enabled</small></div></div>
+              <div class="row"><span class="sdot ok"></span><div class="grow">Groq<small>OpenAI-compatible · api.groq.com/openai/v1</small></div></div>
+              <div class="row"><span class="sdot warn"></span><div class="grow">LM Studio (home)<small>192.168.1.20:1234 · unreachable from server, works on LAN</small></div></div>
+              <div class="row"><span class="sdot off"></span><div class="grow">OpenAI (direct)<small>Disabled in admin</small></div></div>
+              <div class="row"><span class="sdot ok"></span><div class="grow">Brave Search<small>Tool provider · 1,820 / 2,000 free queries left</small></div></div>
+            </div></div>
+            <div class="setting"><div class="grow">Monthly spend<small>Limit set in admin: $40</small></div><span class="mono">$4.21</span></div>
+          </section>
+          <section data-pane="models">
+            <h2>Models</h2>
+            <div class="setting"><div class="grow">Default chat model</div><span class="pill">Claude Sonnet 5.5 · OpenRouter</span></div>
+            <div class="setting"><div class="grow">Default thinking effort</div><span class="seg"><button>Off</button><button>Low</button><button class="on">Medium</button><button>High</button></span></div>
+            <div class="card"><h3>Task routing <span class="tag">saves money on background work</span></h3>
+              <div class="tablewrap"><table><thead><tr><th>Task</th><th>Model</th><th>Fallback</th></tr></thead><tbody>
+                <tr><td>Chat titles, summaries</td><td>Haiku 5.5</td><td>DeepSeek V4</td></tr>
+                <tr><td>Memory extraction</td><td>Haiku 5.5</td><td>—</td></tr>
+                <tr><td>Embeddings</td><td>text-embedding-3-large (OpenRouter)</td><td>nomic-embed (local)</td></tr>
+                <tr><td>Coding agent</td><td>Opus 5.5 (direct)</td><td>Sonnet 5.5</td></tr>
+                <tr><td>Deep research: search</td><td>Haiku 5.5</td><td>—</td></tr>
+                <tr><td>Deep research: synthesis</td><td>Opus 5.5</td><td>GPT-5.5</td></tr>
+                <tr><td>Rate limited (429)</td><td colspan="2">OpenRouter → Anthropic direct → custom endpoint</td></tr>
+              </tbody></table></div>
+              <button class="btn sm" style="margin-top:10px">Add rule</button>
+            </div>
+          </section>
+          <section data-pane="mcp">
+            <h2>MCP servers</h2>
+            <div class="card"><div class="list">
+              <div class="row"><span class="sdot ok"></span><div class="grow">GitHub<small>Streamable HTTP · OAuth · 12 tools, 3 resources</small></div><span class="switch on"></span></div>
+              <div class="row"><span class="sdot ok"></span><div class="grow">Filesystem (workspace)<small>stdio in sandbox · 7 tools</small></div><span class="switch on"></span></div>
+              <div class="row"><span class="sdot ok"></span><div class="grow">Google Calendar<small>Streamable HTTP · OAuth · 6 tools</small></div><span class="switch"></span></div>
+              <div class="row"><span class="sdot bad"></span><div class="grow">Zoom<small>SSE · auth failed (401) · retry</small></div><span class="switch"></span></div>
+              <div class="row"><span class="sdot ok"></span><div class="grow">Chat Optimizer<small>stdio · 38 tools</small></div><span class="switch on"></span></div>
+            </div></div>
+            <div class="card"><h3>Add server</h3>
+              <div class="formrow">
+                <label class="f">Name<input class="input" id="mcpName" placeholder="e.g. Linear"></label>
+                <label class="f">Transport<select class="input" id="mcpTransport"><option>Streamable HTTP</option><option>SSE</option><option>stdio (runs in sandbox)</option></select></label>
+              </div>
+              <label class="f" style="margin-top:10px">URL or command<input class="input" id="mcpUrl" placeholder="https://mcp.linear.app/mcp  or  npx -y @modelcontextprotocol/server-memory"></label>
+              <div style="display:flex;gap:6px;margin-top:10px"><button class="btn sm primary">Connect</button><button class="btn sm">Browse connector gallery</button><button class="btn sm">Import from claude_desktop_config.json</button></div>
+            </div>
+          </section>
+          <section data-pane="skills">
+            <h2>Skills</h2>
+            <p class="muted" style="margin:0">Folders with a SKILL.md and optional scripts, same format as Claude Code. Trigger with a slash command or let the model pick them by description.</p>
+            <div class="card"><div class="list">
+              <div class="row"><div class="grow">/syllabus<small>Build a course syllabus from objectives · 3 scripts</small></div><span class="tag">git-synced</span><span class="switch on"></span></div>
+              <div class="row"><div class="grow">/quiz<small>Quiz items from stated learning objectives</small></div><span class="switch on"></span></div>
+              <div class="row"><div class="grow">/apa-cite<small>Format references in APA 7</small></div><span class="switch on"></span></div>
+              <div class="row"><div class="grow">/deploy-check<small>Pre-deploy checklist for the VPS</small></div><span class="tag">uploaded</span><span class="switch"></span></div>
+            </div></div>
+            <div style="display:flex;gap:6px"><button class="btn sm primary">Upload skill folder</button><button class="btn sm">Sync from GitHub repo</button><button class="btn sm">Create new</button></div>
+          </section>
+          <section data-pane="memory">
+            <h2>Memory</h2>
+            <div class="setting"><div class="grow">Remember across chats<small>Facts are extracted after each chat by Haiku and shown here</small></div><span class="switch on"></span></div>
+            <div class="card"><div class="list">
+              <div class="row"><div class="grow">Michael teaches psychology and builds tools for his courses.<small>From "Quiz items: operant conditioning" · Nov 2</small></div><button class="btn sm">Edit</button><button class="btn sm danger">Forget</button></div>
+              <div class="row"><div class="grow">Prefers TypeScript, pnpm, and small PRs with tests.<small>From "Docker sandbox limits" · Oct 30</small></div><button class="btn sm">Edit</button><button class="btn sm danger">Forget</button></div>
+              <div class="row"><div class="grow">Runs admin.docmoates.com and ai.docmoates.com on one VPS behind Cloudflare.<small>Saved by you · Nov 3</small></div><button class="btn sm">Edit</button><button class="btn sm danger">Forget</button></div>
+            </div></div>
+          </section>
+          <section data-pane="personal">
+            <h2>Personalization</h2>
+            <label class="f">What should Crosspoint call you?<input class="input" id="nick" value="Michael"></label>
+            <label class="f">Custom instructions<textarea class="input" id="ci">Be direct. No preamble or sign-off. Use bullets only when they help. When a question involves an API shape, cite the doc. Default to TypeScript examples.</textarea></label>
+            <div class="setting"><div class="grow">Response style</div><span class="seg"><button>Concise</button><button class="on">Default</button><button>Detailed</button></span></div>
+          </section>
+          <section data-pane="voice">
+            <h2>Voice</h2>
+            <div class="setting"><div class="grow">Speech to text<small>Whisper-compatible endpoint via OpenRouter or Groq</small></div><span class="pill">whisper-large-v3 · Groq</span></div>
+            <div class="setting"><div class="grow">Text to speech<small>Used in voice mode and "Read aloud"</small></div><span class="pill">OpenAI tts-1 · via OpenRouter</span></div>
+            <div class="setting"><div class="grow">Voice mode<small>Hold the mic for push-to-talk, double-tap for continuous</small></div><span class="switch on"></span></div>
+          </section>
+          <section data-pane="tasks">
+            <h2>Scheduled tasks</h2>
+            <div class="card"><div class="list">
+              <div class="row"><span class="sdot ok"></span><div class="grow">Morning brief<small>Weekdays 6:30 · calendar + email digest into a new chat</small></div><span class="switch on"></span></div>
+              <div class="row"><span class="sdot ok"></span><div class="grow">Weekly spend report<small>Mondays 8:00 · from admin usage data</small></div><span class="switch on"></span></div>
+              <div class="row"><span class="sdot off"></span><div class="grow">Check OpenRouter model catalog for price drops<small>Daily · paused</small></div><span class="switch"></span></div>
+            </div></div>
+            <button class="btn sm primary" style="align-self:flex-start">New task</button>
+          </section>
+          <section data-pane="data">
+            <h2>Data</h2>
+            <div class="setting"><div class="grow">Export all chats<small>Markdown + JSON, with attachments</small></div><button class="btn sm">Export</button></div>
+            <div class="setting"><div class="grow">Import<small>From ChatGPT or Claude export zip</small></div><button class="btn sm">Import</button></div>
+            <div class="setting"><div class="grow">Shared links<small>4 public artifact links</small></div><button class="btn sm">Manage</button></div>
+            <div class="setting"><div class="grow">Delete all chats<small>Cannot be undone; backups are kept 30 days</small></div><button class="btn sm danger">Delete</button></div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========== ARTIFACT PANE ========== -->
+  <aside id="artpane">
+    <div class="art-head">
+      <button class="iconbtn" data-toggle-art title="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div class="title">Provider latency comparison</div>
+      <div class="tabs" id="artTabs"><button class="on" data-art="preview">Preview</button><button data-art="code">Code</button><button data-art="doc">Doc</button><button data-art="versions">Versions</button></div>
+    </div>
+    <div class="art-body">
+      <div class="art-view on" data-artv="preview"><div class="preview-frame">
+        <div class="demo-card">
+          <h3>Median time to first token</h3>
+          <div class="muted" style="font-size:12px">Last 7 days · ms · lower is better</div>
+          <div class="bars" aria-hidden="true"><div style="height:70%"></div><div style="height:48%"></div><div style="height:62%"></div><div style="height:35%"></div><div style="height:55%"></div><div style="height:42%"></div><div style="height:28%"></div></div>
+          <div class="ax"><span>Sonnet<br>OR</span><span>GPT-5.5<br>OR</span><span>Gemini<br>OR</span><span>DeepSeek<br>OR</span><span>Opus<br>direct</span><span>Haiku<br>direct</span><span>Llama<br>local</span></div>
+          <p class="faint" style="font-size:11px;margin:10px 0 0">Example data. Hover for exact values in the real artifact.</p>
+        </div>
+      </div></div>
+      <div class="art-view" data-artv="code"><pre class="code" style="border:0;border-radius:0;height:100%"><span class="src"><span class="c">&lt;!-- Provider latency comparison, v3 --&gt;</span>
+<span class="k">&lt;div</span> class=<span class="s">"chart"</span><span class="k">&gt;</span>
+  <span class="k">&lt;h3&gt;</span>Median time to first token<span class="k">&lt;/h3&gt;</span>
+  <span class="k">&lt;canvas</span> id=<span class="s">"c"</span> width=<span class="s">"420"</span> height=<span class="s">"160"</span><span class="k">&gt;&lt;/canvas&gt;</span>
+<span class="k">&lt;/div&gt;</span>
+<span class="k">&lt;script&gt;</span>
+<span class="k">const</span> data = [
+  { name: <span class="s">"Sonnet · OR"</span>, ms: 710 },
+  { name: <span class="s">"GPT-5.5 · OR"</span>, ms: 480 },
+  { name: <span class="s">"Gemini · OR"</span>, ms: 620 },
+  { name: <span class="s">"DeepSeek · OR"</span>, ms: 350 },
+  { name: <span class="s">"Opus · direct"</span>, ms: 550 },
+  { name: <span class="s">"Haiku · direct"</span>, ms: 420 },
+  { name: <span class="s">"Llama · local"</span>, ms: 280 },
+];
+draw(document.getElementById(<span class="s">"c"</span>), data);
+<span class="k">&lt;/script&gt;</span></span></pre></div>
+      <div class="art-view" data-artv="doc"><div class="doc-art">
+        <div class="eyebrow">Document artifact · editable</div>
+        <h2>Vector store decision</h2>
+        <p><strong>Recommendation.</strong> Use pgvector with an HNSW index on the existing Postgres instance. For a single user with tens of thousands of chunks, query latency stays well under 50 ms and nothing new has to be deployed or backed up.</p>
+        <p><strong>When to revisit.</strong> If the corpus passes about one million chunks, or if filtered search by project and file type becomes slow, Qdrant is the move. Its filtering and quantization are better at that scale.</p>
+        <p><strong>Migration cost.</strong> Low. Embeddings are stored with their source chunk id, so re-indexing into another store is a batch job, not a rewrite.</p>
+      </div></div>
+      <div class="art-view" data-artv="versions"><div class="versions">
+        <div class="ver on"><b>v3</b><span class="muted">Added local Llama bar, fixed axis labels</span><small>2 min ago</small></div>
+        <div class="ver"><b>v2</b><span class="muted">Switched to canvas, added hover</span><small>18 min ago</small></div>
+        <div class="ver"><b>v1</b><span class="muted">First draft</span><small>24 min ago</small></div>
+        <div style="padding-top:8px;display:flex;gap:6px"><button class="btn sm">Compare v2 → v3</button><button class="btn sm">Restore v2</button></div>
+      </div></div>
+    </div>
+    <div class="art-foot">
+      <button class="btn sm">Download</button><button class="btn sm">Copy</button><button class="btn sm">Publish link</button><span style="flex:1"></span><button class="btn sm">Full screen</button>
+    </div>
+  </aside>
+</div>
+
+<!-- ========== COMMAND PALETTE ========== -->
+<div id="palette">
+  <div class="pal">
+    <div class="in"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="palInput" placeholder="Search chats, run a command, jump to a project…" value="fallback"><kbd>Esc</kbd></div>
+    <div class="body">
+      <div class="eyebrow">Chats</div>
+      <button class="menu-item" data-go="chat"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.7 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg><span>OpenRouter streaming adapter<span class="sub">"…fall back to the Anthropic direct adapter when OpenRouter returns 429"</span></span><span class="kbd faint">today</span></button>
+      <button class="menu-item" data-go="agent"><svg viewBox="0 0 24 24"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg><span>Workspace: crosspoint-api<span class="sub">branch feature/fallback-chain</span></span><span class="kbd faint">today</span></button>
+      <div class="eyebrow">Commands</div>
+      <button class="menu-item" data-go="chat"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> New chat <kbd class="kbd">Ctrl N</kbd></button>
+      <button class="menu-item" data-go="research"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg> Start deep research</button>
+      <button class="menu-item" data-go="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></svg> Open settings <kbd class="kbd">Ctrl ,</kbd></button>
+      <button class="menu-item" id="palTheme"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9c0-.5 0-1-.1-1.4A5.5 5.5 0 0 1 12 3z"/></svg> Toggle theme</button>
+      <div class="eyebrow">Memories</div>
+      <button class="menu-item" data-go="settings" data-tab-go="memory"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>"Rate limited (429): OpenRouter → Anthropic direct → custom endpoint"<span class="sub">Routing rule</span></span></button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+  const app=$('#app'), sb=$('#sidebar'), scrim=$('#scrim'), pal=$('#palette');
+  const screens={chat:'s-chat',projects:'s-projects',agent:'s-agent',research:'s-research',settings:'s-settings'};
+
+  function show(name){
+    if(name==='palette'){openPal(true);return;}
+    let art=false; if(name==='chat-art'){name='chat';art=true;}
+    $$('.screen').forEach(s=>s.classList.toggle('on',s.id===screens[name]));
+    $$('#switcher button[data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===(art?'chat-art':name)));
+    app.classList.toggle('artifact-open',art);
+    closeSb(); openPal(false); closeMenus();
+    try{location.hash=art?'artifacts':name}catch(e){}
+  }
+  document.addEventListener('click',e=>{
+    const go=e.target.closest('[data-go]'); if(go){show(go.dataset.go); const t=go.dataset.tabGo; if(t)setTab(t); return;}
+    if(e.target.closest('[data-toggle-art]')){app.classList.toggle('artifact-open');return;}
+    if(e.target.closest('[data-open-sb]')){sb.classList.add('open');scrim.classList.add('open');return;}
+    if(e.target.closest('[data-close-sb]')||e.target===scrim){closeSb();return;}
+    const tab=e.target.closest('.snav button'); if(tab){setTab(tab.dataset.tab);return;}
+    const at=e.target.closest('#artTabs button'); if(at){$$('#artTabs button').forEach(b=>b.classList.toggle('on',b===at));$$('.art-view').forEach(v=>v.classList.toggle('on',v.dataset.artv===at.dataset.art));return;}
+    const sw=e.target.closest('.switch'); if(sw){sw.classList.toggle('on');e.stopPropagation();return;}
+    const seg=e.target.closest('.seg button'); if(seg){seg.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===seg));return;}
+    if(e.target.closest('#toolsBtn')){toggleMenu('#toolsMenu');return;}
+    if(e.target.closest('#modelBtn')){toggleMenu('#modelMenu');return;}
+    const mi=e.target.closest('#modelMenu .menu-item'); if(mi){$$('#modelMenu .menu-item').forEach(b=>b.classList.toggle('on',b===mi));$('#modelBtn').firstChild.textContent=mi.firstChild.textContent.trim()+' ';closeMenus();return;}
+    if(e.target.closest('#themeBtn')||e.target.closest('#palTheme')){toggleTheme();return;}
+    if(e.target===pal){openPal(false);return;}
+    if(!e.target.closest('.menu'))closeMenus();
+  });
+  function closeSb(){sb.classList.remove('open');scrim.classList.remove('open');}
+  function toggleMenu(s){const m=$(s),was=m.classList.contains('open');closeMenus();if(!was)m.classList.add('open');}
+  function closeMenus(){$$('.menu').forEach(m=>m.classList.remove('open'));}
+  function setTab(t){$$('.snav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));$$('.spane>section').forEach(s=>s.classList.toggle('on',s.dataset.pane===t));}
+  function openPal(o){pal.classList.toggle('open',o);if(o)setTimeout(()=>$('#palInput').focus(),0);}
+  function toggleTheme(){
+    const r=document.documentElement, dark=r.dataset.theme==='dark'||(!r.dataset.theme&&matchMedia('(prefers-color-scheme: dark)').matches);
+    r.dataset.theme=dark?'light':'dark';
+  }
+  document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openPal(!pal.classList.contains('open'));}
+    if(e.key==='Escape'){openPal(false);closeMenus();closeSb();}
+  });
+  const ta=$('#composer'); ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(200,ta.scrollHeight)+'px';});
+  const h=(location.hash||'').slice(1);
+  if(h==='artifacts')show('chat-art'); else if(screens[h])show(h);
+})();
+</script>
