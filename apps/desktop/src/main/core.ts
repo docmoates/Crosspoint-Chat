@@ -1,6 +1,6 @@
 import { app, safeStorage } from 'electron'
 import { hostname, release } from 'node:os'
-import type { AppConfig, PairingStatus, StreamEvent } from '@shared/ipc'
+import type { AppConfig, PairingStatus, StreamEvent, UpdateState } from '@shared/ipc'
 import { AuditEventSchema, AUDIT_BATCH_MAX } from '@shared/admin-contract'
 import { postSplitting } from './admin/batch'
 import { AdminApiError, AdminClient } from './admin/client'
@@ -24,6 +24,7 @@ export interface CoreEvents {
   pairingStatus: (s: PairingStatus) => void
   configChange: (c: AppConfig) => void
   chat: (e: StreamEvent) => void
+  updates: (s: UpdateState) => void
 }
 
 const DAY = 24 * 60 * 60 * 1000
@@ -116,7 +117,7 @@ export function createCore(events: CoreEvents): Core {
     config: () => sync.full,
     emit: events.chat
   })
-  const updater = new Updater()
+  const updater = new Updater(events.updates)
 
   sync.on('status', events.pairingStatus)
   sync.on('config', (c) => {

@@ -60,7 +60,8 @@ export const Channels = {
 export const Events = {
   pairingStatus: 'crosspoint:event:pairing-status',
   configChange: 'crosspoint:event:config-change',
-  chat: 'crosspoint:event:chat'
+  chat: 'crosspoint:event:chat',
+  updates: 'crosspoint:event:updates'
 } as const
 
 /**

@@ -156,13 +156,25 @@ export class ChatService {
     this.runs.set(runId, ctx)
     // Let the renderer receive { messageId, runId } before the first event.
     setImmediate(() => {
-      void this.run(ctx, resolved).finally(() => this.runs.delete(runId))
+      void this.run(ctx, resolved)
+        .catch((err) => this.failRun(ctx, err instanceof Error ? err.message : String(err)))
+        .finally(() => this.runs.delete(runId))
     })
     return { messageId, runId }
   }
 
   private emit(ctx: RunContext, e: ProviderStreamEvent): void {
     this.d.emit({ ...e, runId: ctx.runId, conversationId: ctx.conversationId, messageId: ctx.messageId } as StreamEvent)
+  }
+
+  private failRun(ctx: RunContext, message: string): void {
+    try {
+      this.d.library.updateMessage(ctx.messageId, { parts: [{ type: 'notice', level: 'error', message, code: 'run_failed' }], status: 'error' })
+    } catch {
+      // the message row may be gone; still tell the renderer
+    }
+    this.emit(ctx, { type: 'error', code: 'run_failed', message })
+    this.emit(ctx, { type: 'done', finishReason: 'error' })
   }
 
   private async run(ctx: RunContext, resolved: ResolvedModel | null): Promise<void> {
@@ -220,6 +232,7 @@ export class ChatService {
       attempted = true
       used = cand
       failure = null
+      usage = null
       let produced = false
       this.d.audit.append('outbound', `chat request to ${provider.label} (${cand.model})`)
       try {

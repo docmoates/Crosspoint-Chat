@@ -412,7 +412,7 @@ export interface CrosspointApi {
   settings: { get(): Promise<LocalSettings>; set(patch: Partial<LocalSettings>): Promise<void> }
   health: { check(): Promise<HealthReport> }
   audit: { list(q?: { limit?: number; before?: string }): Promise<AuditEntry[]> }
-  updates: { check(): Promise<UpdateState>; install(): Promise<void> }
+  updates: { check(): Promise<UpdateState>; install(): Promise<void>; onState(cb: (s: UpdateState) => void): () => void }
 }
 
 /** Shared small validators for IPC arguments. */

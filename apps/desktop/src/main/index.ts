@@ -49,7 +49,8 @@ function main(): void {
     core = createCore({
       pairingStatus: (s) => send(Events.pairingStatus, s),
       configChange: (c) => send(Events.configChange, c),
-      chat: (e) => send(Events.chat, e)
+      chat: (e) => send(Events.chat, e),
+      updates: (s) => send(Events.updates, s)
     })
     registerIpc(core, { isTrustedUrl, afterPair: () => undefined })
     handleArtifactProtocol(() => core?.artifacts ?? null)

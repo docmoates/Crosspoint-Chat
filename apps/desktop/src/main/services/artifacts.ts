@@ -166,15 +166,14 @@ export class ArtifactStore {
 
 /**
  * CSP for the `crosspoint-artifact://` preview document. The frame is sandboxed without same-origin, so
- * scripts run in an opaque origin with no preload or IPC. Scripts and styles may also come from the three
- * common CDNs; nothing may be fetched, framed or submitted.
+ * scripts run in an opaque origin with no preload or IPC. Scripts are inline only (no CDN scripts); nothing may be fetched, framed or submitted.
  */
 export const ARTIFACT_PREVIEW_CSP = [
   "default-src 'none'",
-  "script-src 'unsafe-inline' 'unsafe-eval' blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com",
+  "script-src 'unsafe-inline' 'unsafe-eval' blob:",
   "style-src 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com",
   "font-src data: https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
-  'img-src data: blob: https:',
+  "img-src 'self' data: blob:",
   'media-src data: blob:',
   "connect-src 'none'",
   "frame-src 'none'",

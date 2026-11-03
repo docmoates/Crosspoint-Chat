@@ -1,6 +1,6 @@
 import { BrowserWindow, dialog, ipcMain, shell, app, type IpcMainInvokeEvent } from 'electron'
 import { writeFileSync } from 'node:fs'
-import { relative, resolve, isAbsolute } from 'node:path'
+import { relative, resolve, isAbsolute, extname } from 'node:path'
 import { z } from 'zod'
 import {
   ArtifactListAllLimitSchema,
@@ -39,6 +39,8 @@ function handle<S extends z.ZodTuple>(channelName: string, args: S, fn: (...a: z
   })
 }
 
+const BLOCKED_OPEN_EXT = new Set(['exe', 'bat', 'cmd', 'ps1', 'vbs', 'js', 'jse', 'wsf', 'wsh', 'msi', 'scr', 'com', 'pif', 'lnk', 'reg', 'hta', 'jar'])
+
 export function registerIpc(core: Core, opts: { isTrustedUrl: (url: string) => boolean; afterPair: () => void }): void {
   const trusted = (e: IpcMainInvokeEvent): boolean => opts.isTrustedUrl(e.senderFrame?.url ?? '')
   const h = <S extends z.ZodTuple>(c: string, s: S, fn: (...a: z.infer<S>) => unknown): void => handle(c, s, fn, trusted)
@@ -57,6 +59,10 @@ export function registerIpc(core: Core, opts: { isTrustedUrl: (url: string) => b
     const target = resolve(p)
     const rel = relative(core.paths.root, target)
     if (rel.startsWith('..') || isAbsolute(rel)) throw new Error('Only files inside the Crosspoint data folder can be opened.')
+    if (BLOCKED_OPEN_EXT.has(extname(target).toLowerCase().slice(1))) {
+      shell.showItemInFolder(target)
+      return
+    }
     const err = await shell.openPath(target)
     if (err) throw new Error(err)
   })

@@ -27,8 +27,12 @@ export class SettingsService {
         // ignore a corrupt value; the default applies
       }
     }
-    const parsed = LocalSettingsPatchSchema.safeParse(stored)
-    return { ...DEFAULTS, ...(parsed.success ? parsed.data : {}), dataFolder: this.dataFolder }
+    const valid: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(stored)) {
+      const one = LocalSettingsPatchSchema.safeParse({ [k]: v })
+      if (one.success) Object.assign(valid, one.data)
+    }
+    return { ...DEFAULTS, ...valid, dataFolder: this.dataFolder }
   }
 
   set(patch: Partial<LocalSettings>): void {

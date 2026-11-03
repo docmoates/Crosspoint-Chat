@@ -39,8 +39,8 @@ export class Updater {
   private init(): Promise<void> {
     if (!this.loading) {
       this.loading = import('electron-updater').then(({ autoUpdater }) => {
-        autoUpdater.autoDownload = true
-        autoUpdater.autoInstallOnAppQuit = true
+        autoUpdater.autoDownload = false
+        autoUpdater.autoInstallOnAppQuit = false
         autoUpdater.logger = null
         autoUpdater.on('update-available', (info) => this.set({ status: 'available', version: info.version }))
         autoUpdater.on('update-not-available', () => this.set({ status: 'not-available' }))

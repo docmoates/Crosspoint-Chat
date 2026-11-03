@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 // Only the dependency-free channel table is bundled; the sandboxed preload cannot load node_modules.
 import { Channels as C, Events } from '@shared/channels'
-import type { AppConfig, CrosspointApi, PairingStatus, StreamEvent } from '@shared/ipc'
+import type { AppConfig, CrosspointApi, PairingStatus, StreamEvent, UpdateState } from '@shared/ipc'
 
 const invoke = (channel: string, ...args: unknown[]): Promise<never> => ipcRenderer.invoke(channel, ...args) as Promise<never>
 
@@ -92,7 +92,8 @@ const api: CrosspointApi = {
   audit: { list: (q) => invoke(C.audit.list, q) },
   updates: {
     check: () => invoke(C.updates.check),
-    install: () => invoke(C.updates.install)
+    install: () => invoke(C.updates.install),
+    onState: (cb) => subscribe<UpdateState>(Events.updates, cb)
   }
 }
 
