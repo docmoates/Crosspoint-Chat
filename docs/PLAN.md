@@ -17,7 +17,7 @@ Superseded: the earlier web/PWA plan (ai.docmoates.com, Cloudflare Access, VPS C
 | Hybrid local + cloud | Foundry Local runtime (NPU/GPU/CPU), Private toggle per chat/message, router rules, local prep (history summary, local doc search, background jobs, optional try-local-first, draft-then-refine, answer cache), offline mode |
 | Sub-chats (topic-aware, background agents, coordinated) | Sub-chats share a coordination board: claims on files/artifacts, messages to each other, shared facts, merge checks between workspace branches, combined needs-you card on a clash. Each sub-chat is its own run loop and keeps working while you are elsewhere (states idle / running / needs you / done; concurrency cap; results summarized locally; sidebar badges and tray count). Local model classifies each request; several topics can stay open at once and are kept in full; an idle topic (no reference for N turns or a set time, no work in progress) is compressed to 1–3 sentences, shown as a divider, auto-saved (searchable, embeddable) and reopened automatically when referenced or on click; the app asks before compressing when context is full |
 | Attachments | Images (vision), PDFs, docs/xlsx/pptx, audio, drag-drop, paste, screenshot of a window, "Add from GitHub/Drive" via connectors |
-| Tools (built-in) | Web search + fetch with citations, code interpreter (local Python/Node in a sandboxed job object), image generation, TTS, STT, memory read/write |
+| Tools (built-in) | Web search + fetch with citations, code interpreter (local Python/Node in a sandboxed job object), **local image generation with chat-chosen settings (section 2e)** plus cloud image models, TTS, STT, memory read/write |
 | Artifacts | HTML/React/SVG/Mermaid preview in a sandboxed webview, documents with inline editing, versions + diff, save to disk, gallery |
 | Projects | Instructions, knowledge files (local RAG), project-scoped chats, project-scoped tool/MCP defaults |
 | Coding agent | Workspace = any local folder or cloned repo; file tree, editor, embedded terminal, agent loop with read/write/edit/shell/grep; permission prompts (once / always / deny); plan mode; diff review; commit/PR via GitHub connector; subagents |
@@ -180,6 +180,39 @@ Settings › Models › Hybrid routing: "Keep multiple topics open" (on), "Compr
 - **Updates.** Signed installer (OV/EV certificate, budgeted in Phase 0), electron-updater verifies signatures, releases served from admin or GitHub Releases over HTTPS.
 - **Network allowlist.** Outbound connections only to configured providers, admin, approved MCP hosts and user-approved fetch targets; everything else is blocked at the app level and logged.
 
+## 2e. Local image generation (in chat, like Draw Things)
+
+- **Runtime.** Local diffusion models run on the PC through an ONNX Runtime (DirectML) backend, which uses the GPU or NPU and falls back to CPU, so no CUDA install is needed. `stable-diffusion.cpp` is the alternative backend for GGUF-quantized models on low-VRAM machines. Both expose one internal `ImageProvider` interface (`generate`, `edit`, `inpaint`, `upscale`, `progress` events) alongside the cloud image models already routed through OpenRouter.
+- **Models.** A built-in catalog (SDXL, SD 3.5 Medium, FLUX.1-schnell / dev GGUF, plus a fast upscaler and an inpaint model) with one-click download into `%APPDATA%\Crosspoint\models\image`, a VRAM check before download, and user-imported `.safetensors` / `.gguf` / LoRA files. The first run picks a default model that fits the hardware (FLUX-schnell GGUF at 8 GB VRAM, SDXL-Turbo below that, SD 1.5 on CPU).
+- **The chat model sets the settings.** When a request is an image request (local classifier, or the user picks the image tool), the chat model (local Phi-4 mini by default, or the cloud model if the chat is routed there) turns the request into a generation plan: expanded prompt, negative prompt, model choice from the installed list, size and aspect, steps, guidance, sampler, seed, number of images, and whether to use an uploaded image as reference (img2img / inpaint / style). The plan appears as a collapsible "Settings chosen" card above the image; every value is editable in place and "Regenerate" reruns with the edits. Users never have to know what a sampler is, but can change it.
+- **In-chat results.** Images stream progressively (preview every few steps), then show with Regenerate, Variations, Edit (mask + instruction), Upscale, Use as reference, Save, Copy, and Open in Artifacts. Images are artifacts with versions, so edits stack and can be compared.
+- **Routing.** Image requests go local by default; cloud image models are used only if the user picks one, the local model cannot do the task (e.g. text rendering quality), or the Private toggle is off and the user allows cloud images. Cost line shows $0.00 local and the time taken.
+- **Learning the user's taste.** Thumbs up/down and "more like this" feed a small local preference note (style words, preferred model, sizes) that the chat model reads when planning. Stored in memory, editable.
+- **Settings › Models › Image models.** Installed models with hardware they run on, default model, download manager, VRAM, LoRA folder, output folder, safety filter toggle (on by default), and "let the chat model choose settings" (on).
+
+## 2f. Simple after setup
+
+The goal is that after pairing, a normal day needs no settings at all. Rules the build follows:
+- **One installer, one pairing.** Install, sign in to admin once, done. Keys, connectors, MCP servers, allowed models, limits and the default local model arrive from admin or are picked for the hardware.
+- **Auto is the default everywhere.** Model = Auto, image model = best fit, routing, caching, prep, sub-chats, coordination and security screening are all on with sensible defaults. Settings exist to override, never to enable.
+- **Self-maintaining.** Foundry Local and image runtimes install and update themselves; model catalogs refresh in the background; the app auto-updates silently on close; backups run nightly; the audit log and caches prune themselves.
+- **Self-healing.** If a provider fails, the fallback chain handles it and a quiet notice says so. If the local model is missing or the GPU driver changed, the app re-selects a model that works and tells you once. If admin is unreachable, cached config keeps working until the token expires.
+- **Nothing nags.** One toast per finished background run, one combined card per clash, one notice per fallback. Everything else goes to the sidebar states and the audit log.
+- **A single "Doctor" page** (Settings › General › Health) shows provider status, local runtime status, GPU/NPU, disk used by models, last backup, last sync, and a "Fix" button next to anything red.
+
+## 2g. Other features worth adding
+
+- **Quick ask** global hotkey window (already listed) also accepts a screenshot of the active window and "explain / fix / reply" one-click actions.
+- **Read-aloud and dictation** on every message (local TTS/STT where possible).
+- **Message templates and snippets** (`/` commands beyond skills), prompt library synced from admin.
+- **Export a sub-chat** as Markdown, PDF or a shareable HTML artifact.
+- **Clipboard watcher** (opt-in): copy a URL or error text and the quick-ask window offers to act on it.
+- **Per-project tool defaults and MCP toggles**, already in Projects; add per-project image style.
+- **Canvas / whiteboard artifact** for diagrams, editable with the model.
+- **Model comparison**: run one prompt against two models side by side, local vs cloud included.
+- **Offline mode indicator** and a queue: messages sent while offline run locally or wait for cloud.
+- **Accessibility**: full keyboard navigation, screen-reader labels, high-contrast theme, reduced motion.
+
 ## 3. Stack
 
 | Layer | Choice | Why |
@@ -190,6 +223,7 @@ Settings › Models › Hybrid routing: "Keep multiple topics open" (on), "Compr
 | Secrets | Electron `safeStorage` (DPAPI) + Credential Manager for the device token | Never plaintext on disk |
 | Sandbox | Job Objects via a small native helper; WSL2/Docker optional | Caps without requiring Docker |
 | Local models | Foundry Local (`foundry` CLI/SDK, OpenAI-compatible endpoint on localhost); default small model Phi-4-mini or Qwen 2.5 small; local embedding model for RAG | Runs on NPU/GPU/CPU with no code changes; same adapter as cloud |
+| Local images | ONNX Runtime DirectML backend (SDXL, SD 3.5, FLUX) and stable-diffusion.cpp for GGUF; built-in model catalog + downloader; `ImageProvider` interface shared with cloud image models | GPU/NPU/CPU without CUDA; chat model plans the settings |
 | Computer use | `@nut-tree/nut-js` or Windows UI Automation via `node-ffi-napi`; screen capture via Electron `desktopCapturer` | Local, consented |
 | Updates | electron-updater with releases hosted by admin.docmoates.com or GitHub Releases | One-click updates |
 | Tests | Vitest (main), Playwright for Electron (E2E) | |
@@ -215,7 +249,8 @@ Settings › Models › Hybrid routing: "Keep multiple topics open" (on), "Compr
 - **Done when:** daily-driver replacement for basic ChatGPT/Claude chat.
 
 ### Phase 2 — Tools and artifacts (weeks 4–5)
-- Tool registry + permission policy + per-kind allowlists; injection screening and redaction pass on all tool output; shared result cache; prompt caching; budgets and cost preview. Web search (key from admin), local code interpreter in job objects with file outputs and charts, image gen, TTS/STT.
+- Tool registry + permission policy + per-kind allowlists; injection screening and redaction pass on all tool output; shared result cache; prompt caching; budgets and cost preview.
+- Local image generation: runtime install, model catalog and downloader, hardware-fit default, chat-planned settings card, progressive preview, variations/edit/upscale, images as artifacts; cloud image models as fallback. Web search (key from admin), local code interpreter in job objects with file outputs and charts, image gen, TTS/STT.
 - Artifacts pane: sandboxed webview, versions, diff, save, gallery.
 - Projects with knowledge files and local RAG (sqlite-vec; embeddings via a local model by default).
 - Local prep pipeline: history summarization, local doc search, local background jobs, answer cache; tokens-saved counter per message.
@@ -237,6 +272,7 @@ Settings › Models › Hybrid routing: "Keep multiple topics open" (on), "Compr
 - **Done when:** parity list in section 1 fully checked.
 
 ### Phase 5 — Polish
+- Simplicity pass (section 2f): Doctor/Health page, self-healing checks, silent updates, nag audit.
 - Shortcuts, palette, themes, accessibility, crash reporting, encrypted versioned backups with restore test, network allowlist, E2E tests, SmartScreen reputation.
 
 ## 6. Risks and choices to make early

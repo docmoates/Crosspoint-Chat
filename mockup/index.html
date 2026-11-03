@@ -183,6 +183,19 @@ details.route summary{font-size:12px;color:var(--fg-3)}
 .redact{background:var(--panel-2);border:1px dashed var(--line-2);border-radius:4px;padding:0 5px;font-size:11px;color:var(--fg-3)}
 .allow{display:flex;gap:4px;flex-wrap:wrap}
 .allow .pill{font-size:11px;padding:2px 8px}
+.genimg{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--panel);max-width:520px}
+.genimg .pic{aspect-ratio:3/2;background:
+  radial-gradient(circle at 70% 30%, rgba(255,255,255,.55), transparent 35%),
+  linear-gradient(160deg,#0f3d3e 0%,#1f6f6a 40%,#d9c38a 75%,#f2e6c9 100%);position:relative}
+.genimg .pic::after{content:"";position:absolute;left:8%;right:8%;bottom:18%;height:22%;border-radius:50%;background:rgba(15,61,62,.35);filter:blur(10px)}
+.genimg .pic .prog{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(0,0,0,.25)}
+.genimg .pic .prog div{height:100%;width:100%;background:var(--accent)}
+.genimg .bar{display:flex;gap:4px;flex-wrap:wrap;padding:8px 10px;border-top:1px solid var(--line)}
+.plan-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 12px;font-size:12px}
+.plan-grid div{display:flex;flex-direction:column;gap:1px}
+.plan-grid b{font-weight:500;color:var(--fg)}
+.plan-grid span{color:var(--fg-3);font-size:11px}
+.plan-grid input,.plan-grid select{border:1px solid var(--line);border-radius:5px;padding:2px 6px;font-size:12px;background:var(--panel)}
 .tool-card .inner{display:flex;flex-direction:column;gap:8px}
 .result{display:flex;gap:10px;align-items:flex-start}
 .result .fav{width:16px;height:16px;border-radius:4px;background:var(--line-2);flex:none;margin-top:3px}
@@ -579,6 +592,36 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
             </div>
           </div>
 
+          <div class="msg user"><div class="bubble">make me a header image for the course site, calm, lake at dawn, wide</div></div>
+
+          <div class="msg assistant">
+            <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg> FLUX.1 schnell (GGUF)</span> · on this PC (GPU) · settings chosen by Phi-4 mini · $0.00 · 9 s</div>
+            <div class="body">
+              <details class="block">
+                <summary><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg> Settings chosen · edit any and regenerate <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary>
+                <div class="inner">
+                  <div class="plan-grid">
+                    <div><b>Prompt</b><input value="A calm mountain lake at dawn, soft mist, pastel sky, wide banner composition, no people" aria-label="Prompt"></div>
+                    <div><b>Negative</b><input value="text, watermark, people, oversaturated" aria-label="Negative prompt"></div>
+                    <div><b>Model</b><select aria-label="Model"><option>FLUX.1 schnell (GGUF, 8 GB)</option><option>SDXL Turbo</option><option>SD 3.5 Medium</option><option>GPT-image (cloud)</option></select></div>
+                    <div><b>Size</b><select aria-label="Size"><option>1536 × 640 (banner)</option><option>1024 × 1024</option><option>1024 × 1536</option></select></div>
+                    <div><b>Steps</b><input value="4" aria-label="Steps"><span>schnell needs few</span></div>
+                    <div><b>Guidance</b><input value="1.0" aria-label="Guidance"></div>
+                    <div><b>Sampler</b><select aria-label="Sampler"><option>Euler</option><option>DPM++ 2M</option></select></div>
+                    <div><b>Seed</b><input value="418233" aria-label="Seed"><span>locked for variations</span></div>
+                    <div><b>Reference</b><span>none · drop an image to use img2img</span></div>
+                    <div><b>Why</b><span>"wide" → banner size; "calm, dawn" → low guidance, pastel words; your past likes: soft light</span></div>
+                  </div>
+                </div>
+              </details>
+              <div class="genimg">
+                <div class="pic" role="img" aria-label="Generated image: calm lake at dawn, wide banner"><div class="prog"><div></div></div></div>
+                <div class="bar"><button class="btn sm primary">Regenerate</button><button class="btn sm">4 variations</button><button class="btn sm">Edit with mask</button><button class="btn sm">Upscale 2×</button><button class="btn sm">Use as reference</button><button class="btn sm">Save</button><button class="btn sm" data-toggle-art>Open in Artifacts</button></div>
+              </div>
+            </div>
+            <div class="actions"><button title="Good, more like this"><svg viewBox="0 0 24 24"><path d="M7 11v9H4v-9zM7 11l4-8a2 2 0 0 1 2 2v4h5a2 2 0 0 1 2 2l-1.5 7a2 2 0 0 1-2 2H7"/></svg></button><button title="Not this"><svg viewBox="0 0 24 24"><path d="M17 13V4h3v9zM17 13l-4 8a2 2 0 0 1-2-2v-4H6a2 2 0 0 1-2-2l1.5-7a2 2 0 0 1 2-2H17"/></svg></button><span class="cost">local · free · v1 of artifact "Course header"</span></div>
+          </div>
+
           <div class="msg user"><div class="bubble">Different thing: draft a short email to my department chair asking to move the PSYC 301 final to the 12th.</div></div>
 
           <div class="topic">
@@ -645,6 +688,7 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
                 <div class="eyebrow">On this PC · Foundry Local</div>
                 <button class="menu-item" data-tags="local cheap">Phi-4 mini <span class="sub">running on NPU · 128K ctx · offline ok</span><span class="right">free</span></button>
                 <button class="menu-item" data-tags="local cheap coding">Qwen 2.5 Coder 7B <span class="sub">GPU · 32K ctx</span><span class="right">free</span></button>
+                <button class="menu-item" data-tags="local images">FLUX.1 schnell <span class="sub">image generation · GPU · 9 s per image</span><span class="right">free</span></button>
                 <div class="eyebrow">OpenRouter</div>
                 <button class="menu-item" data-tags="coding vision reasoning">Claude Sonnet 5.5 <span class="sub">anthropic/claude-sonnet-5.5 · 1M ctx</span><span class="right">$3 / $15</span></button>
                 <button class="menu-item" data-tags="coding vision images reasoning">GPT-5.5 <span class="sub">openai/gpt-5.5 · 400K ctx</span><span class="right">$2.5 / $10</span></button>
@@ -881,6 +925,15 @@ Tests: 1 failed, 20 passed · 2.4s
             <div class="setting"><div class="grow">Send with Enter<small>Shift+Enter inserts a newline</small></div><span class="switch on"></span></div>
             <div class="setting"><div class="grow">Install as app<small>Add to home screen on Android; opens full screen</small></div><button class="btn sm">Install</button></div>
             <div class="setting"><div class="grow">Notifications<small>When agent runs, research or scheduled tasks finish</small></div><span class="switch on"></span></div>
+            <div class="card"><h3>Health <span class="tag">everything is automatic; this is the one place to look if something is off</span></h3>
+              <div class="list" style="font-size:13px">
+                <div class="row"><span class="sdot ok"></span><div class="grow">Admin sync<small>Paired · last sync 4 min ago · token refreshed</small></div></div>
+                <div class="row"><span class="sdot ok"></span><div class="grow">Cloud providers<small>OpenRouter, Anthropic, Groq ok · LM Studio unreachable (LAN only)</small></div></div>
+                <div class="row"><span class="sdot ok"></span><div class="grow">Local models<small>Foundry Local 0.9 · Phi-4 mini on NPU · image runtime on GPU (12 GB VRAM)</small></div></div>
+                <div class="row"><span class="sdot ok"></span><div class="grow">Updates and backups<small>App 1.4.2, auto-update on close · backup last night · restore test Oct 28 ok</small></div></div>
+                <div class="row"><span class="sdot warn"></span><div class="grow">Disk<small>Models use 21.5 GB · 38 GB free · prune unused models?</small></div><button class="btn sm">Fix</button></div>
+              </div>
+            </div>
           </section>
           <section data-pane="providers">
             <h2>Providers</h2>
@@ -969,10 +1022,24 @@ Tests: 1 failed, 20 passed · 2.4s
                 <button class="btn sm primary" id="addTagBtn">Add tag</button>
               </div>
             </div>
+            <div class="card"><h3>Image models <span class="tag">local first · chat model chooses settings</span></h3>
+              <div class="list">
+                <div class="row"><span class="sdot ok"></span><div class="grow">FLUX.1 schnell (GGUF Q8)<small>stable-diffusion.cpp · GPU · 8.1 GB · default, best fit for this PC</small></div><span class="tag">default</span></div>
+                <div class="row"><span class="sdot ok"></span><div class="grow">SDXL Turbo<small>ONNX DirectML · GPU · 6.9 GB · fastest</small></div></div>
+                <div class="row"><span class="sdot ok"></span><div class="grow">Inpaint + upscaler (RealESRGAN)<small>ONNX DirectML · 420 MB</small></div></div>
+                <div class="row"><span class="sdot off"></span><div class="grow">SD 3.5 Medium<small>Not downloaded · 9.9 GB · needs 10 GB VRAM (you have 12)</small></div><button class="btn sm">Download</button></div>
+                <div class="row"><span class="sdot off"></span><div class="grow">GPT-image, FLUX Pro (cloud via OpenRouter)<small>Used only if you pick them or the local model cannot do the task</small></div></div>
+              </div>
+              <div class="setting"><div class="grow">Let the chat model choose settings<small>Prompt, negative, model, size, steps, guidance, sampler, seed; always editable on the image</small></div><span class="switch on"></span></div>
+              <div class="setting"><div class="grow">Learn my taste<small>Thumbs and "more like this" update a small local style note</small></div><span class="switch on"></span></div>
+              <div class="setting"><div class="grow">Safety filter</div><span class="switch on"></span></div>
+              <div class="setting"><div class="grow">Model folder<small>%APPDATA%\Crosspoint\models\image · 15.4 GB · LoRA subfolder watched</small></div><button class="btn sm">Open</button></div>
+            </div>
             <div class="card"><h3>Tags per model <span class="tag">pick from your tags · click a tag to remove it</span></h3>
               <div class="tablewrap"><table id="tagTable"><thead><tr><th>Model</th><th>Provider</th><th>Tags</th></tr></thead><tbody>
                 <tr data-model="Phi-4 mini"><td>Phi-4 mini</td><td class="muted">Foundry Local</td><td></td></tr>
                 <tr data-model="Qwen 2.5 Coder 7B"><td>Qwen 2.5 Coder 7B</td><td class="muted">Foundry Local</td><td></td></tr>
+                <tr data-model="FLUX.1 schnell"><td>FLUX.1 schnell</td><td class="muted">Local image</td><td></td></tr>
                 <tr data-model="Claude Sonnet 5.5"><td>Claude Sonnet 5.5</td><td class="muted">OpenRouter</td><td></td></tr>
                 <tr data-model="GPT-5.5"><td>GPT-5.5</td><td class="muted">OpenRouter</td><td></td></tr>
                 <tr data-model="Gemini 3 Pro"><td>Gemini 3 Pro</td><td class="muted">OpenRouter</td><td></td></tr>
