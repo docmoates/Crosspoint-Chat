@@ -13,7 +13,8 @@ Superseded: the earlier web/PWA plan (ai.docmoates.com, Cloudflare Access, VPS C
 | Area | Features |
 |---|---|
 | Chat core | Streaming, markdown + LaTeX + Mermaid, code blocks with copy/run, edit & resend, regenerate, branch/fork, stop, message search, pin, archive, folders, export (MD/JSON/PDF) |
-| Models | Picker populated from OpenRouter catalog + admin-defined custom endpoints + Anthropic; per-chat model; effort/thinking; temperature/system overrides; per-task routing (cheap model for titles/summaries); fallback chain on 429; cost meter per message and per month; **user-defined tags** (name + color, assigned per model, filter the picker) |
+| Models | Picker populated from OpenRouter catalog + admin-defined custom endpoints + Anthropic + **local models via Foundry Local**; **Auto** default that routes local vs cloud (section 2b); per-chat model; effort/thinking; temperature/system overrides; per-task routing (local or cheap model for titles/summaries); fallback chain on 429 ending at the local model; cost meter per message and per month with local share; **user-defined tags** (name + color, assigned per model, filter the picker) |
+| Hybrid local + cloud | Foundry Local runtime (NPU/GPU/CPU), Private toggle per chat/message, router rules, local prep (history summary, local doc search, background jobs, optional try-local-first, draft-then-refine, answer cache), offline mode |
 | Attachments | Images (vision), PDFs, docs/xlsx/pptx, audio, drag-drop, paste, screenshot of a window, "Add from GitHub/Drive" via connectors |
 | Tools (built-in) | Web search + fetch with citations, code interpreter (local Python/Node in a sandboxed job object), image generation, TTS, STT, memory read/write |
 | Artifacts | HTML/React/SVG/Mermaid preview in a sandboxed webview, documents with inline editing, versions + diff, save to disk, gallery |
@@ -73,6 +74,57 @@ Keys are held in memory and in `safeStorage`-encrypted local cache so the app wo
 
 **Storage.** SQLite (`better-sqlite3`) in `%APPDATA%\Crosspoint\` with `sqlite-vec` for embeddings; attachments and artifacts on disk under the same folder; nightly local backup zip, optional upload to admin or Backblaze.
 
+## 2b. Hybrid local + cloud routing
+
+The app runs small models on the PC through **Foundry Local** (Microsoft's local runtime; it picks the NPU, GPU or CPU variant of a model when the model loads, and exposes an OpenAI-style endpoint) alongside the cloud providers. Because local and cloud both speak the OpenAI format, the chat screen has one renderer and one streaming path.
+
+```mermaid
+flowchart TD
+  U[User message] --> H[(Local history store\nSQLite)]
+  H --> R{Router\nfirst matching rule wins}
+  R -- "1 offline" --> L
+  R -- "2 user picked a model" --> P[That model]
+  R -- "3 chat marked Private" --> L
+  R -- "4 short / simple" --> L
+  R -- "5 long / complex / tools" --> PREP
+  subgraph LOCAL [Local path · Foundry Local]
+    L[Local model\nNPU / GPU / CPU chosen at load]
+  end
+  subgraph PREPS [Local prep · optional, cuts cloud tokens]
+    PREP[Summarize older history\nSearch project files locally\nClassify / title / tag]
+  end
+  PREP --> C
+  subgraph CLOUD [Cloud path]
+    C[OpenRouter\nprimary → fallback models] --> A[Anthropic direct /\ncustom endpoint]
+  end
+  P --> OUT
+  L --> OUT[Streamed reply\none renderer]
+  C --> OUT
+  A --> OUT
+  C -. all cloud models failed or no internet .-> L
+```
+
+**Router rules, in order** (evaluated before any model runs, so the decision is near-instant):
+1. Device offline → local.
+2. User picked a model in the picker → that model. (Picker default is **Auto**.)
+3. Chat or message marked **Private** (lock icon in the composer) → local only; nothing leaves the machine, including prep steps.
+4. Short or simple request (length, no tools, no attachments, classifier says "chit-chat / lookup") → local.
+5. Otherwise → cloud, with local prep first.
+
+**Local prep steps** (each a toggle in Settings › Models › Hybrid routing; defaults in bold):
+- **Summarize older history**: local model compresses everything but the last N turns into a short summary before the cloud call.
+- **Search project files locally**: local embeddings + sqlite-vec pick the few relevant passages; only those are sent.
+- **Local background jobs**: chat titles, tags, language detection, request classification, spell-check never hit the cloud.
+- Try local first: local model answers, a confidence check decides whether to escalate to cloud. Off by default; enable once usage data shows which messages the small model handles well.
+- Draft locally, refine in cloud: for long outputs the local model drafts, the cloud model edits (fewer output tokens).
+- **Cache answers**: identical or near-identical questions reuse the stored reply.
+
+**Fallback.** Cloud failures retry in two layers: OpenRouter's model fallbacks first (configured per routing rule from admin's allowlist), then the app's own chain (Anthropic direct → custom endpoint), then the local model. The UI shows a `notice` event ("Rate limited on X, trying Y" / "Offline, answered locally").
+
+**Cost visibility.** Each assistant message shows its path (local / cloud via provider) and tokens saved by prep. The sidebar monthly line shows spend and the share of messages handled locally. Usage reports to admin include the path so admin's dashboard can show local vs cloud.
+
+**Tradeoffs to watch.** Prep adds latency before the cloud call starts; a weak local summary or search can drop details; try-local-first answers hard questions twice. Start with summaries, local search and background jobs, which save the most for the least risk.
+
 ## 3. Stack
 
 | Layer | Choice | Why |
@@ -82,13 +134,14 @@ Keys are held in memory and in `safeStorage`-encrypted local cache so the app wo
 | Main | Node 22, Vercel AI SDK (`ai`, `@ai-sdk/openai-compatible`, `@ai-sdk/anthropic`), `@modelcontextprotocol/sdk`, Zod, Drizzle + better-sqlite3 + sqlite-vec, node-pty | Streaming, tool-call normalization, local DB, terminal |
 | Secrets | Electron `safeStorage` (DPAPI) + Credential Manager for the device token | Never plaintext on disk |
 | Sandbox | Job Objects via a small native helper; WSL2/Docker optional | Caps without requiring Docker |
+| Local models | Foundry Local (`foundry` CLI/SDK, OpenAI-compatible endpoint on localhost); default small model Phi-4-mini or Qwen 2.5 small; local embedding model for RAG | Runs on NPU/GPU/CPU with no code changes; same adapter as cloud |
 | Computer use | `@nut-tree/nut-js` or Windows UI Automation via `node-ffi-napi`; screen capture via Electron `desktopCapturer` | Local, consented |
 | Updates | electron-updater with releases hosted by admin.docmoates.com or GitHub Releases | One-click updates |
 | Tests | Vitest (main), Playwright for Electron (E2E) | |
 
 ## 4. Data model (SQLite)
 
-`settings` · `providers` (mirror of admin, with cached keys encrypted) · `models` (catalog cache + user tags) · `tags` (name, color) · `projects` · `project_files` + `chunks` (vec) · `conversations` (project_id, model, settings, parent_message_id) · `messages` (role, parts JSON, usage, cost) · `attachments` · `artifacts` + `artifact_versions` · `memories` · `mcp_servers` (source: admin | local) · `skills` · `workspaces` (path, branch) · `agent_runs` + `agent_events` · `scheduled_tasks` + `runs` · `usage_outbox` (pending usage reports to admin).
+`settings` · `providers` (mirror of admin, with cached keys encrypted; includes the local Foundry provider) · `models` (catalog cache + user tags + local flag/hardware) · `tags` (name, color) · `routing_rules` · `answer_cache` · `history_summaries` (per conversation, covering message range) · `projects` · `project_files` + `chunks` (vec) · `conversations` (project_id, model, settings, parent_message_id) · `messages` (role, parts JSON, usage, cost) · `attachments` · `artifacts` + `artifact_versions` · `memories` · `mcp_servers` (source: admin | local) · `skills` · `workspaces` (path, branch) · `agent_runs` + `agent_events` · `scheduled_tasks` + `runs` · `usage_outbox` (pending usage reports to admin).
 
 ## 5. Phases
 
@@ -101,6 +154,7 @@ Keys are held in memory and in `safeStorage`-encrypted local cache so the app wo
 ### Phase 1 — Chat parity (weeks 2–3)
 - Port the mockup UI to React: sidebar, threads, markdown/code/LaTeX/Mermaid, streaming, stop, edit/regenerate/branch, search, folders, pins, export.
 - Model picker with catalog, cost per message, thinking controls, per-task routing, fallback chain, user-defined tags with colors.
+- Foundry Local integration: detect/install runtime, download default local model, local group in the picker, Auto routing with rules 1–4, Private toggle, offline mode, routing notice on each reply.
 - Composer + menu: uploads, photo/screenshot, add from connectors, tools, connectors, skills.
 - Attachments with local text extraction (pdf.js, mammoth, xlsx). Memory v1, custom instructions. Tray, hotkey quick-ask, notifications, auto-update.
 - **Done when:** daily-driver replacement for basic ChatGPT/Claude chat.
@@ -108,7 +162,8 @@ Keys are held in memory and in `safeStorage`-encrypted local cache so the app wo
 ### Phase 2 — Tools and artifacts (weeks 4–5)
 - Tool registry + permission policy. Web search (key from admin), local code interpreter in job objects with file outputs and charts, image gen, TTS/STT.
 - Artifacts pane: sandboxed webview, versions, diff, save, gallery.
-- Projects with knowledge files and local RAG (sqlite-vec; embeddings via OpenRouter or a local model).
+- Projects with knowledge files and local RAG (sqlite-vec; embeddings via a local model by default).
+- Local prep pipeline: history summarization, local doc search, local background jobs, answer cache; tokens-saved counter per message. Try-local-first and draft-then-refine behind toggles, off by default.
 - Voice mode.
 - **Done when:** tool calls stream as cards, artifacts render and version, projects answer from their files.
 

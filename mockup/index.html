@@ -134,6 +134,14 @@ details.block summary .chev{margin-left:auto;transition:transform .15s}
 details.block[open] summary .chev{transform:rotate(90deg)}
 details.block .inner{border-top:1px solid var(--line);padding:10px 12px;font-size:13px;color:var(--fg-2)}
 details.thinking{background:var(--thinking)}
+details.route summary{font-size:12px;color:var(--fg-3)}
+.rsteps{display:flex;flex-direction:column;gap:4px}
+.rsteps .rk{display:inline-block;width:46px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.rules{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.rules div{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.rules .n{width:20px;height:20px;border-radius:50%;background:var(--panel-2);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--fg-2);flex:none}
+.rules .to{margin-left:auto;font-size:12px;color:var(--fg-3);white-space:nowrap}
+.rules .to.local{color:var(--accent)}
 .tool-card .inner{display:flex;flex-direction:column;gap:8px}
 .result{display:flex;gap:10px;align-items:flex-start}
 .result .fav{width:16px;height:16px;border-radius:4px;background:var(--line-2);flex:none;margin-top:3px}
@@ -390,7 +398,7 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
     </div>
     <div class="sb-bottom">
       <div class="avatar">MM</div>
-      <div class="who">Michael<small>$4.21 this month · 1.3M tokens</small></div>
+      <div class="who">Michael<small>$4.21 this month · 61% answered locally</small></div>
       <button class="iconbtn" data-go="settings" title="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
     </div>
   </aside>
@@ -420,6 +428,17 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
           <div class="msg assistant">
             <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg> Claude Sonnet 5.5</span> · via OpenRouter · thinking: medium</div>
             <div class="body">
+              <details class="block route">
+                <summary><svg viewBox="0 0 24 24"><path d="M4 12h6l3-7 3 14 3-7h1"/></svg> Auto → cloud · local prep saved 3,140 tokens <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary>
+                <div class="inner">
+                  <div class="rsteps">
+                    <div><span class="rk">Rule</span> long request with a file and web search → cloud (rule 5)</div>
+                    <div><span class="rk">Local</span> Phi-4 mini summarized 9 older messages into 180 tokens</div>
+                    <div><span class="rk">Local</span> project search picked 2 of 212 chunks from the OpenRouter docs</div>
+                    <div><span class="rk">Cloud</span> Claude Sonnet 5.5 via OpenRouter · fallbacks: GPT-5.5 → Anthropic direct → Phi-4 mini</div>
+                  </div>
+                </div>
+              </details>
               <details class="block thinking">
                 <summary><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg> Thought for 14 seconds <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary>
                 <div class="inner">The interface wants an AsyncIterable of typed events. OpenRouter follows the OpenAI Chat Completions shape, so I will wrap the SSE stream and map delta.tool_calls into tool_call events, buffering arguments by index until finish_reason arrives. Usage comes in the final chunk when stream_options.include_usage is set. I should verify the reasoning parameter name before writing it.</div>
@@ -479,12 +498,23 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
             </div>
           </div>
 
+          <div class="msg user"><div class="bubble">thanks, what does 429 mean again?</div></div>
+
+          <div class="msg assistant">
+            <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/></svg> Phi-4 mini</span> · on this PC (NPU) · $0.00</div>
+            <div class="body">
+              <details class="block route"><summary><svg viewBox="0 0 24 24"><path d="M4 12h6l3-7 3 14 3-7h1"/></svg> Auto → local · short question (rule 4) · 0.4 s <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary><div class="inner">Answered on this PC. Nothing was sent to the cloud.</div></details>
+              <p>HTTP 429 is "Too Many Requests": the provider is rate-limiting you. OpenRouter returns it when your account or the upstream model hits its request or token limit, so the fallback chain should treat it as retryable and move to the next model.</p>
+            </div>
+            <div class="actions"><button title="Copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button><button title="Ask the cloud instead"><svg viewBox="0 0 24 24"><path d="M7 17a5 5 0 0 1 1-9.9A6 6 0 0 1 19.5 9 4 4 0 0 1 18 17z"/></svg></button><span class="cost">local · free</span></div>
+          </div>
+
           <div class="msg user"><div class="bubble">Now make it fall back to the Anthropic direct adapter when OpenRouter returns 429.</div></div>
 
           <div class="msg assistant">
             <div class="meta"><span class="model">Claude Sonnet 5.5</span> · via OpenRouter</div>
             <div class="body">
-              <div class="status-row"><span class="spin"></span> Reading <code>packages/providers/src/registry.ts</code>…</div>
+              <div class="status-row"><span class="spin"></span> Summarizing history on this PC, then reading <code>packages/providers/src/registry.ts</code>…</div>
             </div>
           </div>
 
@@ -522,11 +552,16 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
               </div>
             </div>
             <div class="slash">
-              <button class="pill" id="modelBtn">Claude Sonnet 5.5 <svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="m6 9 6 6 6-6"/></svg></button>
+              <button class="pill" id="modelBtn">Auto <svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="m6 9 6 6 6-6"/></svg></button>
               <div class="menu model-menu" id="modelMenu">
                 <div class="tagfilter" id="tagFilter"><button class="on" data-tag="">All</button></div>
+                <div class="eyebrow">Routing</div>
+                <button class="menu-item on" data-tags="">Auto <span class="sub">Local for short or private, cloud with local prep for the rest</span><span class="right">hybrid</span></button>
+                <div class="eyebrow">On this PC · Foundry Local</div>
+                <button class="menu-item" data-tags="local cheap">Phi-4 mini <span class="sub">running on NPU · 128K ctx · offline ok</span><span class="right">free</span></button>
+                <button class="menu-item" data-tags="local cheap coding">Qwen 2.5 Coder 7B <span class="sub">GPU · 32K ctx</span><span class="right">free</span></button>
                 <div class="eyebrow">OpenRouter</div>
-                <button class="menu-item on" data-tags="coding vision reasoning">Claude Sonnet 5.5 <span class="sub">anthropic/claude-sonnet-5.5 · 1M ctx</span><span class="right">$3 / $15</span></button>
+                <button class="menu-item" data-tags="coding vision reasoning">Claude Sonnet 5.5 <span class="sub">anthropic/claude-sonnet-5.5 · 1M ctx</span><span class="right">$3 / $15</span></button>
                 <button class="menu-item" data-tags="coding vision images reasoning">GPT-5.5 <span class="sub">openai/gpt-5.5 · 400K ctx</span><span class="right">$2.5 / $10</span></button>
                 <button class="menu-item" data-tags="vision images reasoning">Gemini 3 Pro <span class="sub">google/gemini-3-pro · 2M ctx</span><span class="right">$2 / $12</span></button>
                 <button class="menu-item" data-tags="coding cheap">DeepSeek V4 <span class="sub">deepseek/deepseek-v4 · 164K ctx</span><span class="right">$0.3 / $1.2</span></button>
@@ -541,12 +576,13 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
                 <div style="padding:2px 8px 6px"><span class="seg"><button>Off</button><button>Low</button><button class="on">Medium</button><button>High</button><button>Max</button></span></div>
               </div>
             </div>
+            <button class="pill" id="privBtn" title="Private: answer on this PC only, nothing leaves the machine"><svg viewBox="0 0 24 24" style="width:13px;height:13px"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span class="desk-only">Private</span></button>
             <span class="grow"></span>
             <button class="iconbtn" title="Voice"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
             <button class="send" title="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
           </div>
         </div>
-        <div class="hint desk-only">Enter to send · Shift+Enter for a new line · Keys and limits managed in admin.docmoates.com</div>
+        <div class="hint desk-only">Enter to send · Shift+Enter for a new line · Keys and limits managed in admin.docmoates.com · Local model ready (NPU)</div>
       </div>
     </section>
 
@@ -740,6 +776,7 @@ Tests: 1 failed, 20 passed · 2.4s
             <h2>Providers</h2>
             <div class="note"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg><div>API keys, spend limits and allowed models are managed in <a href="https://admin.docmoates.com">admin.docmoates.com</a>. This page is read-only and refreshes every minute.</div></div>
             <div class="card"><div class="list">
+              <div class="row"><span class="sdot ok"></span><div class="grow">Foundry Local (this PC)<small>Runtime 0.9 · Phi-4 mini on NPU, Qwen 2.5 Coder on GPU · 2 models, 6.1 GB</small></div><span class="tag">local</span><button class="btn sm">Manage models</button></div>
               <div class="row"><span class="sdot ok"></span><div class="grow">OpenRouter<small>Key ok · 214 models · $18.40 remaining credit</small></div><span class="tag">primary</span></div>
               <div class="row"><span class="sdot ok"></span><div class="grow">Anthropic (direct)<small>Key ok · caching + PDF + computer use enabled</small></div></div>
               <div class="row"><span class="sdot ok"></span><div class="grow">Groq<small>OpenAI-compatible · api.groq.com/openai/v1</small></div></div>
@@ -751,7 +788,28 @@ Tests: 1 failed, 20 passed · 2.4s
           </section>
           <section data-pane="models">
             <h2>Models</h2>
-            <div class="setting"><div class="grow">Default chat model</div><span class="pill">Claude Sonnet 5.5 · OpenRouter</span></div>
+            <div class="setting"><div class="grow">Default chat model</div><span class="pill">Auto · hybrid</span></div>
+            <div class="setting"><div class="grow">Cloud model used by Auto</div><span class="pill">Claude Sonnet 5.5 · OpenRouter</span></div>
+            <div class="setting"><div class="grow">Local model used by Auto<small>Foundry Local · Phi-4 mini · running on NPU · 2.4 GB</small></div><span class="pill"><span class="dot"></span> ready</span><button class="btn sm">Change</button></div>
+            <div class="card"><h3>Hybrid routing <span class="tag">first matching rule wins · decided before any model runs</span></h3>
+              <div class="rules">
+                <div><span class="n">1</span>Device is offline<span class="to local">→ local</span></div>
+                <div><span class="n">2</span>You picked a model in the picker<span class="to">→ that model</span></div>
+                <div><span class="n">3</span>Chat or message marked Private<span class="to local">→ local only, no prep leaves the PC</span></div>
+                <div><span class="n">4</span>Short or simple: under <span class="mono">400</span> tokens, no tools, no files<span class="to local">→ local</span></div>
+                <div><span class="n">5</span>Everything else<span class="to">→ cloud, after local prep</span></div>
+              </div>
+              <div class="eyebrow" style="margin:14px 0 4px">Local prep before a cloud call</div>
+              <div class="setting"><div class="grow">Summarize older history<small>Keep the last 6 turns verbatim; compress the rest on this PC</small></div><span class="switch on"></span></div>
+              <div class="setting"><div class="grow">Search project files locally<small>Send only the matching passages, not whole files</small></div><span class="switch on"></span></div>
+              <div class="setting"><div class="grow">Local background jobs<small>Titles, tags, language detection, request classification</small></div><span class="switch on"></span></div>
+              <div class="setting"><div class="grow">Cache answers<small>Reuse replies to identical or near-identical questions</small></div><span class="switch on"></span></div>
+              <div class="setting"><div class="grow">Try local first<small>Local answers, escalates to cloud when its confidence check fails. Hard questions get answered twice.</small></div><span class="switch"></span></div>
+              <div class="setting"><div class="grow">Draft locally, refine in cloud<small>For long outputs; cloud edits instead of writing from scratch</small></div><span class="switch"></span></div>
+              <div class="eyebrow" style="margin:14px 0 4px">Cloud fallback chain</div>
+              <div class="muted" style="font-size:13px">OpenRouter fallbacks (GPT-5.5, Gemini 3 Pro) → Anthropic direct → custom endpoint → local model. Set per provider in admin; shown here read-only.</div>
+              <div class="setting" style="border-top:0;padding-top:12px"><div class="grow">This month<small>61% of messages answered locally · 1.9M cloud tokens avoided</small></div><span class="mono">$4.21</span></div>
+            </div>
             <div class="setting"><div class="grow">Default thinking effort</div><span class="seg"><button>Off</button><button>Low</button><button class="on">Medium</button><button>High</button></span></div>
             <div class="card"><h3>Task routing <span class="tag">saves money on background work</span></h3>
               <div class="tablewrap"><table><thead><tr><th>Task</th><th>Model</th><th>Fallback</th></tr></thead><tbody>
@@ -775,6 +833,8 @@ Tests: 1 failed, 20 passed · 2.4s
             </div>
             <div class="card"><h3>Tags per model <span class="tag">pick from your tags · click a tag to remove it</span></h3>
               <div class="tablewrap"><table id="tagTable"><thead><tr><th>Model</th><th>Provider</th><th>Tags</th></tr></thead><tbody>
+                <tr data-model="Phi-4 mini"><td>Phi-4 mini</td><td class="muted">Foundry Local</td><td></td></tr>
+                <tr data-model="Qwen 2.5 Coder 7B"><td>Qwen 2.5 Coder 7B</td><td class="muted">Foundry Local</td><td></td></tr>
                 <tr data-model="Claude Sonnet 5.5"><td>Claude Sonnet 5.5</td><td class="muted">OpenRouter</td><td></td></tr>
                 <tr data-model="GPT-5.5"><td>GPT-5.5</td><td class="muted">OpenRouter</td><td></td></tr>
                 <tr data-model="Gemini 3 Pro"><td>Gemini 3 Pro</td><td class="muted">OpenRouter</td><td></td></tr>
@@ -958,6 +1018,7 @@ draw(document.getElementById(<span class="s">"c"</span>), data);
     const sw=e.target.closest('.switch'); if(sw){sw.classList.toggle('on');e.stopPropagation();return;}
     const seg=e.target.closest('.seg button'); if(seg){seg.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===seg));return;}
     if(e.target.closest('#toolsBtn')){toggleMenu('#toolsMenu');return;}
+    const pb=e.target.closest('#privBtn'); if(pb){pb.classList.toggle('on');return;}
     if(e.target.closest('#modelBtn')){toggleMenu('#modelMenu');return;}
     const tf=e.target.closest('#tagFilter button'); if(tf){activeFilter=tf.dataset.tag;$$('#tagFilter button').forEach(b=>b.classList.toggle('on',b===tf));filterModels(activeFilter);e.stopPropagation();return;}
     const mi=e.target.closest('#modelMenu .menu-item'); if(mi){$$('#modelMenu .menu-item').forEach(b=>b.classList.toggle('on',b===mi));$('#modelBtn').firstChild.textContent=mi.firstChild.textContent.trim()+' ';closeMenus();return;}
