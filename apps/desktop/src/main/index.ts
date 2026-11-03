@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, shell } from 'electron'
 import { join, resolve } from 'node:path'
 import { DEFAULT_ADMIN_HOST, normalizeAdminHost } from '@shared/admin-contract'
 import { Events } from '@shared/ipc'
+import { handleArtifactProtocol, registerArtifactScheme } from './artifact-protocol'
 import { createCore, type Core } from './core'
 import { registerIpc } from './ipc'
 import { appPaths } from './paths'
@@ -13,6 +14,7 @@ const RENDERER_URL = process.env['ELECTRON_RENDERER_URL']
 // never moves if the product name changes. Must run before `ready`.
 app.setPath('userData', appPaths().chromium)
 app.setAppUserModelId('com.docmoates.crosspoint')
+registerArtifactScheme()
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
@@ -50,6 +52,7 @@ function main(): void {
       chat: (e) => send(Events.chat, e)
     })
     registerIpc(core, { isTrustedUrl, afterPair: () => undefined })
+    handleArtifactProtocol(() => core?.artifacts ?? null)
     core.start()
     win = createWindow()
     if (pendingLink) {

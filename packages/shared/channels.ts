@@ -43,6 +43,7 @@ export const Channels = {
   attachments: { pick: channel('attachments', 'pick'), fromPaste: channel('attachments', 'fromPaste') },
   artifacts: {
     list: channel('artifacts', 'list'),
+    listAll: channel('artifacts', 'listAll'),
     get: channel('artifacts', 'get'),
     save: channel('artifacts', 'save'),
     exportTo: channel('artifacts', 'exportTo')
@@ -61,3 +62,13 @@ export const Events = {
   configChange: 'crosspoint:event:config-change',
   chat: 'crosspoint:event:chat'
 } as const
+
+/**
+ * Artifact previews are served by main from this privileged scheme so inline scripts run inside a
+ * sandboxed iframe (opaque origin, no preload, no IPC) under their own CSP, not the app's.
+ */
+export const ARTIFACT_PROTOCOL = 'crosspoint-artifact'
+
+/** Preview URL for an artifact version; the version in the query busts caches after an edit. */
+export const artifactPreviewUrl = (id: string, version: number): string =>
+  `${ARTIFACT_PROTOCOL}://preview/${encodeURIComponent(id)}?v=${version}`

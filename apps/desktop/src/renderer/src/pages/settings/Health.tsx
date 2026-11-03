@@ -52,11 +52,7 @@ export function HealthSection(): ReactElement {
       detail: a.ok
         ? `${a.paired ? 'Paired' : 'Not paired'} · ${a.host}${a.latencyMs != null ? ` · ${a.latencyMs} ms` : ''}`
         : `${a.host} · ${a.error ?? 'unreachable'}`,
-      fix: a.ok
-        ? undefined
-        : a.paired
-          ? 'Check the internet connection, then sync. Cached config keeps working meanwhile. If admin revoked this PC, pair again.'
-          : 'Pair this PC from the Device page.',
+      fix: a.ok && a.paired ? undefined : a.fix,
       action: a.ok ? undefined : a.paired ? (
         <button type="button" className="btn sm" onClick={() => void syncNow().then(run)}>
           Sync now
@@ -87,11 +83,7 @@ export function HealthSection(): ReactElement {
         label: p.label,
         status: p.ok ? 'ok' : 'bad',
         detail: p.ok ? `${p.kind}${p.latencyMs != null ? ` · ${p.latencyMs} ms` : ''}` : `${p.kind} · ${p.error ?? 'failed'}`,
-        fix: p.ok
-          ? undefined
-          : /401|403|key|auth/i.test(p.error ?? '')
-            ? 'The key was rejected. Replace it in admin, then sync.'
-            : 'Check the base URL in admin and that the service is up. Other providers still work.',
+        fix: p.fix,
         action: p.ok ? undefined : (
           <button
             type="button"
@@ -108,7 +100,7 @@ export function HealthSection(): ReactElement {
       label: 'Database',
       status: report.db.ok ? 'ok' : 'bad',
       detail: `${report.db.path}${report.db.sizeBytes != null ? ` · ${bytes(report.db.sizeBytes)}` : ''}${report.db.error ? ` · ${report.db.error}` : ''}`,
-      fix: report.db.ok ? undefined : 'Restart the app. If it stays red, the database file may be damaged; restore it from a backup in the data folder.',
+      fix: report.db.fix,
       action: report.db.ok ? undefined : (
         <button type="button" className="btn sm" onClick={() => void api.app.openPath(report.db.path)}>
           Open folder
@@ -122,7 +114,7 @@ export function HealthSection(): ReactElement {
       label: 'Disk',
       status: !report.disk.ok ? 'bad' : low ? 'warn' : 'ok',
       detail: `${free != null ? `${bytes(free)} free` : 'free space unknown'} · ${report.disk.path}${report.disk.error ? ` · ${report.disk.error}` : ''}`,
-      fix: !report.disk.ok || low ? 'Free some space on this drive. Chats and attachments need room to save.' : undefined,
+      fix: report.disk.fix,
     })
     const u = report.update
     const uBad = u.status === 'error'
@@ -140,7 +132,7 @@ export function HealthSection(): ReactElement {
               : uBad
                 ? (u.error ?? 'Update check failed')
                 : 'Up to date',
-      fix: uBad ? 'Check again from About. Updates also install on their own when you close the app.' : undefined,
+      fix: u.fix,
       action:
         uBad || u.status === 'downloaded' ? (
           <button type="button" className="btn sm" onClick={() => openSettings('about')}>

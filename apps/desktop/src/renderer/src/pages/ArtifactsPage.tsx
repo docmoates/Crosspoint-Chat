@@ -1,9 +1,9 @@
 import { FileCode2, FileText, Image as ImageIcon, Menu, PanelLeft, PanelRight } from 'lucide-react'
-import { useEffect, useMemo, useState, type ReactElement } from 'react'
-import { Empty, Seg, Spinner } from '../components/ui/primitives'
-import { api } from '../lib/api'
+import { useEffect, useState, type ReactElement } from 'react'
+import { Empty, ErrorLine, Seg, Spinner } from '../components/ui/primitives'
+import { api, errorText } from '../lib/api'
 import { relTime } from '../lib/utils'
-import type { Artifact } from '../lib/types'
+import type { Artifact, ArtifactListItem } from '../lib/types'
 import { useApp } from '../store/app'
 import { useArtifacts } from '../store/artifacts'
 import { useChat } from '../store/chat'
@@ -16,44 +16,37 @@ function category(a: Artifact): Exclude<Filter, 'all'> {
   return 'code'
 }
 
-const SCAN_LIMIT = 60
+const LIMIT = 500
 
-/**
- * The contract only lists artifacts per conversation, so the gallery reads the most recent chats
- * and merges their artifacts.
- */
+/** Gallery across all non-archived chats, newest first (`artifacts.listAll`). */
 export function ArtifactsPage(): ReactElement {
   const conversations = useChat((s) => s.conversations)
   const app = useApp()
-  const [items, setItems] = useState<(Artifact & { chatTitle: string })[] | null>(null)
+  const [items, setItems] = useState<ArtifactListItem[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
 
-  const recent = useMemo(
-    () =>
-      conversations
-        .filter((c) => !c.archived)
-        .sort((a, b) => (b.lastMessageAt ?? b.updatedAt).localeCompare(a.lastMessageAt ?? a.updatedAt))
-        .slice(0, SCAN_LIMIT),
-    [conversations],
-  )
-
+  // Reload when the chat list changes (new chat, rename, archive, delete).
   useEffect(() => {
     let alive = true
-    Promise.all(
-      recent.map((c) =>
-        api.artifacts
-          .list(c.id)
-          .then((list) => list.map((a) => ({ ...a, chatTitle: c.title })))
-          .catch(() => []),
-      ),
-    ).then((lists) => {
-      if (!alive) return
-      setItems(lists.flat().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)))
-    })
+    api.artifacts
+      .listAll(LIMIT)
+      .then((list) => {
+        if (alive) {
+          setItems(list)
+          setError(null)
+        }
+      })
+      .catch((err) => {
+        if (alive) {
+          setItems([])
+          setError(errorText(err))
+        }
+      })
     return () => {
       alive = false
     }
-  }, [recent])
+  }, [conversations])
 
   const shown = (items ?? []).filter((a) => filter === 'all' || category(a) === filter)
 
@@ -86,6 +79,7 @@ export function ArtifactsPage(): ReactElement {
       <div className="page">
         <div className="page-inner">
           <h1>Artifacts</h1>
+          <ErrorLine error={error} />
           {items === null && (
             <div className="status-row">
               <Spinner /> Collecting artifacts from your chats…
@@ -127,15 +121,15 @@ export function ArtifactsPage(): ReactElement {
                   <div className="gb">
                     <b className="truncate">{a.name}</b>
                     <small>
-                      {a.language ?? a.kind} · v{a.version} · {a.chatTitle || 'Untitled chat'} · {relTime(a.updatedAt)}
+                      {a.language ?? a.kind} · v{a.version} · {a.conversationTitle || 'Untitled chat'} · {relTime(a.updatedAt)}
                     </small>
                   </div>
                 </button>
               )
             })}
           </div>
-          {conversations.length > SCAN_LIMIT && (
-            <div className="faint text-[12px]">Showing artifacts from your {SCAN_LIMIT} most recent chats.</div>
+          {items && items.length >= LIMIT && (
+            <div className="faint text-[12px]">Showing the {LIMIT} most recently updated artifacts.</div>
           )}
         </div>
       </div>

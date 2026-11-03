@@ -12,7 +12,7 @@ import { usePairing } from '../../store/pairing'
 const FONT_SIZES = ['12', '13', '14', '15', '16', '18'] as const
 
 export function GeneralSection(): ReactElement {
-  const { settings, setSettings, fontSize, setFontSize } = useApp()
+  const { settings, setSettings } = useApp()
   const models = useConfig((s) => s.models)
   const [cap, setCap] = useState(settings.dailyCapUsd != null ? String(settings.dailyCapUsd) : '')
   useEffect(() => setCap(settings.dailyCapUsd != null ? String(settings.dailyCapUsd) : ''), [settings.dailyCapUsd])
@@ -42,8 +42,8 @@ export function GeneralSection(): ReactElement {
           </div>
           <Seg
             label="Font size"
-            value={String(fontSize)}
-            onChange={(v) => setFontSize(Number(v))}
+            value={String(settings.fontSize)}
+            onChange={(v) => void setSettings({ fontSize: Number(v) })}
             options={FONT_SIZES.map((s) => ({ value: s, label: s }))}
           />
         </div>

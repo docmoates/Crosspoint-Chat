@@ -3,6 +3,7 @@ import { writeFileSync } from 'node:fs'
 import { relative, resolve, isAbsolute } from 'node:path'
 import { z } from 'zod'
 import {
+  ArtifactListAllLimitSchema,
   AuditListQuerySchema,
   Channels,
   ChatSendInputSchema,
@@ -144,6 +145,7 @@ export function registerIpc(core: Core, opts: { isTrustedUrl: (url: string) => b
 
   // artifacts
   h(Channels.artifacts.list, id, (cid) => core.artifacts.list(cid))
+  h(Channels.artifacts.listAll, z.tuple([ArtifactListAllLimitSchema]), (limit) => core.artifacts.listAll(limit))
   h(Channels.artifacts.get, id, (aid) => core.artifacts.get(aid))
   h(Channels.artifacts.save, z.tuple([IdSchema, z.string().max(5_000_000)]), (aid, content) => core.artifacts.save(aid, content))
   h(Channels.artifacts.exportTo, id, async (aid) => {
@@ -164,7 +166,15 @@ export function registerIpc(core: Core, opts: { isTrustedUrl: (url: string) => b
 
   // usage
   h(Channels.usage.summary, none, () => core.usage.summary())
-  h(Channels.usage.forMessage, id, (mid) => core.usage.forMessage(mid))
+  h(Channels.usage.forMessage, id, (mid) => {
+    const d = core.usage.forMessage(mid)
+    if (!d) return null
+    const models = core.catalog.cachedList()
+    const m =
+      models.find((x) => x.id === d.model) ??
+      models.find((x) => x.provider === d.provider && (x.id === `${d.provider}:${d.model}` || x.id.endsWith(`/${d.model}`)))
+    return { ...d, pricing: m ? m.pricing : null }
+  })
 
   // settings
   h(Channels.settings.get, none, () => core.settings.get())

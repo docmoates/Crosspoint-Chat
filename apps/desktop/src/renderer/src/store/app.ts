@@ -33,22 +33,11 @@ export interface Toast {
 const DEFAULT_SETTINGS: LocalSettings = {
   theme: 'system',
   font: 'system',
+  fontSize: 14,
   sendOnEnter: true,
   defaultModelOverride: null,
   dailyCapUsd: null,
   dataFolder: '',
-}
-
-/** LocalSettings has no font size field, so the size is a per-PC renderer preference. */
-const FONT_SIZE_KEY = 'crosspoint.fontSize'
-
-function readFontSize(): number {
-  try {
-    const n = Number(window.localStorage.getItem(FONT_SIZE_KEY))
-    return n >= 11 && n <= 22 ? n : 14
-  } catch {
-    return 14
-  }
 }
 
 export const FONT_STACKS: Record<string, string> = {
@@ -67,7 +56,6 @@ interface AppState {
   artifactPaneOpen: boolean
   selectedProjectId: string | null
   settings: LocalSettings
-  fontSize: number
   settingsLoaded: boolean
   usage: UsageSummary | null
   version: string
@@ -82,13 +70,13 @@ interface AppState {
   setArtifactPane(open: boolean): void
   loadSettings(): Promise<void>
   setSettings(patch: Partial<LocalSettings>): Promise<void>
-  setFontSize(px: number): void
   refreshUsage(): Promise<void>
   toast(text: string, kind?: Toast['kind']): void
   dismissToast(id: string): void
 }
 
-export function applyTheme(s: Pick<LocalSettings, 'theme' | 'font'>, fontSize: number): void {
+export function applyTheme(s: Pick<LocalSettings, 'theme' | 'font' | 'fontSize'>): void {
+  const fontSize = s.fontSize
   const root = document.documentElement
   if (s.theme === 'light' || s.theme === 'dark') root.dataset.theme = s.theme
   else delete root.dataset.theme
@@ -107,7 +95,6 @@ export const useApp = create<AppState>((set, get) => ({
   artifactPaneOpen: false,
   selectedProjectId: null,
   settings: DEFAULT_SETTINGS,
-  fontSize: readFontSize(),
   settingsLoaded: false,
   usage: null,
   version: '',
@@ -125,10 +112,10 @@ export const useApp = create<AppState>((set, get) => ({
     try {
       const [s, version] = await Promise.all([api.settings.get(), api.app.version().catch(() => '')])
       const settings = { ...DEFAULT_SETTINGS, ...s }
-      applyTheme(settings, get().fontSize)
+      applyTheme(settings)
       set({ settings, settingsLoaded: true, version })
     } catch (err) {
-      applyTheme(DEFAULT_SETTINGS, get().fontSize)
+      applyTheme(DEFAULT_SETTINGS)
       set({ settingsLoaded: true })
       get().toast(`Could not load settings: ${errorText(err)}`, 'error')
     }
@@ -138,24 +125,14 @@ export const useApp = create<AppState>((set, get) => ({
     const prev = get().settings
     const next = { ...prev, ...patch }
     set({ settings: next })
-    applyTheme(next, get().fontSize)
+    applyTheme(next)
     try {
       await api.settings.set(patch)
     } catch (err) {
       set({ settings: prev })
-      applyTheme(prev, get().fontSize)
+      applyTheme(prev)
       get().toast(`Could not save setting: ${errorText(err)}`, 'error')
     }
-  },
-
-  setFontSize(px) {
-    set({ fontSize: px })
-    try {
-      window.localStorage.setItem(FONT_SIZE_KEY, String(px))
-    } catch {
-      /* storage unavailable: size still applies for this session */
-    }
-    applyTheme(get().settings, px)
   },
 
   async refreshUsage() {

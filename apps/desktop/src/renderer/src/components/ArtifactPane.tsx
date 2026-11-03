@@ -1,6 +1,7 @@
 import * as Tabs from '@radix-ui/react-tabs'
 import { ArrowLeft, Download, PanelRight, Save, X } from 'lucide-react'
-import { useEffect, useMemo, useState, type ReactElement } from 'react'
+import { useEffect, useState, type ReactElement } from 'react'
+import { artifactPreviewUrl } from '@shared/channels'
 import { api, errorText } from '../lib/api'
 import { relTime } from '../lib/utils'
 import type { Artifact, ArtifactWithContent } from '../lib/types'
@@ -16,16 +17,22 @@ function previewKind(a: Artifact): 'html' | 'svg' | 'markdown' | 'none' {
   return 'none'
 }
 
-/** Sandboxed preview: no same-origin, so artifact code can never reach window.crosspoint. */
+/**
+ * HTML/SVG previews load from main's `crosspoint-artifact://` protocol, which serves the saved version
+ * under its own CSP so inline scripts run. The sandbox has no allow-same-origin, so artifact code runs
+ * in an opaque origin and can never reach window.crosspoint.
+ */
 function Preview(props: { a: Loaded }): ReactElement {
   const kind = previewKind(props.a)
-  const srcDoc = useMemo(() => {
-    if (kind === 'svg')
-      return `<!doctype html><meta charset="utf-8"><style>html,body{margin:0;height:100%;display:grid;place-items:center;background:#fff}svg{max-width:100%;max-height:100%}</style>${props.a.content}`
-    return props.a.content
-  }, [kind, props.a.content])
   if (kind === 'html' || kind === 'svg') {
-    return <iframe className="preview-iframe" title={props.a.name} sandbox="allow-scripts allow-modals" srcDoc={srcDoc} />
+    return (
+      <iframe
+        className="preview-iframe"
+        title={props.a.name}
+        sandbox="allow-scripts allow-modals"
+        src={artifactPreviewUrl(props.a.id, props.a.version)}
+      />
+    )
   }
   if (kind === 'markdown') {
     return (
@@ -89,7 +96,8 @@ function Viewer(props: { id: string }): ReactElement {
     setSaving(true)
     try {
       await api.artifacts.save(a.id, draft)
-      setA({ ...a, content: draft })
+      // Main stores a changed save as the next version; the new version also reloads the preview frame.
+      setA({ ...a, content: draft, version: a.version + 1 })
       toast('Artifact saved')
     } catch (err) {
       toast(`Could not save: ${errorText(err)}`, 'error')

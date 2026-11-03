@@ -277,6 +277,9 @@ export const ArtifactSchema = z.object({
 })
 export type Artifact = z.infer<typeof ArtifactSchema>
 export type ArtifactWithContent = Artifact & { content: string }
+/** One row of the cross-chat gallery (`artifacts.listAll`): newest first, archived chats excluded. */
+export type ArtifactListItem = Artifact & { conversationTitle: string }
+export const ArtifactListAllLimitSchema = z.number().int().positive().max(1000).optional()
 
 // ---------- memories ----------
 
@@ -294,7 +297,13 @@ export const UsageSummarySchema = z.object({
 })
 export type UsageSummary = z.infer<typeof UsageSummarySchema>
 
-export const UsageDetailSchema = UsageInfoSchema.extend({ messageId: z.string(), at: z.string(), kind: z.string() })
+export const UsageDetailSchema = UsageInfoSchema.extend({
+  messageId: z.string(),
+  at: z.string(),
+  kind: z.string(),
+  /** Catalog list price for the model (USD per 1M tokens) at query time; null when the model is not in the catalog. */
+  pricing: ModelPricingSchema.nullable()
+})
 export type UsageDetail = z.infer<typeof UsageDetailSchema>
 
 // ---------- local settings ----------
@@ -302,6 +311,8 @@ export type UsageDetail = z.infer<typeof UsageDetailSchema>
 export const LocalSettingsSchema = z.object({
   theme: z.enum(['system', 'light', 'dark']),
   font: z.string().max(200),
+  /** Base UI text size in px (11-22, default 14). */
+  fontSize: z.number().int().min(11).max(22),
   sendOnEnter: z.boolean(),
   defaultModelOverride: z.string().nullable(),
   dailyCapUsd: z.number().nonnegative().nullable(),
@@ -321,14 +332,20 @@ export const UpdateStateSchema = z.object({
 })
 export type UpdateState = z.infer<typeof UpdateStateSchema>
 
-const CheckSchema = z.object({ ok: z.boolean(), latencyMs: z.number().optional(), error: z.string().optional() })
+const CheckSchema = z.object({
+  ok: z.boolean(),
+  latencyMs: z.number().optional(),
+  error: z.string().optional(),
+  /** Plain-language next step when the check failed or warns; absent when nothing needs doing. */
+  fix: z.string().optional()
+})
 export const HealthReportSchema = z.object({
   checkedAt: z.string(),
   admin: CheckSchema.extend({ host: z.string(), paired: z.boolean() }),
   providers: z.array(CheckSchema.extend({ id: z.string(), label: z.string(), kind: ProviderKindSchema })),
   db: CheckSchema.extend({ path: z.string(), sizeBytes: z.number().optional() }),
   disk: CheckSchema.extend({ path: z.string(), freeBytes: z.number().nullable() }),
-  update: UpdateStateSchema
+  update: UpdateStateSchema.extend({ fix: z.string().optional() })
 })
 export type HealthReport = z.infer<typeof HealthReportSchema>
 
@@ -384,6 +401,8 @@ export interface CrosspointApi {
   attachments: { pick(): Promise<AttachmentRef[]>; fromPaste(data: PasteData): Promise<AttachmentRef> }
   artifacts: {
     list(conversationId: string): Promise<Artifact[]>
+    /** Artifacts across all non-archived chats, newest first (default 200, max 1000). */
+    listAll(limit?: number): Promise<ArtifactListItem[]>
     get(id: string): Promise<ArtifactWithContent>
     save(id: string, content: string): Promise<void>
     exportTo(id: string): Promise<void>

@@ -212,9 +212,10 @@ export class UsageService {
                 SUM(cached_tokens) AS cachedTokens, SUM(cost_usd) AS costUsd
          FROM usage_events WHERE message_id = ? AND kind = 'chat' GROUP BY message_id`
       )
-      .get(messageId) as (Omit<UsageDetail, 'messageId'> & { at: string | null }) | undefined
+      .get(messageId) as (Omit<UsageDetail, 'messageId' | 'pricing'> & { at: string | null }) | undefined
     if (!row || !row.at) return null
-    return { ...row, costUsd: roundUsd(row.costUsd), messageId, at: row.at }
+    // Pricing comes from the model catalog; the IPC handler fills it in.
+    return { ...row, costUsd: roundUsd(row.costUsd), messageId, at: row.at, pricing: null }
   }
 
   /** Enforce admin daily/monthly limits and the local daily cap before a send. */

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import type { Artifact, ArtifactWithContent } from '@shared/ipc'
+import type { Artifact, ArtifactListItem, ArtifactWithContent } from '@shared/ipc'
 import { nowIso, type DB } from '../db'
 import { NotFoundError } from './library'
 
@@ -93,6 +93,17 @@ export class ArtifactStore {
     return (this.db.prepare('SELECT * FROM artifacts WHERE conversation_id = ? ORDER BY created_at').all(conversationId) as ArtifactRow[]).map(toArtifact)
   }
 
+  /** Gallery across chats: newest first, skipping archived conversations. */
+  listAll(limit = 200): ArtifactListItem[] {
+    const rows = this.db
+      .prepare(
+        `SELECT a.*, c.title AS conversation_title FROM artifacts a JOIN conversations c ON c.id = a.conversation_id
+         WHERE c.archived = 0 ORDER BY a.updated_at DESC LIMIT ?`
+      )
+      .all(limit) as (ArtifactRow & { conversation_title: string })[]
+    return rows.map((r) => ({ ...toArtifact(r), conversationTitle: r.conversation_title }))
+  }
+
   get(id: string): ArtifactWithContent {
     const row = this.db.prepare('SELECT * FROM artifacts WHERE id = ?').get(id) as ArtifactRow | undefined
     if (!row) throw new NotFoundError('Artifact')
@@ -151,6 +162,32 @@ export class ArtifactStore {
       return { id, conversationId, messageId, name: a.name, kind: a.kind, language: a.language, version: 1, createdAt: now, updatedAt: now }
     })()
   }
+}
+
+/**
+ * CSP for the `crosspoint-artifact://` preview document. The frame is sandboxed without same-origin, so
+ * scripts run in an opaque origin with no preload or IPC. Scripts and styles may also come from the three
+ * common CDNs; nothing may be fetched, framed or submitted.
+ */
+export const ARTIFACT_PREVIEW_CSP = [
+  "default-src 'none'",
+  "script-src 'unsafe-inline' 'unsafe-eval' blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com",
+  "style-src 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com",
+  "font-src data: https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
+  'img-src data: blob: https:',
+  'media-src data: blob:',
+  "connect-src 'none'",
+  "frame-src 'none'",
+  "form-action 'none'",
+  "base-uri 'none'"
+].join('; ')
+
+/** The HTML document a preview serves: html as-is, svg centered in a minimal page; other kinds have no preview. */
+export function previewDocument(a: Pick<ArtifactWithContent, 'kind' | 'content'>): string | null {
+  if (a.kind === 'html') return a.content
+  if (a.kind === 'svg')
+    return `<!doctype html><meta charset="utf-8"><style>html,body{margin:0;height:100%;display:grid;place-items:center;background:#fff}svg{max-width:100%;max-height:100%}</style>${a.content}`
+  return null
 }
 
 function toArtifact(r: ArtifactRow): Artifact {

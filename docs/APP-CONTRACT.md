@@ -40,14 +40,23 @@ interface CrosspointApi {
     files: { list(projectId: string): Promise<ProjectFile[]>; add(projectId: string): Promise<ProjectFile[]> /* opens file dialog */; remove(id: string): Promise<void> };
   };
   attachments: { pick(): Promise<AttachmentRef[]>; fromPaste(data: { name: string; mime: string; base64: string }): Promise<AttachmentRef> };
-  artifacts: { list(conversationId: string): Promise<Artifact[]>; get(id: string): Promise<Artifact & { content: string }>; save(id: string, content: string): Promise<void>; exportTo(id: string): Promise<void> };
+  artifacts: {
+    list(conversationId: string): Promise<Artifact[]>;
+    listAll(limit?: number): Promise<ArtifactListItem[]>;   // Artifact & { conversationTitle }, all non-archived chats, newest first; default 200, max 1000
+    get(id: string): Promise<Artifact & { content: string }>; save(id: string, content: string): Promise<void>; exportTo(id: string): Promise<void>
+  };
   memories: { list(): Promise<Memory[]>; add(text: string): Promise<Memory>; remove(id: string): Promise<void> };
-  usage: { summary(): Promise<{ month_usd: number; today_usd: number; local_share: number; byDay: { day: string; usd: number }[] }>; forMessage(messageId: string): Promise<UsageDetail | null> };
-  settings: { get(): Promise<LocalSettings>; set(patch: Partial<LocalSettings>): Promise<void> };   // theme, font, sendOnEnter, defaultModelOverride, dailyCapUsd, dataFolder
-  health: { check(): Promise<HealthReport> };   // admin reachable, each provider ping, db ok, disk free, update state
+  usage: {
+    summary(): Promise<{ month_usd: number; today_usd: number; local_share: number; byDay: { day: string; usd: number }[] }>;   // month/today = admin all-device spend + this PC's unsent events; byDay is this PC only
+    forMessage(messageId: string): Promise<UsageDetail | null>;   // UsageInfo + messageId, at, kind, pricing: {in,out} | null (catalog list price per 1M tokens)
+  };
+  settings: { get(): Promise<LocalSettings>; set(patch: Partial<LocalSettings>): Promise<void> };   // theme, font, fontSize (int 11-22, default 14), sendOnEnter, defaultModelOverride, dailyCapUsd, dataFolder
+  health: { check(): Promise<HealthReport> };   // admin reachable, each provider ping, db ok, disk free, update state; every item may carry `fix` (plain-language next step)
   audit: { list(q?: { limit?: number; before?: string }): Promise<AuditEntry[]> };
   updates: { check(): Promise<UpdateState>; install(): Promise<void> };
 }
 ```
+
+Artifact previews: HTML and SVG artifacts are not rendered with `srcdoc`. Main registers the privileged scheme `crosspoint-artifact` (standard, secure) and serves `crosspoint-artifact://preview/<artifactId>?v=<version>` (helper `artifactPreviewUrl` in `packages/shared/channels.ts`) with the saved version's document and its own CSP (inline scripts allowed; scripts/styles also from cdnjs, jsDelivr, unpkg; images from data/blob/https; no fetch, frames or forms). The renderer embeds it in `<iframe sandbox="allow-scripts allow-modals">` without `allow-same-origin`, so artifact code runs in an opaque origin with no preload and no IPC. The renderer CSP allows `frame-src crosspoint-artifact:` only.
 
 Rules: zod-validate every IPC payload in main; `ipcMain.handle` channel names are `crosspoint:<area>:<method>`; events are `crosspoint:event:<name>`. Deep link `crosspoint://pair?code=...&host=...` is handled in main (single instance lock) and triggers `pairing.pair`. Features from the plan that are not yet implemented (sub-chats, local models, image generation, web search, MCP tools, scheduled tasks) must render as honest empty/disabled states with a "coming soon" note, never with invented data.

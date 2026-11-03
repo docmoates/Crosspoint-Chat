@@ -15,8 +15,10 @@ export function usageLine(u: UsageInfo | undefined): string {
 
 function Explain(props: { d: UsageDetail; model: ModelInfo | undefined }): ReactElement {
   const { d, model } = props
-  const pin = model?.pricing.in ?? null
-  const pout = model?.pricing.out ?? null
+  // Main attaches the catalog list price; the renderer's model list is only a fallback.
+  const pricing = d.pricing ?? model?.pricing ?? null
+  const pin = pricing?.in ?? null
+  const pout = pricing?.out ?? null
   const uncached = Math.max(0, d.tokensIn - d.cachedTokens)
   const rows: { label: string; value: string }[] = [
     { label: 'Model', value: `${model?.name ?? d.model} · ${d.provider}` },

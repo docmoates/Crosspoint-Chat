@@ -4,6 +4,7 @@ import type { DB } from '../db'
 const DEFAULTS: Omit<LocalSettings, 'dataFolder'> = {
   theme: 'system',
   font: 'system',
+  fontSize: 14,
   sendOnEnter: true,
   defaultModelOverride: null,
   dailyCapUsd: null

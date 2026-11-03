@@ -70,6 +70,7 @@ const api: CrosspointApi = {
   },
   artifacts: {
     list: (conversationId) => invoke(C.artifacts.list, conversationId),
+    listAll: (limit) => invoke(C.artifacts.listAll, limit),
     get: (id) => invoke(C.artifacts.get, id),
     save: (id, content) => invoke(C.artifacts.save, id, content),
     exportTo: (id) => invoke(C.artifacts.exportTo, id)
