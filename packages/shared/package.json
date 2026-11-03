@@ -8,6 +8,7 @@
   "exports": {
     ".": "./index.ts",
     "./ipc": "./ipc.ts",
+    "./channels": "./channels.ts",
     "./admin-contract": "./admin-contract.ts"
   },
   "scripts": {
