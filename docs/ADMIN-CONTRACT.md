@@ -72,6 +72,14 @@ Body `{ "events": [ { "id": "<uuid>", "at": "ISO", "kind": "tool_call|permission
 8. Pair codes work in any case, with or without the dash; `name`, `os`, `app_version` are optional (missing name becomes "Device").
 9. 404, 405, 413 and 500 use code `invalid`; 429 sends `Retry-After: 60`.
 
+## App side (apps/desktop/src/main/admin, services/usage.ts)
+
+- Spend shown and enforced is admin's all-device `spend` plus this PC's events still in the outbox (note 1).
+- Usage and audit uploads validate each event against the contract first; on 400 `invalid` (or 413) the batch is halved until the rejected events are isolated, and those are dropped and audited, never retried (note 3). 5xx is always retried, even when labelled `invalid` (note 9).
+- `Retry-After` (seconds or HTTP date; 60 s assumed on 429) sets the next attempt for config polling, the usage outbox and audit posts (note 9).
+- `If-None-Match` sends the quoted version `"<n>"`; 304 keeps the cached config (note 6). Providers with `enabled:false`, an empty `api_key` or an unparseable `base_url` are kept in config but never used (note 5).
+- Only a JSON 401 from the device API (`unauthorized`/`revoked`) wipes the token; redirects (303) and HTML answers (e.g. 403) are reported as "device API may not be deployed yet".
+
 ## Tables (admin, SQLite)
 
 `devices (id TEXT PK, name, os, app_version, token_hash, created_at, last_seen_at, revoked_at)`, `pairing_codes (code PK, created_at, expires_at, used_at, device_id)`, `custom_endpoints (slug PK, name, base_url, api_key_enc, enabled, created_at)`, `mcp_servers (slug PK, name, transport, command, args_json, url, env_enc, headers_enc, enabled, created_at)`, `chat_settings (id=1, allowed_models_json, default_chat, default_helper, monthly_usd, daily_usd, per_message_warn_usd, sub_chat_usd, sub_chat_steps, config_version)`, `device_usage (id TEXT PK, device_id, at, provider, model, path, kind, tokens_in, tokens_out, cached_tokens, cost_usd, conversation_id)`, `device_audit (id TEXT PK, device_id, at, kind, summary, hash)`.

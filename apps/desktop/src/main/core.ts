@@ -1,6 +1,8 @@
 import { app, safeStorage } from 'electron'
 import { hostname, release } from 'node:os'
 import type { AppConfig, PairingStatus, StreamEvent } from '@shared/ipc'
+import { AuditEventSchema, AUDIT_BATCH_MAX } from '@shared/admin-contract'
+import { postSplitting } from './admin/batch'
 import { AdminApiError, AdminClient } from './admin/client'
 import { PairingService, type DeviceRecord } from './admin/pairing'
 import { ConfigSync, type CachedConfig } from './admin/sync'
@@ -96,7 +98,8 @@ export function createCore(events: CoreEvents): Core {
       }
     },
     () => sync.full?.spend ?? null,
-    (spend) => sync.applySpend(spend)
+    (spend) => sync.applySpend(spend),
+    (count, reason) => audit.append('error', `admin rejected ${count} usage event(s) as invalid; dropped from the outbox: ${reason}`)
   )
 
   const files = new FileStore(db, paths.attachments, paths.projectFiles)
@@ -123,25 +126,29 @@ export function createCore(events: CoreEvents): Core {
   })
 
   let auditTimer: NodeJS.Timeout | null = null
+  let auditRetryAt = 0
   async function postAuditSummary(force = false): Promise<void> {
     const rec = pairing.device
     if (!rec) return
     const last = Number(settings.getInternal('audit.lastPostAt') ?? 0)
     if (!force && Date.now() - last < DAY) return
-    const pending = audit.unreported(500)
-    try {
-      if (pending.length) {
-        await client.postAudit(
-          rec.host,
-          rec.token,
-          pending.map(({ id, at, kind, summary, hash }) => ({ id, at, kind, summary, hash }))
-        )
-        audit.markReported(pending.map((e) => e.id))
+    if (Date.now() < auditRetryAt) return
+    for (let round = 0; round < 10; round++) {
+      const pending = audit.unreported(AUDIT_BATCH_MAX).map(({ id, at, kind, summary, hash }) => ({ id, at, kind, summary, hash }))
+      const valid = pending.filter((e) => AuditEventSchema.safeParse(e).success)
+      const res = await postSplitting(valid, (batch) => client.postAudit(rec.host, rec.token, batch))
+      // Rejected or malformed entries stay in the local chain but are never resent.
+      const sentOrDropped = new Set([...res.sent, ...res.dropped.map((d) => d.item)].map((e) => e.id))
+      audit.markReported(pending.filter((e) => sentOrDropped.has(e.id) || !valid.includes(e)).map((e) => e.id))
+      if (res.error !== undefined) {
+        const err = res.error
+        if (err instanceof AdminApiError && err.retryAfterMs != null) auditRetryAt = Date.now() + err.retryAfterMs
+        if (err instanceof AdminApiError && err.isAuthFailure) void sync.syncNow()
+        return
       }
-      settings.setInternal('audit.lastPostAt', String(Date.now()))
-    } catch (err) {
-      if (err instanceof AdminApiError && err.isAuthFailure) void sync.syncNow()
+      if (pending.length < AUDIT_BATCH_MAX) break
     }
+    settings.setInternal('audit.lastPostAt', String(Date.now()))
   }
 
   function start(): void {

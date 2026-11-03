@@ -99,7 +99,7 @@ export function pairingErrorMessage(err: unknown, host: string): string {
       case 'network':
         return `Could not reach ${host}. Check your connection and the admin host.`
       case 'invalid':
-        return `Admin rejected the request: ${err.message}`
+        return err.status === 404 || err.status === 405 ? err.message : `Admin rejected the request: ${err.message}`
       default:
         return err.message
     }

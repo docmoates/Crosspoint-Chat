@@ -38,6 +38,8 @@ export class ConfigSync extends EventEmitter<SyncEvents> {
   private error: string | undefined
   private timer: NodeJS.Timeout | null = null
   private inflight: Promise<void> | null = null
+  /** Epoch ms before which admin asked us (Retry-After) not to call again. */
+  private retryAt = 0
 
   constructor(private readonly deps: SyncDeps) {
     super()
@@ -105,6 +107,7 @@ export class ConfigSync extends EventEmitter<SyncEvents> {
 
   /** After a fresh pairing: drop any old cache and pull immediately. */
   async onPaired(): Promise<void> {
+    this.retryAt = 0
     this.deps.cache.remove()
     this.config = null
     this.error = undefined
@@ -115,6 +118,7 @@ export class ConfigSync extends EventEmitter<SyncEvents> {
   private async doSync(): Promise<void> {
     const rec = this.deps.pairing.device
     if (!rec) return
+    if (Date.now() < this.retryAt) return
     const before = this.config?.config_version ?? null
     try {
       const res = await this.deps.client.getConfig(rec.host, rec.token, before)
@@ -139,6 +143,7 @@ export class ConfigSync extends EventEmitter<SyncEvents> {
         this.wipe(msg)
         return
       }
+      if (err instanceof AdminApiError && err.retryAfterMs != null) this.retryAt = Date.now() + err.retryAfterMs
       const detail = err instanceof Error ? err.message : String(err)
       this.error = this.config ? `${detail} Using the cached config.` : detail
     }

@@ -2,7 +2,7 @@ import type { AdminConfig, ProviderKind } from '@shared/admin-contract'
 import type { ModelInfo, ModelPricing, Tag } from '@shared/ipc'
 import { nowIso, parseJson, type DB } from '../db'
 import { anthropicStaticPricing, staticAnthropicCatalog } from '../providers/anthropic'
-import type { ProviderRegistry } from '../providers/registry'
+import { usable, type ProviderRegistry } from '../providers/registry'
 import type { CatalogModel } from '../providers/types'
 
 const HOUR = 60 * 60 * 1000
@@ -52,7 +52,7 @@ export class ModelCatalog {
     const cfg = this.config()
     if (!cfg) return null
     const info = this.cachedList().find((m) => m.id === modelId) ?? null
-    const providers = cfg.providers.filter((p) => p.enabled && p.api_key)
+    const providers = cfg.providers.filter(usable)
     if (info) {
       const p = providers.find((x) => x.id === info.provider)
       if (!p) return null
@@ -82,7 +82,7 @@ export class ModelCatalog {
     if (!cfg) return []
     const order: ProviderKind[] = ['openrouter', 'anthropic', 'openai-compatible']
     const providers = cfg.providers
-      .filter((p) => p.enabled && p.api_key && p.id !== primary.providerId)
+      .filter((p) => usable(p) && p.id !== primary.providerId)
       .sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind))
     const key = equivalenceKey(primary.modelId, primary.kind, primary.providerId)
     const models = this.cachedList()
@@ -163,7 +163,7 @@ export class ModelCatalog {
 
     const out: ModelInfo[] = []
     for (const p of cfg.providers) {
-      if (!p.enabled || !p.api_key) continue
+      if (!usable(p)) continue
       for (const m of byProvider.get(p.id) ?? []) {
         const id = p.kind === 'openai-compatible' ? `${p.id}:${m.id}` : m.id
         if (!isAllowed(id, cfg.allowed_models, m.id)) continue

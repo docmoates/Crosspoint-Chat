@@ -63,7 +63,9 @@ export const AdminProviderSchema = z.looseObject({
   id: z.string().min(1),
   kind: ProviderKindSchema,
   label: z.string(),
-  base_url: z.string().url(),
+  // Not .url(): one disabled or half-configured endpoint must not make the whole config unparseable
+  // (contract note 5). The app skips providers whose base_url does not parse.
+  base_url: z.string(),
   api_key: z.string().nullable().optional(),
   enabled: z.boolean().default(true)
 })

@@ -20,16 +20,38 @@ export class AdminApiError extends Error {
   constructor(
     message: string,
     readonly code: AdminFailureCode,
-    readonly status: number | null
+    readonly status: number | null,
+    /** From `Retry-After` (admin sends 60 on 429); null when the server gave none. */
+    readonly retryAfterMs: number | null = null
   ) {
     super(message)
     this.name = 'AdminApiError'
   }
 
-  /** The token is no longer accepted: wipe it. */
+  /**
+   * The token is no longer accepted: wipe it. Only a JSON error from the device API counts; a 401 web page
+   * (e.g. the HTML console's sign-in gate) must not wipe a valid pairing.
+   */
   get isAuthFailure(): boolean {
-    return this.status === 401 || this.code === 'revoked'
+    return this.code === 'revoked' || this.code === 'unauthorized'
   }
+
+  /**
+   * Admin rejected the batch itself (400 `invalid`, or 413 too large). Resending the same events can never
+   * succeed, so outboxes split the batch and drop the events that still fail alone.
+   */
+  get isRejectedPayload(): boolean {
+    return (this.status === 400 && this.code === 'invalid') || this.status === 413
+  }
+}
+
+/** `Retry-After` as delta-seconds or an HTTP date, in ms; null when absent or unparseable. */
+export function parseRetryAfter(value: string | null, now = Date.now()): number | null {
+  if (!value) return null
+  const v = value.trim()
+  if (/^\d+$/.test(v)) return Number(v) * 1000
+  const at = Date.parse(v)
+  return Number.isNaN(at) ? null : Math.max(0, at - now)
 }
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
@@ -97,7 +119,7 @@ export class AdminClient {
       const json = await res.json().catch(() => null)
       if (res.status === 401 && AdminErrorBodySchema.safeParse(json).success) return { ok: true, latencyMs }
       if (res.ok) return { ok: true, latencyMs }
-      return { ok: false, latencyMs, error: toAdminError(res.status, json, host).message }
+      return { ok: false, latencyMs, error: toAdminError(res.status, json, host, res.headers).message }
     } catch (err) {
       return { ok: false, latencyMs: Date.now() - started, error: err instanceof Error ? err.message : String(err) }
     }
@@ -127,7 +149,7 @@ export class AdminClient {
     } catch {
       json = undefined
     }
-    if (!res.ok) throw toAdminError(res.status, json, host)
+    if (!res.ok) throw toAdminError(res.status, json, host, res.headers)
     if (json === undefined) throw new AdminApiError(`Admin at ${host} returned a response that is not JSON.`, 'bad_response', res.status)
     const parsed = schema.safeParse(json)
     if (!parsed.success) throw new AdminApiError(`Admin at ${host} returned an unexpected response shape.`, 'bad_response', res.status)
@@ -135,14 +157,26 @@ export class AdminClient {
   }
 }
 
-export function toAdminError(status: number, json: unknown, host: string): AdminApiError {
+export function toAdminError(status: number, json: unknown, host: string, headers?: Headers): AdminApiError {
+  const retryAfterMs = parseRetryAfter(headers?.get('retry-after') ?? null) ?? (status === 429 ? 60_000 : null)
   if (status >= 300 && status < 400) {
     return new AdminApiError(`Admin at ${host} redirected the request (HTTP ${status}); its device API may not be deployed yet.`, 'bad_response', status)
   }
   const body = AdminErrorBodySchema.safeParse(json)
   if (!body.success) {
-    if (status >= 500) return new AdminApiError(`Admin at ${host} had a server error (HTTP ${status}).`, 'server', status)
-    return new AdminApiError(`Admin at ${host} answered HTTP ${status} without a JSON error; is this the admin host?`, 'bad_response', status)
+    if (status >= 500) return new AdminApiError(`Admin at ${host} had a server error (HTTP ${status}).`, 'server', status, retryAfterMs)
+    if (status === 429) return new AdminApiError(`Admin at ${host} is rate limiting this device (HTTP 429).`, 'rate_limited', status, retryAfterMs)
+    return new AdminApiError(
+      `Admin at ${host} answered HTTP ${status} without a JSON error (a web page, not the device API); its device API may not be deployed yet.`,
+      'bad_response',
+      status
+    )
+  }
+  // Admin labels 404/405/413/500 `invalid` too (contract note 9); classify by status first so a server
+  // error is retried and never mistaken for a rejected payload.
+  if (status >= 500) return new AdminApiError(`Admin at ${host} had a server error (HTTP ${status}): ${body.data.error}`, 'server', status, retryAfterMs)
+  if (status === 404 || status === 405) {
+    return new AdminApiError(`Admin at ${host} has no such device API route (HTTP ${status}); it may not be deployed yet.`, 'invalid', status)
   }
   const raw = body.data.code
   const code: AdminFailureCode = raw && KNOWN_CODES.has(raw)
@@ -151,8 +185,6 @@ export function toAdminError(status: number, json: unknown, host: string): Admin
       ? 'unauthorized'
       : status === 429
         ? 'rate_limited'
-        : status >= 500
-          ? 'server'
-          : 'invalid'
-  return new AdminApiError(body.data.error, code, status)
+        : 'invalid'
+  return new AdminApiError(body.data.error, code, status, retryAfterMs)
 }

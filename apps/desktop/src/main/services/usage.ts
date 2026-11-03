@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto'
-import { USAGE_BATCH_MAX, type UsageEvent } from '@shared/admin-contract'
+import { USAGE_BATCH_MAX, UsageEventSchema, type UsageEvent } from '@shared/admin-contract'
 import type { UsageDetail, UsageSummary } from '@shared/ipc'
 import { nowIso, type DB } from '../db'
 import { roundUsd } from '../providers/cost'
+import { postSplitting } from '../admin/batch'
+import { AdminApiError } from '../admin/client'
 
 export interface RecordUsageInput {
   provider: string
@@ -53,7 +55,9 @@ export class UsageService {
     private readonly db: DB,
     private readonly sink: () => UsageSink | null,
     private readonly adminSpend: () => (SpendSnapshot & { month?: string }) | null,
-    private readonly onSpend: (s: SpendSnapshot) => void
+    private readonly onSpend: (s: SpendSnapshot) => void,
+    /** Events admin rejected as invalid (or that fail the contract locally) are dropped, never retried. */
+    private readonly onDrop: (count: number, reason: string) => void = () => undefined
   ) {}
 
   record(input: RecordUsageInput): UsageEvent {
@@ -124,19 +128,30 @@ export class UsageService {
         )
         .all(nowIso(), USAGE_BATCH_MAX) as (UsageEvent & { attempts: number })[]
       if (rows.length === 0) return
-      const events: UsageEvent[] = rows.map(({ attempts: _a, ...e }) => e)
-      try {
-        const spend = await sink.post(events)
-        const del = this.db.prepare('DELETE FROM usage_outbox WHERE id = ?')
-        this.db.transaction(() => events.forEach((e) => del.run(e.id)))()
-        if (spend) this.onSpend(spend)
-      } catch (err) {
+      const valid: UsageEvent[] = []
+      const malformed: string[] = []
+      for (const { attempts: _a, ...e } of rows) {
+        if (UsageEventSchema.safeParse(e).success) valid.push(e)
+        else malformed.push(e.id)
+      }
+      const res = await postSplitting(valid, (batch) => sink.post(batch), (spend) => spend && this.onSpend(spend))
+      const done = [...res.sent.map((e) => e.id), ...res.dropped.map((d) => d.item.id), ...malformed]
+      const del = this.db.prepare('DELETE FROM usage_outbox WHERE id = ?')
+      this.db.transaction(() => done.forEach((id) => del.run(id)))()
+      const droppedCount = res.dropped.length + malformed.length
+      if (droppedCount) this.onDrop(droppedCount, res.dropped[0]?.reason ?? 'event does not match the admin contract')
+      if (res.error !== undefined) {
+        const err = res.error
         const msg = err instanceof Error ? err.message : String(err)
+        const retryAfter = err instanceof AdminApiError ? err.retryAfterMs : null
+        const finished = new Set(done)
         const upd = this.db.prepare('UPDATE usage_outbox SET attempts = ?, next_attempt_at = ?, last_error = ? WHERE id = ?')
         this.db.transaction(() => {
           for (const r of rows) {
+            if (finished.has(r.id)) continue
             const attempts = r.attempts + 1
-            const delay = Math.min(30_000 * 2 ** (attempts - 1), BACKOFF_MAX_MS)
+            // Admin's Retry-After wins over our own exponential backoff.
+            const delay = retryAfter ?? Math.min(30_000 * 2 ** (attempts - 1), BACKOFF_MAX_MS)
             upd.run(attempts, new Date(Date.now() + delay).toISOString(), msg.slice(0, 500), r.id)
           }
         })()
