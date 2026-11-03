@@ -161,10 +161,18 @@ details.route summary{font-size:12px;color:var(--fg-3)}
 .sb-item.sub.on{color:var(--fg)}
 .sb-item.sub.add{color:var(--fg-3)}
 .sb-state{margin-left:auto;font-size:10px;color:var(--fg-3);padding-left:6px;white-space:nowrap}
+.sb-badge{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--fg-3);background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:0 6px;height:16px;flex:none}
+.sb-row .sb-item{padding-right:30px}
+details.topicd{border:1px dashed var(--line-2);border-radius:var(--r);background:var(--panel-2);font-size:12.5px;color:var(--fg-2)}
+details.topicd summary{list-style:none;display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;font-size:12px;color:var(--fg-3)}
+details.topicd summary::-webkit-details-marker{display:none}
+details.topicd summary .chev{margin-left:auto;transition:transform .15s}
+details.topicd[open] summary .chev{transform:rotate(90deg)}
+details.topicd .topic{border:0;border-top:1px dashed var(--line-2);border-radius:0 0 var(--r) var(--r)}
 .sb-state.run{color:var(--accent)}
 .sb-state.need{color:var(--warn);font-weight:600}
 .sb-state.done{color:var(--ok);font-weight:600}
-.sb-bg{display:flex;align-items:center;gap:6px;padding:4px 12px 2px;font-size:11px;color:var(--fg-3)}
+.sb-bg{display:flex;align-items:center;gap:6px;padding:2px 12px 0;font-size:10.5px;color:var(--fg-3);opacity:.85}
 .sb-bg b{color:var(--fg-2);font-weight:600}
 .lock{width:11px;height:11px;color:var(--fg-3);flex:none}
 .xmsg{display:flex;gap:10px;align-items:flex-start;padding:8px 12px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;background:var(--panel);font-size:12.5px}
@@ -430,8 +438,8 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
     <div class="sb-scroll">
       <div class="sb-group">
         <div class="eyebrow">Pinned</div>
-        <div class="sb-chat open">
-          <div class="sb-row"><button class="sb-item on" data-go="chat"><span class="dot"></span><span>OpenRouter streaming adapter</span></button><button class="sb-chev" data-toggle-sub title="Show sub-chats"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button></div>
+        <div class="sb-chat">
+          <div class="sb-row"><button class="sb-item on" data-go="chat"><span class="dot"></span><span>OpenRouter streaming adapter</span><span class="sb-badge" title="5 sub-chats · 1 running · 1 needs you · 1 done"><span class="spin" style="width:7px;height:7px;border-width:1.5px"></span>5</span></button><button class="sb-chev" data-toggle-sub title="Show sub-chats"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button></div>
           <div class="sb-subs">
             <button class="sb-item sub" data-go="agent"><span class="spin" style="width:9px;height:9px;border-width:1.5px"></span><span>Part 1 · Adapter + 429 fallback</span><svg class="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span class="sb-state run">running · step 14/20</span></button>
             <button class="sb-item sub on" data-go="chat"><span class="sdot ok"></span><span>Part 2 · Email to chair</span><span class="sb-state">open</span></button>
@@ -627,6 +635,8 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
 
           <div class="msg user"><div class="bubble">Different thing: draft a short email to my department chair asking to move the PSYC 301 final to the 12th.</div></div>
 
+          <details class="topicd">
+            <summary><svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M4 6h16M4 12h10M4 18h6"/></svg> New sub-chat · Part 2: email to chair · Part 1 keeps running in the background <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary>
           <div class="topic">
             <span class="ic"><svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M4 6h16M4 12h10M4 18h6"/></svg></span>
             <div class="t">
@@ -636,11 +646,15 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
             </div>
             <div class="btns"><button class="btn sm">Pause Part 1 now</button><button class="btn sm">Keep all</button></div>
           </div>
+          </details>
 
-          <div class="xmsg">
+          <details class="topicd">
+            <summary><svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M21 12a8 8 0 0 1-11.7 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg> Message from Part 1 · renamed registry.get, claimed routes/chat.ts <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary>
+          <div class="xmsg" style="border-radius:0 0 var(--r) var(--r);border-left-width:1px">
             <span class="who">Part 1 → Part 2</span>
             <div class="t">Heads up: I renamed <code>registry.get(model)</code> to <code>registry.get(model, opts)</code> and claimed <code>routes/chat.ts</code> until my run ends. If the email mentions the fallback feature, call it "automatic fallback", that is the name in the PR.<small>Shared fact recorded · not urgent, delivered between steps · Phi-4 mini mediated</small></div>
           </div>
+          </details>
 
           <div class="msg assistant">
             <div class="meta"><span class="model">Claude Sonnet 5.5</span> · via OpenRouter</div>
@@ -986,6 +1000,7 @@ Tests: 1 failed, 20 passed · 2.4s
               <div class="setting"><div class="grow">Auto-save paused sub-chats<small>Searchable parts of the chat; reopened when a request refers to them or when you click Reopen. Merge or split sub-chats by hand from the sidebar</small></div><span class="switch on"></span></div>
               <div class="setting"><div class="grow">Keep full history for this chat<small>Per-chat override, for long coding sessions</small></div><span class="switch"></span></div>
               <div class="eyebrow" style="margin:14px 0 4px">Sub-chats as background agents</div>
+              <div class="setting"><div class="grow">Sub-chats in the sidebar<small>Collapsed under the chat with a count badge; expand with the chevron. Cards in the thread are one line until opened</small></div><span class="seg"><button class="on">Collapsed</button><button>Expanded</button><button>Only when active</button></span></div>
               <div class="setting"><div class="grow">Run sub-chats in the background<small>Send a task, switch away, it keeps going: streaming, tools, MCP, coding agent, research</small></div><span class="switch on"></span></div>
               <div class="setting"><div class="grow">Max running at once<small>Extra runs queue; local prep jobs do not count</small></div><span class="seg"><button>1</button><button>2</button><button class="on">3</button><button>5</button></span></div>
               <div class="setting"><div class="grow">When a background sub-chat finishes<small>Local model writes a one-line result under it in the sidebar</small></div><span class="seg"><button class="on">Toast</button><button>Tray only</button><button>Silent</button></span></div>
