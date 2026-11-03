@@ -1,5 +1,7 @@
 appId: com.docmoates.crosspoint
 productName: Crosspoint Chat
+# Exact version from pnpm-lock.yaml: the hoisted node_modules lives at the repo root, where electron-builder does not look.
+electronVersion: 45.2.1
 copyright: Copyright (c) 2026 Michael Moates
 directories:
   buildResources: build
