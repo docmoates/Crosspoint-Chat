@@ -154,6 +154,32 @@ Settings › Models › Hybrid routing: "Keep multiple topics open" (on), "Compr
 
 **Tradeoffs to watch.** Prep adds latency before the cloud call starts; a weak local summary or search can drop details; try-local-first answers hard questions twice. Start with summaries, local search and background jobs, which save the most for the least risk.
 
+## 2c. Cost controls
+
+- **Prompt caching.** The stable prefix (system prompt, project instructions, enabled skills, memory, sub-chat summaries) is marked cacheable on Anthropic direct and passed through on OpenRouter where the model supports it. The adapter orders the prompt so the stable part comes first and the volatile part (current sub-chat messages, tool results) last. Cache hit rate shows in the cost line.
+- **Budgets at four levels.** Admin monthly limit (authoritative) → app daily cap → per-sub-chat cap (default $2 / 20 steps for unattended runs) → per-message warning above a threshold. Hitting any cap pauses the run and flips it to `needs you`; nothing silently continues.
+- **Cost preview.** Any unattended or tool-heavy run shows an estimate (planned steps × average tokens × model price) before starting and asks for a click above $0.50. The estimate is refined by the local model from past runs of the same kind.
+- **Step routing inside the agent loop.** Trivial steps (read file, grep, list directory, fetch a page, summarize a tool result) go to the local model or Haiku; only "decide and edit" steps go to the main model. The loop labels each step, and the routing table in Settings › Models has a row for "agent helper steps".
+- **Shared result cache per chat.** Web searches, page fetches, file reads and embeddings are cached for the chat with a short TTL, so several background sub-chats doing the same lookup pay once. The claim board already tracks what each sub-chat touches.
+- **Early stop.** The local model watches the stream; if the answer is complete and the model is padding, or a tool result makes the rest moot, the app stops generation and does not pay for the remainder.
+- **Embeddings are always local.** Fixed, not a default.
+- **Provider rate pacing.** Background runs are staggered so three sub-chats do not trip a provider's limit and push the fallback chain to a more expensive model.
+- **Spend visibility.** Per-message "why did this cost that" (tokens in/out, cache hits, prep savings, path), per-sub-chat totals, daily and monthly views mirrored from admin, and a weekly spend summary from admin by email.
+
+## 2d. Security
+
+- **Untrusted tool output.** Web pages, files, MCP results, terminal output and messages from other sub-chats are data, never instructions. Before any tool result reaches a cloud model, the local model screens it for prompt injection (instructions aimed at the assistant, requests to exfiltrate, hidden text). Suspected injections are stripped from the model input and shown to the user as a quoted warning card; the run pauses if the injection targeted a side effect (send, delete, pay, push).
+- **Redaction before anything leaves the PC.** A local pass (regex for keys/tokens/card numbers/SSNs plus the small model) runs on file reads, terminal output, attachments, screenshots for computer use and sub-chat messages. Redacted spans are replaced with placeholders; the user can allow a specific span once.
+- **Secrets.** Provider keys and connector tokens live in the main process only; the renderer never sees them. Device token in Windows Credential Manager, short-lived with refresh; admin can revoke a device remotely and sees per-device key usage. On revoke the app wipes its key cache.
+- **MCP trust.** Admin-pushed servers are trusted. Locally added servers need explicit approval: the app shows the command or URL, pins a hash of the package or binary, lists the tools and resources it exposes, and runs stdio servers in the sandbox with no network unless the manifest declares it. Tool lists are re-approved when they change.
+- **Tool allowlists per sub-chat kind.** Chat: search, fetch, interpreter, image, connectors. Research: search, fetch, interpreter. Code: file, shell, git, plus the chat set. Background runs get the tighter default; shell in background requires a prior "always allow" rule. The allowlist is shown in the sub-chat header and editable per sub-chat.
+- **Data at rest.** SQLite encrypted with SQLCipher, key held via DPAPI; the database locks when the Windows session locks. Private sub-chats use a separate store excluded from backups and from admin usage detail. Backups are encrypted, versioned, and restore-tested monthly.
+- **Audit log.** Every tool call, permission grant, claim, merge, outbound request (host, bytes, model) and admin sync is logged locally with a hash chain; a daily summary goes to admin. Viewable in Settings › Data › Audit.
+- **Computer use guardrails.** Per-app allowlist, visible overlay, panic key, never while the screen is locked, blocked on detected password fields and payment pages, screenshots redacted before leaving the PC, every action logged.
+- **Sandbox.** Job Objects with CPU/memory/time caps and network off by default; WSL2 or Docker backend when present. Shell in chat is default-deny.
+- **Updates.** Signed installer (OV/EV certificate, budgeted in Phase 0), electron-updater verifies signatures, releases served from admin or GitHub Releases over HTTPS.
+- **Network allowlist.** Outbound connections only to configured providers, admin, approved MCP hosts and user-approved fetch targets; everything else is blocked at the app level and logged.
+
 ## 3. Stack
 
 | Layer | Choice | Why |
@@ -177,7 +203,7 @@ Settings › Models › Hybrid routing: "Keep multiple topics open" (on), "Compr
 ### Phase 0 — Foundation (week 1)
 - Repo: `apps/desktop` (electron-vite: `main/`, `preload/`, `renderer/`), `packages/providers`, `packages/shared`, `packages/tools`.
 - Admin contract: agree the device-pairing flow and the `/api/devices/me/config` + `/usage` schemas with the admin project (JSON schema in `packages/shared/admin-contract.ts`, shared by both repos).
-- Pairing screen, token in Credential Manager, config sync, provider adapters, OpenRouter catalog sync.
+- Pairing screen, short-lived device token in Credential Manager with refresh and remote revoke, config sync, provider adapters, OpenRouter catalog sync, SQLCipher database, audit log skeleton, code-signing certificate ordered.
 - **Done when:** installer runs on Windows, pairs with admin, and streams a hello from OpenRouter, a custom endpoint and Anthropic using keys that only exist in admin.
 
 ### Phase 1 — Chat parity (weeks 2–3)
@@ -189,7 +215,7 @@ Settings › Models › Hybrid routing: "Keep multiple topics open" (on), "Compr
 - **Done when:** daily-driver replacement for basic ChatGPT/Claude chat.
 
 ### Phase 2 — Tools and artifacts (weeks 4–5)
-- Tool registry + permission policy. Web search (key from admin), local code interpreter in job objects with file outputs and charts, image gen, TTS/STT.
+- Tool registry + permission policy + per-kind allowlists; injection screening and redaction pass on all tool output; shared result cache; prompt caching; budgets and cost preview. Web search (key from admin), local code interpreter in job objects with file outputs and charts, image gen, TTS/STT.
 - Artifacts pane: sandboxed webview, versions, diff, save, gallery.
 - Projects with knowledge files and local RAG (sqlite-vec; embeddings via a local model by default).
 - Local prep pipeline: history summarization, local doc search, local background jobs, answer cache; tokens-saved counter per message.
@@ -198,7 +224,7 @@ Settings › Models › Hybrid routing: "Keep multiple topics open" (on), "Compr
 - **Done when:** tool calls stream as cards, artifacts render and version, projects answer from their files.
 
 ### Phase 3 — MCP, skills, coding agent (weeks 6–8)
-- MCP client: stdio servers as child processes (admin-pushed and local), HTTP/SSE with OAuth; tools/resources/prompts; per-chat toggles; gallery; import from `claude_desktop_config.json`.
+- MCP client: stdio servers as child processes (admin-pushed and local, local ones approved with pinned hash and tool list), HTTP/SSE with OAuth; tools/resources/prompts; per-chat toggles; gallery; import from `claude_desktop_config.json`.
 - Skills: local folders, git sync, SKILL.md parsing, slash commands, auto-trigger.
 - Coding agent: open any local folder, file tree + CodeMirror, node-pty terminal, agent loop, plan mode, permission prompts, diff review, commit/PR via GitHub connector, subagents.
 - **Done when:** point it at a local repo, ask for a change, review the diff, open a PR.
@@ -211,7 +237,7 @@ Settings › Models › Hybrid routing: "Keep multiple topics open" (on), "Compr
 - **Done when:** parity list in section 1 fully checked.
 
 ### Phase 5 — Polish
-- Shortcuts, palette, themes, accessibility, crash reporting, backups, E2E tests, signed installer (code-signing cert) and SmartScreen reputation.
+- Shortcuts, palette, themes, accessibility, crash reporting, encrypted versioned backups with restore test, network allowlist, E2E tests, SmartScreen reputation.
 
 ## 6. Risks and choices to make early
 
@@ -219,7 +245,7 @@ Settings › Models › Hybrid routing: "Keep multiple topics open" (on), "Compr
 - **Key exposure.** Keys live in the main process only; the renderer never sees them. If the device token is revoked, the app wipes its key cache. Decide whether admin proxies provider calls instead of handing out keys (safer, adds latency and makes admin a hard dependency). Recommendation: hand out keys, cache encrypted, revoke via sync.
 - **Sandbox strength.** Job Objects cap resources but are not a security boundary against malicious code. Default-deny shell permissions in chat; offer WSL2/Docker backend for the coding agent.
 - **Provider feature gaps.** Thinking, caching, PDF input and computer use differ by route; adapters advertise capabilities per model and the UI greys out what a model cannot do.
-- **Code signing.** Budget for an EV or OV certificate early; unsigned installers trip SmartScreen.
+- **Code signing.** Budget for an EV or OV certificate in Phase 0; unsigned installers trip SmartScreen and auto-update cannot verify.
 - **Computer use safety.** Per-app allowlist, no financial sites, overlay + stop key, screenshots never leave the machine except to the model the user picked.
 
 ## 7. Repo layout
