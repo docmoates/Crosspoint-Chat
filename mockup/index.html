@@ -166,6 +166,12 @@ details.route summary{font-size:12px;color:var(--fg-3)}
 .sb-state.done{color:var(--ok);font-weight:600}
 .sb-bg{display:flex;align-items:center;gap:6px;padding:4px 12px 2px;font-size:11px;color:var(--fg-3)}
 .sb-bg b{color:var(--fg-2);font-weight:600}
+.lock{width:11px;height:11px;color:var(--fg-3);flex:none}
+.xmsg{display:flex;gap:10px;align-items:flex-start;padding:8px 12px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;background:var(--panel);font-size:12.5px}
+.xmsg .who{font-weight:600;color:var(--accent);white-space:nowrap}
+.xmsg .t{flex:1;min-width:0;color:var(--fg-2)}
+.xmsg .t small{display:block;color:var(--fg-3);margin-top:2px}
+.coord .row .grow small{white-space:normal}
 .tool-card .inner{display:flex;flex-direction:column;gap:8px}
 .result{display:flex;gap:10px;align-items:flex-start}
 .result .fav{width:16px;height:16px;border-radius:4px;background:var(--line-2);flex:none;margin-top:3px}
@@ -403,7 +409,7 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
         <div class="sb-chat open">
           <div class="sb-row"><button class="sb-item on" data-go="chat"><span class="dot"></span><span>OpenRouter streaming adapter</span></button><button class="sb-chev" data-toggle-sub title="Show sub-chats"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button></div>
           <div class="sb-subs">
-            <button class="sb-item sub" data-go="agent"><span class="spin" style="width:9px;height:9px;border-width:1.5px"></span><span>Part 1 · Adapter + 429 fallback</span><span class="sb-state run">running · step 14/20</span></button>
+            <button class="sb-item sub" data-go="agent"><span class="spin" style="width:9px;height:9px;border-width:1.5px"></span><span>Part 1 · Adapter + 429 fallback</span><svg class="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span class="sb-state run">running · step 14/20</span></button>
             <button class="sb-item sub on" data-go="chat"><span class="sdot ok"></span><span>Part 2 · Email to chair</span><span class="sb-state">open</span></button>
             <button class="sb-item sub" data-go="research"><span class="sdot warn"></span><span>Part 3 · Research: pgvector vs Qdrant</span><span class="sb-state need">needs you</span></button>
             <button class="sb-item sub" data-go="chat"><span class="sdot ok"></span><span>Part 4 · Quiz items ch. 6</span><span class="sb-state done">done · 12 items</span></button>
@@ -565,6 +571,11 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
               <small>Phi-4 mini on this PC · 2 sub-chats open · 14,900 tokens in context · nothing compressed</small>
             </div>
             <div class="btns"><button class="btn sm">Pause Part 1 now</button><button class="btn sm">Keep all</button></div>
+          </div>
+
+          <div class="xmsg">
+            <span class="who">Part 1 → Part 2</span>
+            <div class="t">Heads up: I renamed <code>registry.get(model)</code> to <code>registry.get(model, opts)</code> and claimed <code>routes/chat.ts</code> until my run ends. If the email mentions the fallback feature, call it "automatic fallback", that is the name in the PR.<small>Shared fact recorded · not urgent, delivered between steps · Phi-4 mini mediated</small></div>
           </div>
 
           <div class="msg assistant">
@@ -761,6 +772,15 @@ Tests: 1 failed, 20 passed · 2.4s
             <code>pnpm test --filter api -- permissions</code>
             <div class="btns"><button class="btn sm primary">Allow once</button><button class="btn sm">Always for pnpm test</button><button class="btn sm danger">Deny</button></div>
           </div>
+          <div class="card coord">
+            <h3><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Coordination</h3>
+            <div class="list" style="font-size:12.5px">
+              <div class="row"><span class="sdot ok"></span><div class="grow">Claims held<small>routes/chat.ts · agent/loop.ts · agent/permissions.ts</small></div></div>
+              <div class="row"><span class="sdot warn"></span><div class="grow">Part 3 wants <code>registry.ts</code><small>Waiting for this run · will rebase on this branch first</small></div><button class="btn sm">Release</button></div>
+              <div class="row"><span class="sdot ok"></span><div class="grow">Shared facts<small>registry.get(model, opts) · feature name "automatic fallback" · 429 is retryable</small></div></div>
+              <div class="row"><span class="sdot ok"></span><div class="grow">Merge check<small>Branch feature/fallback-chain vs Part 3 branch: no overlapping hunks</small></div></div>
+            </div>
+          </div>
           <div class="card">
             <h3>Run</h3>
             <div class="list" style="font-size:13px">
@@ -878,6 +898,9 @@ Tests: 1 failed, 20 passed · 2.4s
               <div class="setting"><div class="grow">Permission prompts from background runs<small>Never pop over your work; the sub-chat flips to "needs you" and waits</small></div><span class="switch on"></span></div>
               <div class="setting"><div class="grow">Carry "always allow" rules into background runs</div><span class="switch on"></span></div>
               <div class="setting"><div class="grow">Default caps for unattended runs<small>Per sub-chat; shown in its header</small></div><span class="pill">20 steps</span><span class="pill">$2.00</span></div>
+              <div class="setting"><div class="grow">Sub-chats coordinate with each other<small>Claims on files and artifacts, messages between sub-chats, shared facts, merge checks. Always on so they never undo each other's work</small></div><span class="pill"><span class="dot"></span> on</span></div>
+              <div class="setting"><div class="grow">Urgent messages between sub-chats<small>How a running sub-chat takes a message from another</small></div><span class="seg"><button class="on">Interrupt at next safe step</button><button>Wait until done</button></span></div>
+              <div class="setting"><div class="grow">When two sub-chats clash<small>Opposite changes to the same thing</small></div><span class="pill">Both flip to "needs you" with one combined card</span></div>
               <div class="eyebrow" style="margin:14px 0 4px">Cloud fallback chain</div>
               <div class="muted" style="font-size:13px">OpenRouter fallbacks (GPT-5.5, Gemini 3 Pro) → Anthropic direct → custom endpoint → local model. Set per provider in admin; shown here read-only.</div>
               <div class="setting" style="border-top:0;padding-top:12px"><div class="grow">This month<small>61% of messages answered locally · 1.9M cloud tokens avoided</small></div><span class="mono">$4.21</span></div>
