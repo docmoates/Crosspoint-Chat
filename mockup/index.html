@@ -42,12 +42,39 @@ code,pre,.mono{font-family:var(--mono)}
 .muted{color:var(--fg-2)}.faint{color:var(--fg-3)}
 .eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-3);font-weight:600}
 
-/* Screen switcher (reviewer bar) */
-#switcher{display:flex;gap:4px;align-items:center;padding:6px max(12px,env(safe-area-inset-right,0px)) 6px max(12px,env(safe-area-inset-left,0px));background:var(--fg);color:var(--bg);font-size:12px;overflow-x:auto;flex:none}
-#switcher .lbl{opacity:.6;margin-right:6px;white-space:nowrap}
-#switcher button{padding:4px 10px;border-radius:999px;color:inherit;opacity:.75;white-space:nowrap}
-#switcher button.on{background:var(--accent);color:var(--accent-fg);opacity:1}
-#switcher .spacer{flex:1}
+/* Sidebar nav (Claude-style) */
+.sb-nav{padding:4px 8px 0;display:flex;flex-direction:column;gap:1px}
+.sb-nav .sb-item{font-weight:500;color:var(--fg)}
+.sb-nav .sb-item.on{background:var(--panel);box-shadow:0 0 0 1px var(--line)}
+/* Model tags */
+.mtag{font-size:10px;padding:1px 6px;border-radius:999px;background:var(--panel-2);color:var(--fg-2);border:1px solid var(--line);white-space:nowrap}
+.mtag.coding{color:#6d28d9;border-color:#c4b5fd;background:rgba(124,58,237,.08)}
+.mtag.images{color:#be185d;border-color:#f9a8d4;background:rgba(190,24,93,.08)}
+.mtag.cheap{color:#15803d;border-color:#86efac;background:rgba(21,128,61,.08)}
+.mtag.vision{color:#0369a1;border-color:#7dd3fc;background:rgba(3,105,161,.08)}
+.mtag.reasoning{color:#b45309;border-color:#fcd34d;background:rgba(180,83,9,.08)}
+.mtag.local{color:var(--fg-2)}
+.mtags{display:flex;gap:4px;flex-wrap:wrap}
+.menu-item .mtags{margin-left:6px}
+.menu-item .right{margin-left:auto}
+.tagfilter{display:flex;gap:4px;flex-wrap:wrap;padding:6px 8px 8px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.tagfilter button{font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--fg-2)}
+.tagfilter button.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.menu-item.hide{display:none}
+.tagedit{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.tagedit .mtag{cursor:pointer}
+.tagedit .mtag::after{content:" ×";opacity:.5}
+.tagedit input{border:1px dashed var(--line-2);background:transparent;border-radius:999px;font-size:11px;padding:1px 8px;width:76px;outline:none}
+.tagedit input:focus{border-color:var(--accent)}
+/* Artifacts gallery */
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.gcard{text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.gcard:hover{border-color:var(--accent)}
+.gcard .thumb{height:110px;background:var(--panel-2);display:grid;place-items:center;color:var(--fg-3);border-bottom:1px solid var(--line)}
+.gcard .thumb .bars{height:60px;width:70%;margin:0}
+.gcard .gb{padding:10px 12px}
+.gcard b{display:block;font-weight:500}
+.gcard small{color:var(--fg-3)}
 
 /* App shell */
 #app{flex:1;min-height:0;display:grid;grid-template-columns:260px 1fr 0}
@@ -163,7 +190,11 @@ pre.code .src{padding:12px 14px;overflow-x:auto;display:block}
 .switch{width:30px;height:18px;border-radius:999px;background:var(--line-2);position:relative;margin-left:auto;flex:none}
 .switch::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s}
 .switch.on{background:var(--accent)}.switch.on::after{left:14px}
-.model-menu{min-width:340px}
+.model-menu{min-width:360px;max-width:min(420px,calc(100vw - 32px));max-height:min(70vh,560px);overflow:auto}
+.model-menu .menu-item{display:grid;grid-template-columns:1fr auto;grid-template-areas:"name right" "sub sub" "tags tags";row-gap:2px;column-gap:10px;align-items:baseline}
+.model-menu .menu-item .sub{grid-area:sub}
+.model-menu .menu-item .right{grid-area:right;margin:0}
+.model-menu .menu-item .mtags{grid-area:tags;margin:2px 0 0}
 .model-menu .menu-item.on{background:var(--accent-soft)}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;font-size:12px}
 .seg button{padding:3px 10px;border-radius:999px;color:var(--fg-2)}
@@ -319,19 +350,6 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
 }
 </style>
 
-<div id="switcher" role="navigation" aria-label="Screen switcher">
-  <span class="lbl">MOCKUP</span>
-  <button data-go="chat" class="on">Chat</button>
-  <button data-go="chat-art">Artifacts</button>
-  <button data-go="projects">Projects</button>
-  <button data-go="agent">Agent</button>
-  <button data-go="research">Research</button>
-  <button data-go="settings">Settings</button>
-  <button data-go="palette">⌘K</button>
-  <span class="spacer"></span>
-  <button id="themeBtn" title="Toggle theme">Theme</button>
-</div>
-
 <div id="scrim"></div>
 
 <div id="app">
@@ -343,14 +361,14 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
       <button class="iconbtn mob-only" data-close-sb title="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <button class="newchat" data-go="chat"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> New chat <kbd>Ctrl N</kbd></button>
-    <button class="sb-search" data-go="palette"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg> Search chats <kbd style="margin-left:auto">Ctrl K</kbd></button>
+    <button class="sb-search" data-go="palette"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg> Search <kbd style="margin-left:auto">Ctrl K</kbd></button>
+    <nav class="sb-nav" id="sbnav">
+      <button class="sb-item on" data-go="chat"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.7 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg><span>Chats</span></button>
+      <button class="sb-item" data-go="projects"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Projects</span></button>
+      <button class="sb-item" data-go="artifacts"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M14 4v16"/></svg><span>Artifacts</span></button>
+      <button class="sb-item" data-go="agent"><svg viewBox="0 0 24 24"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg><span>Code</span></button>
+    </nav>
     <div class="sb-scroll">
-      <div class="sb-group">
-        <div class="eyebrow">Projects</div>
-        <button class="sb-item" data-go="projects"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Crosspoint Chat build</span></button>
-        <button class="sb-item"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>PSYC 301 course</span></button>
-        <button class="sb-item"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Grant: NIH R03</span></button>
-      </div>
       <div class="sb-group">
         <div class="eyebrow">Pinned</div>
         <button class="sb-item on" data-go="chat"><span class="dot"></span><span>OpenRouter streaming adapter</span></button>
@@ -509,17 +527,19 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
             <div class="slash">
               <button class="pill" id="modelBtn">Claude Sonnet 5.5 <svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="m6 9 6 6 6-6"/></svg></button>
               <div class="menu model-menu" id="modelMenu">
+                <div class="tagfilter" id="tagFilter"><button class="on" data-tag="">All</button><button data-tag="coding">coding</button><button data-tag="images">images</button><button data-tag="vision">vision</button><button data-tag="reasoning">reasoning</button><button data-tag="cheap">cheap</button><button data-tag="local">local</button></div>
                 <div class="eyebrow">OpenRouter</div>
-                <button class="menu-item on">Claude Sonnet 5.5 <span class="sub">anthropic/claude-sonnet-5.5 · 1M ctx</span><span class="right">$3 / $15</span></button>
-                <button class="menu-item">GPT-5.5 <span class="sub">openai/gpt-5.5 · 400K ctx</span><span class="right">$2.5 / $10</span></button>
-                <button class="menu-item">Gemini 3 Pro <span class="sub">google/gemini-3-pro · 2M ctx</span><span class="right">$2 / $12</span></button>
-                <button class="menu-item">DeepSeek V4 <span class="sub">deepseek/deepseek-v4 · 164K ctx</span><span class="right">$0.3 / $1.2</span></button>
+                <button class="menu-item on" data-tags="coding vision reasoning">Claude Sonnet 5.5 <span class="sub">anthropic/claude-sonnet-5.5 · 1M ctx</span><span class="right">$3 / $15</span></button>
+                <button class="menu-item" data-tags="coding vision images reasoning">GPT-5.5 <span class="sub">openai/gpt-5.5 · 400K ctx</span><span class="right">$2.5 / $10</span></button>
+                <button class="menu-item" data-tags="vision images reasoning">Gemini 3 Pro <span class="sub">google/gemini-3-pro · 2M ctx</span><span class="right">$2 / $12</span></button>
+                <button class="menu-item" data-tags="coding cheap">DeepSeek V4 <span class="sub">deepseek/deepseek-v4 · 164K ctx</span><span class="right">$0.3 / $1.2</span></button>
+                <button class="menu-item" data-tags="images">FLUX 2 Pro <span class="sub">black-forest-labs/flux-2-pro · image gen</span><span class="right">$0.04 / img</span></button>
                 <div class="eyebrow">Anthropic direct</div>
-                <button class="menu-item">Claude Opus 5.5 <span class="sub">caching · PDF · computer use</span><span class="right">$15 / $75</span></button>
-                <button class="menu-item">Claude Haiku 5.5 <span class="sub">titles, summaries, routing</span><span class="right">$0.8 / $4</span></button>
+                <button class="menu-item" data-tags="coding vision reasoning">Claude Opus 5.5 <span class="sub">caching · PDF · computer use</span><span class="right">$15 / $75</span></button>
+                <button class="menu-item" data-tags="cheap vision">Claude Haiku 5.5 <span class="sub">titles, summaries, routing</span><span class="right">$0.8 / $4</span></button>
                 <div class="eyebrow">Custom endpoints</div>
-                <button class="menu-item">Llama 4 70B <span class="sub">LM Studio · 192.168.1.20:1234</span><span class="right">free</span></button>
-                <button class="menu-item">Qwen3 Coder <span class="sub">Groq · OpenAI-compatible</span><span class="right">$0.4 / $1.6</span></button>
+                <button class="menu-item" data-tags="local cheap">Llama 4 70B <span class="sub">LM Studio · 192.168.1.20:1234</span><span class="right">free</span></button>
+                <button class="menu-item" data-tags="coding cheap">Qwen3 Coder <span class="sub">Groq · OpenAI-compatible</span><span class="right">$0.4 / $1.6</span></button>
                 <div class="eyebrow" style="padding-top:10px">Thinking</div>
                 <div style="padding:2px 8px 6px"><span class="seg"><button>Off</button><button>Low</button><button class="on">Medium</button><button>High</button><button>Max</button></span></div>
               </div>
@@ -531,6 +551,22 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
         </div>
         <div class="hint desk-only">Enter to send · Shift+Enter for a new line · Keys and limits managed in admin.docmoates.com</div>
       </div>
+    </section>
+
+    <!-- ---- ARTIFACTS GALLERY ---- -->
+    <section class="screen" id="s-artifacts">
+      <div class="topbar"><button class="iconbtn mob-only" data-open-sb><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><div class="title">Artifacts</div><span class="seg desk-only"><button class="on">All</button><button>Apps</button><button>Documents</button><button>Charts</button><button>Published</button></span></div>
+      <div class="page"><div class="page-inner">
+        <h1>Artifacts</h1>
+        <div class="gallery">
+          <button class="gcard" data-go="chat-art"><div class="thumb"><div class="bars" aria-hidden="true"><div style="height:70%"></div><div style="height:48%"></div><div style="height:62%"></div><div style="height:35%"></div><div style="height:55%"></div><div style="height:42%"></div><div style="height:28%"></div></div></div><div class="gb"><b>Provider latency comparison</b><small>Chart · v3 · OpenRouter streaming adapter · 2 min ago</small></div></button>
+          <button class="gcard" data-go="chat-art"><div class="thumb"><svg viewBox="0 0 24 24" style="width:34px;height:34px"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg></div><div class="gb"><b>Vector store decision</b><small>Document · draft · Deep research · updating</small></div></button>
+          <button class="gcard" data-go="chat-art"><div class="thumb"><svg viewBox="0 0 24 24" style="width:34px;height:34px"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 20v-10"/></svg></div><div class="gb"><b>Syllabus builder</b><small>App · v7 · PSYC 301 course · published</small></div></button>
+          <button class="gcard" data-go="chat-art"><div class="thumb"><svg viewBox="0 0 24 24" style="width:34px;height:34px"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/></svg></div><div class="gb"><b>Monthly spend by provider</b><small>Chart · v2 · Weekly spend report · 3 days ago</small></div></button>
+          <button class="gcard" data-go="chat-art"><div class="thumb"><svg viewBox="0 0 24 24" style="width:34px;height:34px"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg></div><div class="gb"><b>Email to department chair</b><small>Document · v1 · 6 days ago</small></div></button>
+          <button class="gcard" data-go="chat-art"><div class="thumb"><svg viewBox="0 0 24 24" style="width:34px;height:34px"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M12 8v8"/></svg></div><div class="gb"><b>Operant conditioning flashcards</b><small>App · v4 · PSYC 301 course · published</small></div></button>
+        </div>
+      </div></div>
     </section>
 
     <!-- ---- PROJECTS ---- -->
@@ -697,7 +733,7 @@ Tests: 1 failed, 20 passed · 2.4s
         <div class="spane">
           <section class="on" data-pane="general">
             <h2>General</h2>
-            <div class="setting"><div class="grow">Theme<small>Follows system by default</small></div><span class="seg"><button>Light</button><button>Dark</button><button class="on">System</button></span></div>
+            <div class="setting"><div class="grow">Theme<small>Follows system by default</small></div><span class="seg" id="themeSeg"><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button><button class="on" data-theme-set="">System</button></span></div>
             <div class="setting"><div class="grow">Language<small>Interface and default response language</small></div><select class="input" style="width:auto"><option>English (US)</option><option>Español</option></select></div>
             <div class="setting"><div class="grow">Send with Enter<small>Shift+Enter inserts a newline</small></div><span class="switch on"></span></div>
             <div class="setting"><div class="grow">Install as app<small>Add to home screen on Android; opens full screen</small></div><button class="btn sm">Install</button></div>
@@ -731,6 +767,19 @@ Tests: 1 failed, 20 passed · 2.4s
                 <tr><td>Rate limited (429)</td><td colspan="2">OpenRouter → Anthropic direct → custom endpoint</td></tr>
               </tbody></table></div>
               <button class="btn sm" style="margin-top:10px">Add rule</button>
+            </div>
+            <div class="card"><h3>Model tags <span class="tag">filter the model picker · type a tag and press Enter · click a tag to remove</span></h3>
+              <div class="tablewrap"><table id="tagTable"><thead><tr><th>Model</th><th>Provider</th><th>Tags</th></tr></thead><tbody>
+                <tr data-model="Claude Sonnet 5.5"><td>Claude Sonnet 5.5</td><td class="muted">OpenRouter</td><td><div class="tagedit"><span class="mtag coding">coding</span><span class="mtag vision">vision</span><span class="mtag reasoning">reasoning</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
+                <tr data-model="GPT-5.5"><td>GPT-5.5</td><td class="muted">OpenRouter</td><td><div class="tagedit"><span class="mtag coding">coding</span><span class="mtag vision">vision</span><span class="mtag images">images</span><span class="mtag reasoning">reasoning</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
+                <tr data-model="Gemini 3 Pro"><td>Gemini 3 Pro</td><td class="muted">OpenRouter</td><td><div class="tagedit"><span class="mtag vision">vision</span><span class="mtag images">images</span><span class="mtag reasoning">reasoning</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
+                <tr data-model="DeepSeek V4"><td>DeepSeek V4</td><td class="muted">OpenRouter</td><td><div class="tagedit"><span class="mtag coding">coding</span><span class="mtag cheap">cheap</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
+                <tr data-model="FLUX 2 Pro"><td>FLUX 2 Pro</td><td class="muted">OpenRouter</td><td><div class="tagedit"><span class="mtag images">images</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
+                <tr data-model="Claude Opus 5.5"><td>Claude Opus 5.5</td><td class="muted">Anthropic</td><td><div class="tagedit"><span class="mtag coding">coding</span><span class="mtag vision">vision</span><span class="mtag reasoning">reasoning</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
+                <tr data-model="Claude Haiku 5.5"><td>Claude Haiku 5.5</td><td class="muted">Anthropic</td><td><div class="tagedit"><span class="mtag cheap">cheap</span><span class="mtag vision">vision</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
+                <tr data-model="Llama 4 70B"><td>Llama 4 70B</td><td class="muted">LM Studio</td><td><div class="tagedit"><span class="mtag local">local</span><span class="mtag cheap">cheap</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
+                <tr data-model="Qwen3 Coder"><td>Qwen3 Coder</td><td class="muted">Groq</td><td><div class="tagedit"><span class="mtag coding">coding</span><span class="mtag cheap">cheap</span><input placeholder="add tag" aria-label="Add tag"></div></td></tr>
+              </tbody></table></div>
             </div>
           </section>
           <section data-pane="mcp">
@@ -871,6 +920,7 @@ draw(document.getElementById(<span class="s">"c"</span>), data);
       <button class="menu-item" data-go="research"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg> Start deep research</button>
       <button class="menu-item" data-go="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></svg> Open settings <kbd class="kbd">Ctrl ,</kbd></button>
       <button class="menu-item" id="palTheme"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9c0-.5 0-1-.1-1.4A5.5 5.5 0 0 1 12 3z"/></svg> Toggle theme</button>
+      <button class="menu-item" data-go="artifacts"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M14 4v16"/></svg> Browse artifacts</button>
       <div class="eyebrow">Memories</div>
       <button class="menu-item" data-go="settings" data-tab-go="memory"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>"Rate limited (429): OpenRouter → Anthropic direct → custom endpoint"<span class="sub">Routing rule</span></span></button>
     </div>
@@ -881,16 +931,17 @@ draw(document.getElementById(<span class="s">"c"</span>), data);
 (function(){
   const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
   const app=$('#app'), sb=$('#sidebar'), scrim=$('#scrim'), pal=$('#palette');
-  const screens={chat:'s-chat',projects:'s-projects',agent:'s-agent',research:'s-research',settings:'s-settings'};
+  const screens={chat:'s-chat',projects:'s-projects',artifacts:'s-artifacts',agent:'s-agent',research:'s-research',settings:'s-settings'};
 
   function show(name){
     if(name==='palette'){openPal(true);return;}
     let art=false; if(name==='chat-art'){name='chat';art=true;}
     $$('.screen').forEach(s=>s.classList.toggle('on',s.id===screens[name]));
-    $$('#switcher button[data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===(art?'chat-art':name)));
+    const navKey=art?'artifacts':(name==='research'?'chat':name);
+    $$('#sbnav .sb-item').forEach(b=>b.classList.toggle('on',b.dataset.go===navKey));
     app.classList.toggle('artifact-open',art);
     closeSb(); openPal(false); closeMenus();
-    try{location.hash=art?'artifacts':name}catch(e){}
+    try{location.hash=name}catch(e){}
   }
   document.addEventListener('click',e=>{
     const go=e.target.closest('[data-go]'); if(go){show(go.dataset.go); const t=go.dataset.tabGo; if(t)setTab(t); return;}
@@ -903,8 +954,11 @@ draw(document.getElementById(<span class="s">"c"</span>), data);
     const seg=e.target.closest('.seg button'); if(seg){seg.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===seg));return;}
     if(e.target.closest('#toolsBtn')){toggleMenu('#toolsMenu');return;}
     if(e.target.closest('#modelBtn')){toggleMenu('#modelMenu');return;}
+    const tf=e.target.closest('#tagFilter button'); if(tf){$$('#tagFilter button').forEach(b=>b.classList.toggle('on',b===tf));filterModels(tf.dataset.tag);e.stopPropagation();return;}
     const mi=e.target.closest('#modelMenu .menu-item'); if(mi){$$('#modelMenu .menu-item').forEach(b=>b.classList.toggle('on',b===mi));$('#modelBtn').firstChild.textContent=mi.firstChild.textContent.trim()+' ';closeMenus();return;}
-    if(e.target.closest('#themeBtn')||e.target.closest('#palTheme')){toggleTheme();return;}
+    const rm=e.target.closest('.tagedit .mtag'); if(rm){const row=rm.closest('tr');rm.remove();syncTags(row);return;}
+    const ts=e.target.closest('[data-theme-set]'); if(ts){const v=ts.dataset.themeSet; if(v)document.documentElement.dataset.theme=v; else delete document.documentElement.dataset.theme; $$('#themeSeg button').forEach(b=>b.classList.toggle('on',b===ts));return;}
+    if(e.target.closest('#palTheme')){toggleTheme();return;}
     if(e.target===pal){openPal(false);return;}
     if(!e.target.closest('.menu'))closeMenus();
   });
@@ -922,7 +976,29 @@ draw(document.getElementById(<span class="s">"c"</span>), data);
     if(e.key==='Escape'){openPal(false);closeMenus();closeSb();}
   });
   const ta=$('#composer'); ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(200,ta.scrollHeight)+'px';});
+
+  // Model tags: picker chips, filter, and the settings editor
+  function tagsOf(item){return (item.dataset.tags||'').split(' ').filter(Boolean);}
+  function renderChips(item){
+    let box=item.querySelector('.mtags'); if(!box){box=document.createElement('span');box.className='mtags';item.querySelector('.sub').after(box);}
+    box.innerHTML=tagsOf(item).map(t=>'<span class="mtag '+t+'">'+t+'</span>').join('');
+  }
+  function filterModels(tag){$$('#modelMenu .menu-item').forEach(i=>i.classList.toggle('hide',!!tag&&!tagsOf(i).includes(tag)));}
+  function syncTags(row){
+    const name=row.dataset.model, tags=[...row.querySelectorAll('.mtag')].map(s=>s.textContent.trim());
+    const item=$$('#modelMenu .menu-item').find(i=>i.firstChild.textContent.trim()===name);
+    if(item){item.dataset.tags=tags.join(' ');renderChips(item);}
+    const known=new Set($$('#tagFilter button').map(b=>b.dataset.tag));
+    tags.forEach(t=>{if(!known.has(t)){const b=document.createElement('button');b.dataset.tag=t;b.textContent=t;$('#tagFilter').appendChild(b);}});
+  }
+  $$('#modelMenu .menu-item').forEach(renderChips);
+  $$('.tagedit input').forEach(inp=>inp.addEventListener('keydown',e=>{
+    if(e.key!=='Enter')return; e.preventDefault();
+    const t=inp.value.trim().toLowerCase().replace(/[^a-z0-9-]/g,''); if(!t)return;
+    const box=inp.parentElement; if([...box.querySelectorAll('.mtag')].some(s=>s.textContent.trim()===t)){inp.value='';return;}
+    const s=document.createElement('span');s.className='mtag '+t;s.textContent=t;inp.before(s);inp.value='';syncTags(inp.closest('tr'));
+  }));
   const h=(location.hash||'').slice(1);
-  if(h==='artifacts')show('chat-art'); else if(screens[h])show(h);
+  if(screens[h])show(h);
 })();
 </script>
