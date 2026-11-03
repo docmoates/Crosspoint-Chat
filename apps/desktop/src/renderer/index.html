@@ -2,9 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      Artifact previews render in sandboxed iframes (srcdoc, no allow-same-origin). They inherit this
+      policy, so static HTML/SVG previews work; inline scripts inside artifacts need a dedicated
+      main-process protocol to run.
+    -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-src 'self' blob: data: about:; object-src 'none'; base-uri 'self'"
     />
     <title>Crosspoint Chat</title>
   </head>

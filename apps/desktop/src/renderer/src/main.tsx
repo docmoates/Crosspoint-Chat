@@ -1,17 +1,13 @@
-// Placeholder entry so the app builds before the real renderer lands. Replace freely.
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { App } from './App'
+import './styles/app.css'
 
-function App(): React.JSX.Element {
-  return (
-    <main style={{ fontFamily: 'system-ui, sans-serif', padding: 24 }}>
-      <h1 style={{ fontSize: 18, fontWeight: 600 }}>Crosspoint Chat</h1>
-    </main>
-  )
-}
+const root = document.getElementById('root')
+if (!root) throw new Error('Missing #root element')
 
-createRoot(document.getElementById('root')!).render(
+createRoot(root).render(
   <StrictMode>
     <App />
-  </StrictMode>
+  </StrictMode>,
 )
