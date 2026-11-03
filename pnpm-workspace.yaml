@@ -1,0 +1,13 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Electron and electron-builder package native modules most reliably from a flat node_modules.
+nodeLinker: hoisted
+
+allowBuilds:
+  better-sqlite3: true
+  electron: true
+  esbuild: true
+  '@tailwindcss/oxide': true
+  electron-winstaller: false
