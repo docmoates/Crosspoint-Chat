@@ -1,0 +1,77 @@
+# Admin contract: Crosspoint Chat <-> admin.docmoates.com
+
+Version 1. Implemented in `apps/docmoates` (Publications repo, `C:\Users\docmo\OneDrive\Desktop\Publications`) and consumed by the Windows app. The TypeScript mirror lives in `packages/shared/admin-contract.ts` in this repo; the admin side validates with zod in JS. Keep both in step.
+
+## Auth
+
+- Device token: `dmd_<12 hex id>_<32 base64url chars>`. Admin stores only `sha256(token)`. Sent as `Authorization: Bearer <token>` on every `/api/devices/me/*` call.
+- All `/api/*` routes live on the **admin host only**, answer JSON, skip the HTML session/CSRF/owner gates, and are rate limited (60/min per token, 10/min per IP for `/pair`).
+- Errors: `{ "error": "<message>", "code": "unauthorized|revoked|bad_code|rate_limited|invalid" }` with 401/403/429/400. A device whose token is revoked gets 401 `code:"revoked"`; the app then wipes its key cache and shows the pairing screen.
+
+## Pairing
+
+1. Owner opens Admin > Devices > "Pair a new device". Admin creates a one-time `pairing_codes` row: 8 chars from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`, grouped `XXXX-XXXX`, expires in 10 minutes. Page shows the code and the link `crosspoint://pair?code=XXXX-XXXX&host=admin.docmoates.com`.
+2. App: `POST /api/devices/pair` body `{ "code": "XXXX-XXXX", "name": "DESKTOP-XYZ", "os": "Windows 11 10.0.28000", "app_version": "0.1.0" }` -> 200 `{ "device_id": "<12 hex>", "token": "dmd_...", "config_version": 1 }`. Code is marked used; wrong or expired -> 400 `bad_code`.
+3. App stores the token with Electron `safeStorage` (DPAPI) under `%APPDATA%\Crosspoint\device.bin`.
+
+## GET /api/devices/me/config
+
+```json
+{
+  "config_version": 7,
+  "device": { "id": "a1b2c3d4e5f6", "name": "DESKTOP-XYZ", "created_at": "...", "last_seen_at": "..." },
+  "providers": [
+    { "id": "openrouter", "kind": "openrouter", "label": "OpenRouter", "base_url": "https://openrouter.ai/api/v1", "api_key": "sk-or-...", "enabled": true },
+    { "id": "anthropic",  "kind": "anthropic",  "label": "Anthropic",  "base_url": "https://api.anthropic.com", "api_key": "sk-ant-...", "enabled": true },
+    { "id": "openai",     "kind": "openai-compatible", "label": "OpenAI", "base_url": "https://api.openai.com/v1", "api_key": "sk-...", "enabled": true },
+    { "id": "custom:<slug>", "kind": "openai-compatible", "label": "<name>", "base_url": "https://.../v1", "api_key": "...", "enabled": true }
+  ],
+  "search": { "brave_api_key": "... or null", "monthly_quota": 2000 },
+  "mcp_servers": [
+    { "id": "<slug>", "name": "...", "transport": "stdio", "command": "npx", "args": ["-y", "@x/y"], "env": { "K": "v" }, "enabled": true },
+    { "id": "<slug>", "name": "...", "transport": "http", "url": "https://.../mcp", "headers": { "Authorization": "Bearer ..." }, "enabled": true }
+  ],
+  "allowed_models": [],
+  "default_models": { "chat": "anthropic/claude-sonnet-4.5", "helper": "openai/gpt-4o-mini" },
+  "limits": { "monthly_usd": 100, "daily_usd": 5, "per_message_warn_usd": 0.5, "sub_chat_usd": 2, "sub_chat_steps": 20 },
+  "spend": { "month_usd": 12.34, "today_usd": 0.56, "month": "2026-11" }
+}
+```
+
+- `providers` come from admin's existing integrations `openrouter`, `anthropic`, `openai` (present when `api_key` is set) plus rows of a new `custom_endpoints` table (slug, name, base_url, api_key enc, enabled).
+- `search.brave_api_key` from a new integration `brave` (field `api_key`, secret).
+- `allowed_models`: empty array means "all". Strings are OpenRouter-style ids (`vendor/model`); for Anthropic direct use the raw model id.
+- `config_version` increments on every admin write that affects this payload (`chat_settings.config_version`). App polls every 60 s with `If-None-Match: "<config_version>"`; admin returns 304 when unchanged. Each call updates `devices.last_seen_at`.
+
+## POST /api/devices/me/usage
+
+Body `{ "events": [ { "id": "<uuid>", "at": "ISO", "provider": "openrouter", "model": "...", "path": "cloud|local|cache", "kind": "chat|helper|search|image|embedding", "tokens_in": 123, "tokens_out": 45, "cached_tokens": 0, "cost_usd": 0.0012, "conversation_id": "<uuid>" } ] }` (max 200 events). Admin dedupes on `id` (table `device_usage`, PK id). Returns `{ "ok": true, "accepted": n, "spend": { "month_usd": ..., "today_usd": ... } }`. App keeps unsent events in `usage_outbox` and retries.
+
+## POST /api/devices/me/audit
+
+Body `{ "events": [ { "id": "<uuid>", "at": "ISO", "kind": "tool_call|permission|outbound|mcp_approve|sync|error", "summary": "...", "hash": "<hex>" } ] }` (daily summary, max 500). Stored in `device_audit`. Returns `{ "ok": true }`.
+
+## Admin console pages (owner only)
+
+- `/devices`: list (name, os, version, last seen, month spend), "Pair a new device" (shows code + link, 10 min), per device: rename, **Revoke** (sets `revoked_at`), usage table (last 100 events, month/day totals).
+- `/endpoints`: custom OpenAI-compatible endpoints (slug, name, base URL, key write-only, enabled).
+- `/mcp-servers`: admin-pushed MCP servers (stdio or http; env/headers stored encrypted, write-only).
+- `/chat-settings`: allowed models (one per line), default chat/helper model, the five limits. Saving bumps `config_version`.
+- Integrations: add `brave` (Brave Search API key).
+- Every write is audited; every revoke is audited. Sidebar nav gains a "Crosspoint Chat" group: Devices, Endpoints, MCP servers, Chat settings.
+
+## Implementation notes (as built in admin commit b463ab4c1)
+
+1. `spend` covers all devices, not just the calling one.
+2. Usage and audit ids are unique across all devices; a resent id is ignored.
+3. One event with an unknown `kind` or `path` rejects the whole batch with 400 `invalid`; the app must drop such events from its outbox, not retry them.
+4. `search.monthly_quota` comes from an optional brave field, default 2000.
+5. Disabled custom endpoints and MCP servers are still sent with `enabled:false`; an endpoint with no key sends `api_key: ""`.
+6. Config sends `ETag: "<version>"`; `If-None-Match` accepts `W/` and unquoted values; 304 has an empty body and still updates `last_seen_at`.
+7. Renaming a device and saving or clearing the openrouter, anthropic, openai or brave integration also bump `config_version`.
+8. Pair codes work in any case, with or without the dash; `name`, `os`, `app_version` are optional (missing name becomes "Device").
+9. 404, 405, 413 and 500 use code `invalid`; 429 sends `Retry-After: 60`.
+
+## Tables (admin, SQLite)
+
+`devices (id TEXT PK, name, os, app_version, token_hash, created_at, last_seen_at, revoked_at)`, `pairing_codes (code PK, created_at, expires_at, used_at, device_id)`, `custom_endpoints (slug PK, name, base_url, api_key_enc, enabled, created_at)`, `mcp_servers (slug PK, name, transport, command, args_json, url, env_enc, headers_enc, enabled, created_at)`, `chat_settings (id=1, allowed_models_json, default_chat, default_helper, monthly_usd, daily_usd, per_message_warn_usd, sub_chat_usd, sub_chat_steps, config_version)`, `device_usage (id TEXT PK, device_id, at, provider, model, path, kind, tokens_in, tokens_out, cached_tokens, cost_usd, conversation_id)`, `device_audit (id TEXT PK, device_id, at, kind, summary, hash)`.
