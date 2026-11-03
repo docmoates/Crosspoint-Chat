@@ -154,6 +154,20 @@ Settings › Models › Hybrid routing: "Keep multiple topics open" (on), "Compr
 
 **Tradeoffs to watch.** Prep adds latency before the cloud call starts; a weak local summary or search can drop details; try-local-first answers hard questions twice. Start with summaries, local search and background jobs, which save the most for the least risk.
 
+## 2b-ii. Web search without a browser or quotas
+
+Search is a tiered provider chain behind one `search(query, intent)` tool; the local model picks the starting tier from intent and the chain falls through on empty results, errors or exhausted quota. Every result set is normalized (title, url, snippet, published, source tier) and cached.
+
+1. **Result cache** (free): same or near-duplicate query in the last 24 h, shared across sub-chats (uses the local embedding to match paraphrases).
+2. **Bundled local meta-search** (free, no key, no quota): a SearXNG instance packaged with the app and run as a child process on localhost. It queries several engines (DuckDuckGo, Bing, Brave, Startpage, Wikipedia, GitHub, …) over plain HTTP and merges results. Engines occasionally rate-limit; SearXNG rotates and the chain falls through. This is the default for ordinary "look it up" questions.
+3. **Direct sources** (free APIs): Wikipedia, arXiv, Semantic Scholar, GitHub, npm/PyPI, MDN and docs sites, Reddit JSON, RSS, Hacker News. The local classifier routes "what is the API for X" or "paper on Y" straight here, which is faster and more accurate than general search.
+4. **Brave Search API** (key from admin; 2,000 free queries/month, then paid): used when tier 2 returns too little, is blocked, or the request needs freshness filters. Tavily or Exa can be configured in admin as alternates. Quota counters are tracked per key in admin; the app stops using a tier at 95 % and says so in the cost line.
+5. **Model-native search** (paid per call): OpenRouter `:online`, Anthropic server-side web search, Gemini grounding. Reserved for deep research or an explicit "search thoroughly", because each call costs about a cent and the results cannot be cached as cleanly.
+
+**Fetching pages.** Plain HTTP fetch with a real user agent, then Readability extraction to text (tables and code preserved), 1 h page cache, robots.txt honored, per-site pacing. Only pages that come back as empty JS shells are re-rendered in the app's own hidden Chromium window (Electron already ships one), with scripts allowed but no cookies and a short timeout. No external browser is ever launched. PDFs are fetched and parsed locally.
+
+**Safety and cost.** Every fetched page passes the injection screen and redaction before a cloud model sees it (section 2d). Tiers 1–3 cost nothing; the cost line shows the tier used. The search card in chat is one line ("Searched the web · 3 sources · local meta-search") until opened.
+
 ## 2c. Cost controls
 
 - **Prompt caching.** The stable prefix (system prompt, project instructions, enabled skills, memory, sub-chat summaries) is marked cacheable on Anthropic direct and passed through on OpenRouter where the model supports it. The adapter orders the prompt so the stable part comes first and the volatile part (current sub-chat messages, tool results) last. Cache hit rate shows in the cost line.
