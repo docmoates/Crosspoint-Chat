@@ -160,7 +160,12 @@ details.route summary{font-size:12px;color:var(--fg-3)}
 .sb-item.sub .sdot{width:6px;height:6px}
 .sb-item.sub.on{color:var(--fg)}
 .sb-item.sub.add{color:var(--fg-3)}
-.sb-state{margin-left:auto;font-size:10px;color:var(--fg-3);padding-left:6px}
+.sb-state{margin-left:auto;font-size:10px;color:var(--fg-3);padding-left:6px;white-space:nowrap}
+.sb-state.run{color:var(--accent)}
+.sb-state.need{color:var(--warn);font-weight:600}
+.sb-state.done{color:var(--ok);font-weight:600}
+.sb-bg{display:flex;align-items:center;gap:6px;padding:4px 12px 2px;font-size:11px;color:var(--fg-3)}
+.sb-bg b{color:var(--fg-2);font-weight:600}
 .tool-card .inner{display:flex;flex-direction:column;gap:8px}
 .result{display:flex;gap:10px;align-items:flex-start}
 .result .fav{width:16px;height:16px;border-radius:4px;background:var(--line-2);flex:none;margin-top:3px}
@@ -391,14 +396,17 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
       <button class="sb-item" data-go="artifacts"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M14 4v16"/></svg><span>Artifacts</span></button>
       <button class="sb-item" data-go="agent"><svg viewBox="0 0 24 24"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg><span>Code</span></button>
     </nav>
+    <div class="sb-bg"><span class="spin" style="width:9px;height:9px;border-width:1.5px"></span><b>1 running</b> · <span style="color:var(--warn)">1 needs you</span> · <span style="color:var(--ok)">1 done</span><span style="margin-left:auto">2 / 3 slots</span></div>
     <div class="sb-scroll">
       <div class="sb-group">
         <div class="eyebrow">Pinned</div>
         <div class="sb-chat open">
           <div class="sb-row"><button class="sb-item on" data-go="chat"><span class="dot"></span><span>OpenRouter streaming adapter</span></button><button class="sb-chev" data-toggle-sub title="Show sub-chats"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button></div>
           <div class="sb-subs">
-            <button class="sb-item sub" data-go="chat"><span class="sdot ok"></span><span>Part 1 · OpenRouter adapter + 429 fallback</span><span class="sb-state">open</span></button>
+            <button class="sb-item sub" data-go="agent"><span class="spin" style="width:9px;height:9px;border-width:1.5px"></span><span>Part 1 · Adapter + 429 fallback</span><span class="sb-state run">running · step 14/20</span></button>
             <button class="sb-item sub on" data-go="chat"><span class="sdot ok"></span><span>Part 2 · Email to chair</span><span class="sb-state">open</span></button>
+            <button class="sb-item sub" data-go="research"><span class="sdot warn"></span><span>Part 3 · Research: pgvector vs Qdrant</span><span class="sb-state need">needs you</span></button>
+            <button class="sb-item sub" data-go="chat"><span class="sdot ok"></span><span>Part 4 · Quiz items ch. 6</span><span class="sb-state done">done · 12 items</span></button>
             <button class="sb-item sub" data-go="chat"><span class="sdot off"></span><span>Part 0 · Pick a streaming library</span><span class="sb-state">paused</span></button>
             <button class="sb-item sub add"><svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M12 5v14M5 12h14"/></svg><span>New sub-chat</span></button>
           </div>
@@ -553,7 +561,7 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
             <span class="ic"><svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M4 6h16M4 12h10M4 18h6"/></svg></span>
             <div class="t">
               <b>New sub-chat · Part 2: email to chair · Part 1 stays open</b>
-              Part 1 (adapter + 429 fallback) still has a diff under review, so it is kept in full. Switch between them in the sidebar under this chat, or drag messages between sub-chats. It will be compressed to a short summary only after 8 turns or 2 hours without a reference, and reopened automatically if you mention it.
+              Part 1 (adapter + 429 fallback) still has a diff under review, so it is kept in full. Part 1 keeps running in the background while you work here; the sidebar shows its progress and flags it if it needs you. It will be compressed to a short summary only after 8 turns or 2 hours without a reference, and reopened automatically if you mention it.
               <small>Phi-4 mini on this PC · 2 sub-chats open · 14,900 tokens in context · nothing compressed</small>
             </div>
             <div class="btns"><button class="btn sm">Pause Part 1 now</button><button class="btn sm">Keep all</button></div>
@@ -695,7 +703,7 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
 
     <!-- ---- AGENT WORKSPACE ---- -->
     <section class="screen" id="s-agent">
-      <div class="topbar"><button class="iconbtn mob-only" data-open-sb><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><div class="title">Workspace · crosspoint-api <span class="tag">feature/fallback-chain</span></div><span class="pill desk-only"><span class="dot"></span> sandbox running</span><button class="btn sm">Plan mode</button><button class="btn sm primary">Create PR</button></div>
+      <div class="topbar"><button class="iconbtn mob-only" data-open-sb><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><div class="title">Part 1 · Adapter + 429 fallback <span class="tag">background · step 14/20 · $0.62 of $2.00</span></div><span class="pill desk-only"><span class="dot"></span> sandbox running</span><button class="btn sm">Plan mode</button><button class="btn sm primary">Create PR</button></div>
       <div class="ws">
         <div class="files">
           <div class="ph"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Files</div>
@@ -863,6 +871,13 @@ Tests: 1 failed, 20 passed · 2.4s
               <div class="setting"><div class="grow">Keep last turns verbatim<small>Within a sub-chat, older turns are compressed</small></div><span class="pill">6 turns</span></div>
               <div class="setting"><div class="grow">Auto-save paused sub-chats<small>Searchable parts of the chat; reopened when a request refers to them or when you click Reopen. Merge or split sub-chats by hand from the sidebar</small></div><span class="switch on"></span></div>
               <div class="setting"><div class="grow">Keep full history for this chat<small>Per-chat override, for long coding sessions</small></div><span class="switch"></span></div>
+              <div class="eyebrow" style="margin:14px 0 4px">Sub-chats as background agents</div>
+              <div class="setting"><div class="grow">Run sub-chats in the background<small>Send a task, switch away, it keeps going: streaming, tools, MCP, coding agent, research</small></div><span class="switch on"></span></div>
+              <div class="setting"><div class="grow">Max running at once<small>Extra runs queue; local prep jobs do not count</small></div><span class="seg"><button>1</button><button>2</button><button class="on">3</button><button>5</button></span></div>
+              <div class="setting"><div class="grow">When a background sub-chat finishes<small>Local model writes a one-line result under it in the sidebar</small></div><span class="seg"><button class="on">Toast</button><button>Tray only</button><button>Silent</button></span></div>
+              <div class="setting"><div class="grow">Permission prompts from background runs<small>Never pop over your work; the sub-chat flips to "needs you" and waits</small></div><span class="switch on"></span></div>
+              <div class="setting"><div class="grow">Carry "always allow" rules into background runs</div><span class="switch on"></span></div>
+              <div class="setting"><div class="grow">Default caps for unattended runs<small>Per sub-chat; shown in its header</small></div><span class="pill">20 steps</span><span class="pill">$2.00</span></div>
               <div class="eyebrow" style="margin:14px 0 4px">Cloud fallback chain</div>
               <div class="muted" style="font-size:13px">OpenRouter fallbacks (GPT-5.5, Gemini 3 Pro) → Anthropic direct → custom endpoint → local model. Set per provider in admin; shown here read-only.</div>
               <div class="setting" style="border-top:0;padding-top:12px"><div class="grow">This month<small>61% of messages answered locally · 1.9M cloud tokens avoided</small></div><span class="mono">$4.21</span></div>
