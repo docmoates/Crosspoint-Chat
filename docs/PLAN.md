@@ -15,6 +15,7 @@ Superseded: the earlier web/PWA plan (ai.docmoates.com, Cloudflare Access, VPS C
 | Chat core | Streaming, markdown + LaTeX + Mermaid, code blocks with copy/run, edit & resend, regenerate, branch/fork, stop, message search, pin, archive, folders, export (MD/JSON/PDF) |
 | Models | Picker populated from OpenRouter catalog + admin-defined custom endpoints + Anthropic + **local models via Foundry Local**; **Auto** default that routes local vs cloud (section 2b); per-chat model; effort/thinking; temperature/system overrides; per-task routing (local or cheap model for titles/summaries); fallback chain on 429 ending at the local model; cost meter per message and per month with local share; **user-defined tags** (name + color, assigned per model, filter the picker) |
 | Hybrid local + cloud | Foundry Local runtime (NPU/GPU/CPU), Private toggle per chat/message, router rules, local prep (history summary, local doc search, background jobs, optional try-local-first, draft-then-refine, answer cache), offline mode |
+| Topic-aware context | Local model classifies each request; on topic change compresses the old topic to 1–3 sentences, shows a divider, auto-saves the old segment (searchable, embeddable), sends only summaries + current topic to the model, brings a saved segment back when referenced or on click |
 | Attachments | Images (vision), PDFs, docs/xlsx/pptx, audio, drag-drop, paste, screenshot of a window, "Add from GitHub/Drive" via connectors |
 | Tools (built-in) | Web search + fetch with citations, code interpreter (local Python/Node in a sandboxed job object), image generation, TTS, STT, memory read/write |
 | Artifacts | HTML/React/SVG/Mermaid preview in a sandboxed webview, documents with inline editing, versions + diff, save to disk, gallery |
@@ -119,6 +120,15 @@ flowchart TD
 - Draft locally, refine in cloud: for long outputs the local model drafts, the cloud model edits (fewer output tokens).
 - **Cache answers**: identical or near-identical questions reuse the stored reply.
 
+**Topic-aware context (local model, always on).** The local model reads every incoming request before routing and keeps the context window focused on the current topic:
+1. **Classify the request** against the current topic: continuation, follow-up that needs earlier detail, or new topic. Cheap local call, runs with the router.
+2. **On a topic change**, the local model compresses the old topic into a 1–3 sentence summary (what was asked, what was decided, any artifacts or files produced). The chat shows a divider: "Topic changed · summary · Saved as *Part 1: OpenRouter streaming adapter*".
+3. **The context sent to any model** from then on is: project instructions + memory + the stack of topic summaries + the messages of the current topic only. Old messages stay in SQLite but are not resent, so cloud cost stops growing with chat length.
+4. **Auto-save the old topic** as a referenceable segment (`topic_segments`: conversation id, message range, title, summary, embedding). Segments appear in the sidebar under the chat ("3 topics") and in search. The local model also embeds each summary.
+5. **Bring it back when needed.** If a later request references an earlier topic (classifier says "needs earlier detail", or local search over segment summaries scores high), the app pulls that segment's full messages, or just its summary, back into context for that one call and shows "Using Part 1" on the reply. The user can also click "Bring back" on any divider or pin a segment to keep it in context.
+6. **Long single topics** still get the rolling summary from the prep step above (last N turns verbatim, older turns compressed).
+Settings › Models › Hybrid routing: "Compress on topic change" (on), sensitivity (conservative / normal / eager), "Keep last N turns verbatim" (6), and a per-chat override "Keep full history" for cases like long coding sessions.
+
 **Fallback.** Cloud failures retry in two layers: OpenRouter's model fallbacks first (configured per routing rule from admin's allowlist), then the app's own chain (Anthropic direct → custom endpoint), then the local model. The UI shows a `notice` event ("Rate limited on X, trying Y" / "Offline, answered locally").
 
 **Cost visibility.** Each assistant message shows its path (local / cloud via provider) and tokens saved by prep. The sidebar monthly line shows spend and the share of messages handled locally. Usage reports to admin include the path so admin's dashboard can show local vs cloud.
@@ -141,7 +151,7 @@ flowchart TD
 
 ## 4. Data model (SQLite)
 
-`settings` · `providers` (mirror of admin, with cached keys encrypted; includes the local Foundry provider) · `models` (catalog cache + user tags + local flag/hardware) · `tags` (name, color) · `routing_rules` · `answer_cache` · `history_summaries` (per conversation, covering message range) · `projects` · `project_files` + `chunks` (vec) · `conversations` (project_id, model, settings, parent_message_id) · `messages` (role, parts JSON, usage, cost) · `attachments` · `artifacts` + `artifact_versions` · `memories` · `mcp_servers` (source: admin | local) · `skills` · `workspaces` (path, branch) · `agent_runs` + `agent_events` · `scheduled_tasks` + `runs` · `usage_outbox` (pending usage reports to admin).
+`settings` · `providers` (mirror of admin, with cached keys encrypted; includes the local Foundry provider) · `models` (catalog cache + user tags + local flag/hardware) · `tags` (name, color) · `routing_rules` · `answer_cache` · `history_summaries` (per conversation, covering message range) · `topic_segments` (conversation id, message range, title, 1–3 sentence summary, embedding, pinned) · `projects` · `project_files` + `chunks` (vec) · `conversations` (project_id, model, settings, parent_message_id) · `messages` (role, parts JSON, usage, cost) · `attachments` · `artifacts` + `artifact_versions` · `memories` · `mcp_servers` (source: admin | local) · `skills` · `workspaces` (path, branch) · `agent_runs` + `agent_events` · `scheduled_tasks` + `runs` · `usage_outbox` (pending usage reports to admin).
 
 ## 5. Phases
 
@@ -163,7 +173,8 @@ flowchart TD
 - Tool registry + permission policy. Web search (key from admin), local code interpreter in job objects with file outputs and charts, image gen, TTS/STT.
 - Artifacts pane: sandboxed webview, versions, diff, save, gallery.
 - Projects with knowledge files and local RAG (sqlite-vec; embeddings via a local model by default).
-- Local prep pipeline: history summarization, local doc search, local background jobs, answer cache; tokens-saved counter per message. Try-local-first and draft-then-refine behind toggles, off by default.
+- Local prep pipeline: history summarization, local doc search, local background jobs, answer cache; tokens-saved counter per message.
+- Topic-aware context: local request classifier, topic-change divider with 1–3 sentence summary, auto-saved topic segments in sidebar and search, bring-back on reference or click, per-chat "keep full history" override. Try-local-first and draft-then-refine behind toggles, off by default.
 - Voice mode.
 - **Done when:** tool calls stream as cards, artifacts render and version, projects answer from their files.
 

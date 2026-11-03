@@ -142,6 +142,15 @@ details.route summary{font-size:12px;color:var(--fg-3)}
 .rules .n{width:20px;height:20px;border-radius:50%;background:var(--panel-2);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--fg-2);flex:none}
 .rules .to{margin-left:auto;font-size:12px;color:var(--fg-3);white-space:nowrap}
 .rules .to.local{color:var(--accent)}
+/* Topic-change divider */
+.topic{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px dashed var(--line-2);border-radius:var(--r);background:var(--panel-2);font-size:12.5px;color:var(--fg-2)}
+.topic .ic{width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none}
+.topic .t{flex:1;min-width:0}
+.topic .t b{display:block;color:var(--fg);font-weight:500;margin-bottom:2px}
+.topic .t small{display:block;color:var(--fg-3);margin-top:4px}
+.topic .btns{display:flex;gap:4px;flex:none;flex-wrap:wrap}
+.topic-stack{font-size:11px;color:var(--fg-3);margin-left:auto;flex:none}
+.sb-sub{padding-left:28px;font-size:12px;color:var(--fg-3)}
 .tool-card .inner{display:flex;flex-direction:column;gap:8px}
 .result{display:flex;gap:10px;align-items:flex-start}
 .result .fav{width:16px;height:16px;border-radius:4px;background:var(--line-2);flex:none;margin-top:3px}
@@ -375,7 +384,8 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
     <div class="sb-scroll">
       <div class="sb-group">
         <div class="eyebrow">Pinned</div>
-        <button class="sb-item on" data-go="chat"><span class="dot"></span><span>OpenRouter streaming adapter</span></button>
+        <button class="sb-item on" data-go="chat"><span class="dot"></span><span>OpenRouter streaming adapter</span><span class="topic-stack">2 topics</span></button>
+        <div class="sb-sub">Part 1 · adapter + fallback (saved) · Part 2 · email to chair</div>
         <button class="sb-item" data-go="agent"><svg viewBox="0 0 24 24"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg><span>Workspace: crosspoint-api</span></button>
       </div>
       <div class="sb-group">
@@ -514,7 +524,28 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
           <div class="msg assistant">
             <div class="meta"><span class="model">Claude Sonnet 5.5</span> · via OpenRouter</div>
             <div class="body">
-              <div class="status-row"><span class="spin"></span> Summarizing history on this PC, then reading <code>packages/providers/src/registry.ts</code>…</div>
+              <details class="block route"><summary><svg viewBox="0 0 24 24"><path d="M4 12h6l3-7 3 14 3-7h1"/></svg> Auto → cloud · follow-up on the current topic <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary><div class="inner">Phi-4 mini classified this as a continuation, so the adapter code above stays in context.</div></details>
+              <p>Done: <code>registry.get(model).stream()</code> is now wrapped in a fallback chain that catches 429 and moves to Anthropic direct, then to the custom endpoint. The change is in the workspace diff.</p>
+              <button class="artifact-chip" data-go="agent"><span class="ic"><svg viewBox="0 0 24 24"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg></span><span><b>3 files changed in crosspoint-api</b><small>Review in Code · 1 test failing</small></span><span class="v">diff</span></button>
+            </div>
+          </div>
+
+          <div class="msg user"><div class="bubble">Different thing: draft a short email to my department chair asking to move the PSYC 301 final to the 12th.</div></div>
+
+          <div class="topic">
+            <span class="ic"><svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M4 6h16M4 12h10M4 18h6"/></svg></span>
+            <div class="t">
+              <b>Topic changed · Part 1 compressed and saved</b>
+              Built an OpenRouter streaming adapter for the ChatProvider interface with reasoning passthrough and usage events, then added a 429 fallback chain to Anthropic direct. Code is in the crosspoint-api workspace with one test still failing.
+              <small>Phi-4 mini on this PC · 14 messages → 3 sentences · the email request now goes to the model with this summary only · 11,800 tokens kept out of the cloud</small>
+            </div>
+            <div class="btns"><button class="btn sm">Bring back</button><button class="btn sm">Open Part 1</button></div>
+          </div>
+
+          <div class="msg assistant">
+            <div class="meta"><span class="model">Claude Sonnet 5.5</span> · via OpenRouter</div>
+            <div class="body">
+              <div class="status-row"><span class="spin"></span> Drafting with the compressed context…</div>
             </div>
           </div>
 
@@ -806,6 +837,12 @@ Tests: 1 failed, 20 passed · 2.4s
               <div class="setting"><div class="grow">Cache answers<small>Reuse replies to identical or near-identical questions</small></div><span class="switch on"></span></div>
               <div class="setting"><div class="grow">Try local first<small>Local answers, escalates to cloud when its confidence check fails. Hard questions get answered twice.</small></div><span class="switch"></span></div>
               <div class="setting"><div class="grow">Draft locally, refine in cloud<small>For long outputs; cloud edits instead of writing from scratch</small></div><span class="switch"></span></div>
+              <div class="eyebrow" style="margin:14px 0 4px">Topic-aware context · local model reads every request</div>
+              <div class="setting"><div class="grow">Compress on topic change<small>Old topic becomes a 1–3 sentence summary; only the new request and summaries go to the model</small></div><span class="switch on"></span></div>
+              <div class="setting"><div class="grow">Sensitivity<small>How readily a message counts as a new topic</small></div><span class="seg"><button>Conservative</button><button class="on">Normal</button><button>Eager</button></span></div>
+              <div class="setting"><div class="grow">Keep last turns verbatim<small>Within a topic, older turns are compressed</small></div><span class="pill">6 turns</span></div>
+              <div class="setting"><div class="grow">Auto-save old topics<small>Saved as searchable parts of the chat; brought back when a request refers to them or when you click Bring back</small></div><span class="switch on"></span></div>
+              <div class="setting"><div class="grow">Keep full history for this chat<small>Per-chat override, for long coding sessions</small></div><span class="switch"></span></div>
               <div class="eyebrow" style="margin:14px 0 4px">Cloud fallback chain</div>
               <div class="muted" style="font-size:13px">OpenRouter fallbacks (GPT-5.5, Gemini 3 Pro) → Anthropic direct → custom endpoint → local model. Set per provider in admin; shown here read-only.</div>
               <div class="setting" style="border-top:0;padding-top:12px"><div class="grow">This month<small>61% of messages answered locally · 1.9M cloud tokens avoided</small></div><span class="mono">$4.21</span></div>
@@ -977,8 +1014,8 @@ draw(document.getElementById(<span class="s">"c"</span>), data);
   <div class="pal">
     <div class="in"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="palInput" placeholder="Search chats, run a command, jump to a project…" value="fallback"><kbd>Esc</kbd></div>
     <div class="body">
-      <div class="eyebrow">Chats</div>
-      <button class="menu-item" data-go="chat"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.7 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg><span>OpenRouter streaming adapter<span class="sub">"…fall back to the Anthropic direct adapter when OpenRouter returns 429"</span></span><span class="kbd faint">today</span></button>
+      <div class="eyebrow">Chats and saved topics</div>
+      <button class="menu-item" data-go="chat"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.7 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg><span>OpenRouter streaming adapter · Part 1<span class="sub">Saved topic: adapter with reasoning passthrough, then a 429 fallback chain</span></span><span class="kbd faint">today</span></button>
       <button class="menu-item" data-go="agent"><svg viewBox="0 0 24 24"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg><span>Workspace: crosspoint-api<span class="sub">branch feature/fallback-chain</span></span><span class="kbd faint">today</span></button>
       <div class="eyebrow">Commands</div>
       <button class="menu-item" data-go="chat"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> New chat <kbd class="kbd">Ctrl N</kbd></button>
