@@ -3,7 +3,7 @@ productName: Crosspoint Chat
 copyright: Copyright (c) 2026 Michael Moates
 directories:
   buildResources: build
-  output: release/${version}
+  output: dist
 files:
   - out/**
   - package.json

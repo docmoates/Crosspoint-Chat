@@ -12,7 +12,7 @@ models and spend limits come from admin.docmoates.com after pairing; nothing is 
 | `pnpm typecheck` | `tsc --noEmit` for `packages/shared`, main/preload and renderer. |
 | `pnpm test` | Vitest unit tests (`apps/desktop/test`). |
 | `pnpm build` | Production bundles into `apps/desktop/out`. |
-| `pnpm dist` | Build + NSIS installer into `apps/desktop/release/<version>/`. Unsigned unless `CSC_LINK`/`CSC_KEY_PASSWORD` are set. |
+| `pnpm dist` | Build + NSIS installer into `apps/desktop/dist/`. Unsigned unless `CSC_LINK`/`CSC_KEY_PASSWORD` are set. |
 
 Dev-only environment variables (ignored in the installed app):
 
