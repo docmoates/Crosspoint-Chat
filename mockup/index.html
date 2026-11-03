@@ -592,7 +592,7 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
             </div>
           </div>
 
-          <div class="msg user"><div class="bubble">make me a header image for the course site, calm, lake at dawn, wide</div></div>
+          <div class="msg user"><div class="attach"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg> Image mode · FLUX.1 schnell</div><div class="bubble">calm mountain lake at dawn, soft mist, pastel sky, wide banner for a course site</div></div>
 
           <div class="msg assistant">
             <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg> FLUX.1 schnell (GGUF)</span> · on this PC (GPU) · settings chosen by Phi-4 mini · $0.00 · 9 s</div>
@@ -601,8 +601,9 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
                 <summary><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg> Settings chosen · edit any and regenerate <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary>
                 <div class="inner">
                   <div class="plan-grid">
-                    <div><b>Prompt</b><input value="A calm mountain lake at dawn, soft mist, pastel sky, wide banner composition, no people" aria-label="Prompt"></div>
-                    <div><b>Negative</b><input value="text, watermark, people, oversaturated" aria-label="Negative prompt"></div>
+                    <div><b>Prompt · yours, unchanged</b><input value="calm mountain lake at dawn, soft mist, pastel sky, wide banner for a course site" aria-label="Prompt"></div>
+                    <div><b>Suggested additions · optional</b><span>"golden hour, 35mm, no people" <button class="btn sm" style="padding:0 6px;font-size:11px">Add</button></span></div>
+                    <div><b>Negative · chosen</b><input value="text, watermark, people, oversaturated, blurry" aria-label="Negative prompt"></div>
                     <div><b>Model</b><select aria-label="Model"><option>FLUX.1 schnell (GGUF, 8 GB)</option><option>SDXL Turbo</option><option>SD 3.5 Medium</option><option>GPT-image (cloud)</option></select></div>
                     <div><b>Size</b><select aria-label="Size"><option>1536 × 640 (banner)</option><option>1024 × 1024</option><option>1024 × 1536</option></select></div>
                     <div><b>Steps</b><input value="4" aria-label="Steps"><span>schnell needs few</span></div>
@@ -610,7 +611,7 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
                     <div><b>Sampler</b><select aria-label="Sampler"><option>Euler</option><option>DPM++ 2M</option></select></div>
                     <div><b>Seed</b><input value="418233" aria-label="Seed"><span>locked for variations</span></div>
                     <div><b>Reference</b><span>none · drop an image to use img2img</span></div>
-                    <div><b>Why</b><span>"wide" → banner size; "calm, dawn" → low guidance, pastel words; your past likes: soft light</span></div>
+                    <div><b>Why</b><span>"wide banner" → 1536×640; "calm, dawn" → low guidance; "course site" → no text in image; your past likes: soft light</span></div>
                   </div>
                 </div>
               </details>
@@ -661,13 +662,15 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
                 <button class="menu-item"><svg viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h2l1.5-2h5L16 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></svg> Take photo</button>
                 <button class="menu-item"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Add from GitHub or Drive</button>
                 <button class="menu-item"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg> Add project knowledge</button>
+                <div class="eyebrow">Create</div>
+                <button class="menu-item" id="genImgBtn"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg> Generate image <span class="sub">On this PC · FLUX.1 schnell · you write the prompt, settings are chosen for you</span><span class="right">free</span></button>
+                <button class="menu-item"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M14 4v16"/></svg> New artifact / document</button>
                 <div class="eyebrow">Tools</div>
                 <button class="menu-item"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg> Web search <span class="switch on"></span></button>
                 <button class="menu-item"><svg viewBox="0 0 24 24"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg> Code interpreter <span class="switch on"></span></button>
                 <button class="menu-item"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M14 4v16"/></svg> Artifacts / Canvas <span class="switch on"></span></button>
                 <button class="menu-item"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg> Deep research <span class="switch"></span></button>
                 <button class="menu-item"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 22h8M12 18v4"/></svg> Computer use <span class="switch"></span></button>
-                <button class="menu-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M12 8v8"/></svg> Image generation <span class="switch"></span></button>
                 <div class="eyebrow">Connectors (MCP)</div>
                 <button class="menu-item">GitHub <span class="sub">12 tools</span><span class="switch on"></span></button>
                 <button class="menu-item">Filesystem <span class="sub">7 tools</span><span class="switch"></span></button>
@@ -705,6 +708,7 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
                 <div style="padding:2px 8px 6px"><span class="seg"><button>Off</button><button>Low</button><button class="on">Medium</button><button>High</button><button>Max</button></span></div>
               </div>
             </div>
+            <span class="pill on" id="imgMode" hidden><svg viewBox="0 0 24 24" style="width:13px;height:13px"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg> Image · FLUX.1 schnell <button class="iconbtn" id="imgModeOff" title="Back to chat" style="width:18px;height:18px;margin-left:2px"><svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>
             <button class="pill" id="privBtn" title="Private: answer on this PC only, nothing leaves the machine"><svg viewBox="0 0 24 24" style="width:13px;height:13px"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span class="desk-only">Private</span></button>
             <span class="grow"></span>
             <button class="iconbtn" title="Voice"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
@@ -1030,7 +1034,8 @@ Tests: 1 failed, 20 passed · 2.4s
                 <div class="row"><span class="sdot off"></span><div class="grow">SD 3.5 Medium<small>Not downloaded · 9.9 GB · needs 10 GB VRAM (you have 12)</small></div><button class="btn sm">Download</button></div>
                 <div class="row"><span class="sdot off"></span><div class="grow">GPT-image, FLUX Pro (cloud via OpenRouter)<small>Used only if you pick them or the local model cannot do the task</small></div></div>
               </div>
-              <div class="setting"><div class="grow">Let the chat model choose settings<small>Prompt, negative, model, size, steps, guidance, sampler, seed; always editable on the image</small></div><span class="switch on"></span></div>
+              <div class="setting"><div class="grow">Let the chat model choose settings<small>Negative prompt, model, size, steps, guidance, sampler, seed; your prompt is never rewritten; all editable on the image</small></div><span class="switch on"></span></div>
+              <div class="setting"><div class="grow">Suggest prompt additions<small>Shown as an optional one-tap suggestion, never applied by itself</small></div><span class="switch on"></span></div>
               <div class="setting"><div class="grow">Learn my taste<small>Thumbs and "more like this" update a small local style note</small></div><span class="switch on"></span></div>
               <div class="setting"><div class="grow">Safety filter</div><span class="switch on"></span></div>
               <div class="setting"><div class="grow">Model folder<small>%APPDATA%\Crosspoint\models\image · 15.4 GB · LoRA subfolder watched</small></div><button class="btn sm">Open</button></div>
@@ -1243,6 +1248,8 @@ draw(document.getElementById(<span class="s">"c"</span>), data);
     const seg=e.target.closest('.seg button'); if(seg){seg.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===seg));return;}
     if(e.target.closest('#toolsBtn')){toggleMenu('#toolsMenu');return;}
     const pb=e.target.closest('#privBtn'); if(pb){pb.classList.toggle('on');return;}
+    if(e.target.closest('#genImgBtn')){$('#imgMode').hidden=false;$('#composer').placeholder='Describe the image you want… settings are chosen for you';closeMenus();$('#composer').focus();return;}
+    if(e.target.closest('#imgModeOff')){$('#imgMode').hidden=true;$('#composer').placeholder='Message Crosspoint… (/ for commands, @ for files)';return;}
     if(e.target.closest('#modelBtn')){toggleMenu('#modelMenu');return;}
     const tf=e.target.closest('#tagFilter button'); if(tf){activeFilter=tf.dataset.tag;$$('#tagFilter button').forEach(b=>b.classList.toggle('on',b===tf));filterModels(activeFilter);e.stopPropagation();return;}
     const mi=e.target.closest('#modelMenu .menu-item'); if(mi){$$('#modelMenu .menu-item').forEach(b=>b.classList.toggle('on',b===mi));$('#modelBtn').firstChild.textContent=mi.firstChild.textContent.trim()+' ';closeMenus();return;}
