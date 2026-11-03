@@ -93,7 +93,7 @@ Browser / Android PWA  ──HTTPS──▶  Cloudflare (DNS + proxy + Access)
 
 ### Phase 1 — Chat parity (weeks 2–3)
 - Full chat UI from the mockup: sidebar, threads, markdown/code/LaTeX/Mermaid, streaming, stop, edit/regenerate/branch, search, folders, pins, export, share.
-- Model picker with live catalog, cost per message, thinking/effort controls, per-task routing rules (titles, summaries use cheap model).
+- Model picker with live catalog, cost per message, thinking/effort controls, per-task routing rules (titles, summaries use cheap model). User-editable model tags (coding, images, cheap, vision, local…) stored per model, shown as chips and used as a filter in the picker.
 - Attachments: images, PDFs, office docs (server-side text extraction), paste/drag/camera.
 - Memory v1 (explicit + auto-extract) and custom instructions.
 - PWA install, offline history cache, Android share-target.
@@ -141,7 +141,7 @@ Crosspoint-Chat/
   packages/shared/   zod schemas, types, tool definitions
   packages/tools/    built-in tools (search, interpreter, image, tts, memory)
   infra/             docker-compose.yml, Caddyfile, sandbox Dockerfiles, cloudflare/
-  mockup/            static design mockup (this repo now)
+  mockup/            static design mockup; model tags (coding, images, cheap…) are user-editable in Settings › Models and filter the picker
   docs/              PLAN.md, ADRs
 ```
 
