@@ -56,6 +56,11 @@ describe('admin error classification (contract notes 3, 9)', () => {
     expect(html.isAuthFailure).toBe(false)
     expect(html.message).toMatch(/web page/)
     expect(toAdminError(401, { error: 'gone', code: 'revoked' }, 'h').isAuthFailure).toBe(true)
+    // Live admin before the device API ships: CSRF gate answers 403 JSON without a code.
+    const csrf = toAdminError(403, { error: 'The form expired or was sent from another site.' }, 'h')
+    expect(csrf.code).toBe('bad_response')
+    expect(csrf.message).toMatch(/web console.*not be deployed yet/)
+    expect(toAdminError(401, { error: 'no' }, 'h').isAuthFailure).toBe(false)
   })
 })
 

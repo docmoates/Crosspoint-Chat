@@ -179,12 +179,13 @@ export function toAdminError(status: number, json: unknown, host: string, header
     return new AdminApiError(`Admin at ${host} has no such device API route (HTTP ${status}); it may not be deployed yet.`, 'invalid', status)
   }
   const raw = body.data.code
-  const code: AdminFailureCode = raw && KNOWN_CODES.has(raw)
-    ? (raw as AdminFailureCode)
-    : status === 401
-      ? 'unauthorized'
-      : status === 429
-        ? 'rate_limited'
-        : 'invalid'
-  return new AdminApiError(body.data.error, code, status, retryAfterMs)
+  if (raw && KNOWN_CODES.has(raw)) return new AdminApiError(body.data.error, raw as AdminFailureCode, status, retryAfterMs)
+  if (status === 429) return new AdminApiError(body.data.error, 'rate_limited', status, retryAfterMs)
+  // Every device API error carries a contract code. A JSON error without one comes from the HTML console's
+  // own gates (e.g. its CSRF check answers 403), so the device API is not there: never wipe or drop on it.
+  return new AdminApiError(
+    `Admin at ${host} answered HTTP ${status} from its web console ("${body.data.error.slice(0, 160)}"), not from the device API; the device API may not be deployed yet.`,
+    'bad_response',
+    status
+  )
 }
