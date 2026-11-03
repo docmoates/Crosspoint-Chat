@@ -597,14 +597,14 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
           <div class="msg assistant">
             <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg> FLUX.1 schnell (GGUF)</span> · on this PC (GPU) · settings chosen by Phi-4 mini · $0.00 · 9 s</div>
             <div class="body">
-              <details class="block">
-                <summary><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg> Settings chosen · edit any and regenerate <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary>
+              <details class="block" open>
+                <summary><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg> Proposed settings · approve, change the model, or edit anything first <span class="tag" style="margin-left:6px">nothing runs until you click Generate</span> <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary>
                 <div class="inner">
                   <div class="plan-grid">
                     <div><b>Prompt · yours, unchanged</b><input value="calm mountain lake at dawn, soft mist, pastel sky, wide banner for a course site" aria-label="Prompt"></div>
                     <div><b>Suggested additions · optional</b><span>"golden hour, 35mm, no people" <button class="btn sm" style="padding:0 6px;font-size:11px">Add</button></span></div>
                     <div><b>Negative · chosen</b><input value="text, watermark, people, oversaturated, blurry" aria-label="Negative prompt"></div>
-                    <div><b>Model</b><select aria-label="Model"><option>FLUX.1 schnell (GGUF, 8 GB)</option><option>SDXL Turbo</option><option>SD 3.5 Medium</option><option>GPT-image (cloud)</option></select></div>
+                    <div><b>Model · any model tagged "images"</b><select id="imgModelSel" aria-label="Image model"></select><span>local proposed · switch to cloud here</span></div>
                     <div><b>Size</b><select aria-label="Size"><option>1536 × 640 (banner)</option><option>1024 × 1024</option><option>1024 × 1536</option></select></div>
                     <div><b>Steps</b><input value="4" aria-label="Steps"><span>schnell needs few</span></div>
                     <div><b>Guidance</b><input value="1.0" aria-label="Guidance"></div>
@@ -613,8 +613,10 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
                     <div><b>Reference</b><span>none · drop an image to use img2img</span></div>
                     <div><b>Why</b><span>"wide banner" → 1536×640; "calm, dawn" → low guidance; "course site" → no text in image; your past likes: soft light</span></div>
                   </div>
+                  <div style="display:flex;gap:6px;margin-top:10px;align-items:center;flex-wrap:wrap"><button class="btn sm primary">Generate</button><button class="btn sm">Cancel</button><span class="faint" style="font-size:11px">Local · free · about 9 s. Cloud choices show price here.</span></div>
                 </div>
               </details>
+              <div class="status-row" style="font-size:12px"><svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="m5 12 5 5L20 7"/></svg> Approved · generated with FLUX.1 schnell on this PC · v1</div>
               <div class="genimg">
                 <div class="pic" role="img" aria-label="Generated image: calm lake at dawn, wide banner"><div class="prog"><div></div></div></div>
                 <div class="bar"><button class="btn sm primary">Regenerate</button><button class="btn sm">4 variations</button><button class="btn sm">Edit with mask</button><button class="btn sm">Upscale 2×</button><button class="btn sm">Use as reference</button><button class="btn sm">Save</button><button class="btn sm" data-toggle-art>Open in Artifacts</button></div>
@@ -692,6 +694,7 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
                 <button class="menu-item" data-tags="local cheap">Phi-4 mini <span class="sub">running on NPU · 128K ctx · offline ok</span><span class="right">free</span></button>
                 <button class="menu-item" data-tags="local cheap coding">Qwen 2.5 Coder 7B <span class="sub">GPU · 32K ctx</span><span class="right">free</span></button>
                 <button class="menu-item" data-tags="local images">FLUX.1 schnell <span class="sub">image generation · GPU · 9 s per image</span><span class="right">free</span></button>
+                <button class="menu-item" data-tags="local images cheap">SDXL Turbo <span class="sub">image generation · GPU · 3 s per image</span><span class="right">free</span></button>
                 <div class="eyebrow">OpenRouter</div>
                 <button class="menu-item" data-tags="coding vision reasoning">Claude Sonnet 5.5 <span class="sub">anthropic/claude-sonnet-5.5 · 1M ctx</span><span class="right">$3 / $15</span></button>
                 <button class="menu-item" data-tags="coding vision images reasoning">GPT-5.5 <span class="sub">openai/gpt-5.5 · 400K ctx</span><span class="right">$2.5 / $10</span></button>
@@ -1035,16 +1038,19 @@ Tests: 1 failed, 20 passed · 2.4s
                 <div class="row"><span class="sdot off"></span><div class="grow">GPT-image, FLUX Pro (cloud via OpenRouter)<small>Used only if you pick them or the local model cannot do the task</small></div></div>
               </div>
               <div class="setting"><div class="grow">Let the chat model choose settings<small>Negative prompt, model, size, steps, guidance, sampler, seed; your prompt is never rewritten; all editable on the image</small></div><span class="switch on"></span></div>
+              <div class="setting"><div class="grow">Ask me to approve before generating<small>Prompt → proposed settings → you approve → generate. Pick a local or cloud model on the card</small></div><span class="switch on"></span></div>
+              <div class="setting"><div class="grow">Models offered on the card<small>Every model tagged "images" in Tags per model, local and cloud. Local models get tags just like cloud ones</small></div><button class="btn sm">Edit tags</button></div>
               <div class="setting"><div class="grow">Suggest prompt additions<small>Shown as an optional one-tap suggestion, never applied by itself</small></div><span class="switch on"></span></div>
               <div class="setting"><div class="grow">Learn my taste<small>Thumbs and "more like this" update a small local style note</small></div><span class="switch on"></span></div>
               <div class="setting"><div class="grow">Safety filter</div><span class="switch on"></span></div>
               <div class="setting"><div class="grow">Model folder<small>%APPDATA%\Crosspoint\models\image · 15.4 GB · LoRA subfolder watched</small></div><button class="btn sm">Open</button></div>
             </div>
-            <div class="card"><h3>Tags per model <span class="tag">pick from your tags · click a tag to remove it</span></h3>
+            <div class="card"><h3>Tags per model <span class="tag">local and cloud alike · "images" puts a model on the image card · click a tag to remove it</span></h3>
               <div class="tablewrap"><table id="tagTable"><thead><tr><th>Model</th><th>Provider</th><th>Tags</th></tr></thead><tbody>
                 <tr data-model="Phi-4 mini"><td>Phi-4 mini</td><td class="muted">Foundry Local</td><td></td></tr>
                 <tr data-model="Qwen 2.5 Coder 7B"><td>Qwen 2.5 Coder 7B</td><td class="muted">Foundry Local</td><td></td></tr>
                 <tr data-model="FLUX.1 schnell"><td>FLUX.1 schnell</td><td class="muted">Local image</td><td></td></tr>
+                <tr data-model="SDXL Turbo"><td>SDXL Turbo</td><td class="muted">Local image</td><td></td></tr>
                 <tr data-model="Claude Sonnet 5.5"><td>Claude Sonnet 5.5</td><td class="muted">OpenRouter</td><td></td></tr>
                 <tr data-model="GPT-5.5"><td>GPT-5.5</td><td class="muted">OpenRouter</td><td></td></tr>
                 <tr data-model="Gemini 3 Pro"><td>Gemini 3 Pro</td><td class="muted">OpenRouter</td><td></td></tr>
@@ -1305,6 +1311,10 @@ draw(document.getElementById(<span class="s">"c"</span>), data);
       row.lastElementChild.innerHTML='<div class="tagedit">'+tags.map(t=>chip(t,' title="Remove"')).join('')+
         (free.length?'<select aria-label="Add tag"><option value="">+ tag</option>'+free.map(t=>'<option>'+t+'</option>').join('')+'</select>':'')+'</div>';
     });
+    const sel=$('#imgModelSel'); if(sel){
+      const local=[],cloud=[]; $$('#modelMenu .menu-item[data-tags]').forEach(i=>{const n=i.firstChild.textContent.trim(),t=tagsOf(i);if(t.includes('images'))(t.includes('local')?local:cloud).push(n+(i.querySelector('.right')?' · '+i.querySelector('.right').textContent:''));});
+      sel.innerHTML='<optgroup label="On this PC">'+local.map(n=>'<option>'+n+'</option>').join('')+'</optgroup><optgroup label="Cloud">'+cloud.map(n=>'<option>'+n+'</option>').join('')+'</optgroup>';
+    }
     if(!$('#swatches').children.length)$('#swatches').innerHTML=PALETTE.map((c,i)=>'<button data-c="'+c+'" style="background:'+c+'"'+(i?'':' class="on"')+' title="Tag color"></button>').join('');
   }
   function filterModels(tag){$$('#modelMenu .menu-item[data-tags]').forEach(i=>i.classList.toggle('hide',!!tag&&!tagsOf(i).includes(tag)));}
