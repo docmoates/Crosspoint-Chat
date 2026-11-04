@@ -1,5 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog'
-import { Activity, FolderClosed, MessageCircle, Moon, PanelRight, Plus, Search, Settings } from 'lucide-react'
+import { FolderClosed, MessageCircle, Search } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react'
 import { api } from '../lib/api'
 import { cn, relTime } from '../lib/utils'
@@ -76,74 +76,7 @@ export function CommandPalette(): ReactElement {
           app.openProject(p.id)
         },
       }))
-    const commands: Item[] = [
-      {
-        id: 'new',
-        group: 'Commands',
-        icon: <Plus className="ic-sm" />,
-        label: 'New chat',
-        right: <kbd>Ctrl N</kbd>,
-        run: () => {
-          close()
-          useChat.getState().newChat()
-        },
-      },
-      {
-        id: 'settings',
-        group: 'Commands',
-        icon: <Settings className="ic-sm" />,
-        label: 'Open settings',
-        right: <kbd>Ctrl ,</kbd>,
-        run: () => {
-          close()
-          app.openSettings('general')
-        },
-      },
-      {
-        id: 'theme',
-        group: 'Commands',
-        icon: <Moon className="ic-sm" />,
-        label: 'Toggle theme',
-        run: () => {
-          const dark =
-            app.settings.theme === 'dark' ||
-            (app.settings.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-          void app.setSettings({ theme: dark ? 'light' : 'dark' })
-          close()
-        },
-      },
-      {
-        id: 'artifacts',
-        group: 'Commands',
-        icon: <PanelRight className="ic-sm" />,
-        label: 'Browse artifacts',
-        run: () => {
-          close()
-          app.go('artifacts')
-        },
-      },
-      {
-        id: 'projects',
-        group: 'Commands',
-        icon: <FolderClosed className="ic-sm" />,
-        label: 'Projects',
-        run: () => {
-          close()
-          app.openProject(app.selectedProjectId)
-        },
-      },
-      {
-        id: 'health',
-        group: 'Commands',
-        icon: <Activity className="ic-sm" />,
-        label: 'Check health',
-        run: () => {
-          close()
-          app.openSettings('health')
-        },
-      },
-    ].filter((c) => !needle || c.label.toLowerCase().includes(needle))
-    return [...chats, ...projItems, ...commands]
+    return [...chats, ...projItems]
   }, [results, projects, q, app])
 
   useEffect(() => setSel(0), [q])
@@ -160,7 +93,7 @@ export function CommandPalette(): ReactElement {
             <input
               autoFocus
               value={q}
-              placeholder="Search chats, run a command, jump to a project…"
+              placeholder="Search chats and projects…"
               aria-label="Search"
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => {

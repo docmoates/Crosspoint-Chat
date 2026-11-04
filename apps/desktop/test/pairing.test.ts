@@ -26,6 +26,7 @@ const CONFIG = {
   device: { id: 'a1b2c3d4e5f6', name: 'DESKTOP-TEST', created_at: '2026-11-01T00:00:00Z', last_seen_at: null },
   providers: [{ id: 'openrouter', kind: 'openrouter', label: 'OpenRouter', base_url: 'https://openrouter.ai/api/v1', api_key: 'sk-or-secret', enabled: true }],
   search: { brave_api_key: 'brave-secret', monthly_quota: 2000 },
+  // Older admin builds still send mcp_servers and sub-chat limits; the parser must ignore them.
   mcp_servers: [{ id: 'gh', name: 'GitHub', transport: 'http', url: 'https://x/mcp', headers: { Authorization: 'Bearer h' }, enabled: true }],
   allowed_models: [],
   default_models: { chat: 'anthropic/claude-sonnet-4.5', helper: 'openai/gpt-4o-mini' },

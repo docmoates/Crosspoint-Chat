@@ -8,7 +8,7 @@ import type { Artifact, ArtifactWithContent } from '../lib/types'
 import { useApp } from '../store/app'
 import { useArtifacts } from '../store/artifacts'
 import { CopyButton, Markdown } from './Markdown'
-import { Empty, ErrorLine, Soon, Spinner } from './ui/primitives'
+import { Empty, ErrorLine, Spinner } from './ui/primitives'
 
 type Loaded = ArtifactWithContent
 
@@ -44,14 +44,7 @@ function Preview(props: { a: Loaded }): ReactElement {
   return (
     <div className="p-6">
       <Empty title={`No live preview for ${props.a.kind === 'code' ? (props.a.language ?? 'code') : props.a.kind}`}>
-        <div>
-          Use the Code tab.{' '}
-          {(props.a.kind === 'jsx' || props.a.kind === 'mermaid') && (
-            <>
-              Live {props.a.kind === 'jsx' ? 'React' : 'Mermaid'} previews are <Soon />
-            </>
-          )}
-        </div>
+        <div>Use the Code tab.</div>
       </Empty>
     </div>
   )

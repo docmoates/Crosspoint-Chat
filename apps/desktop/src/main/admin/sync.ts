@@ -173,7 +173,7 @@ export class ConfigSync extends EventEmitter<SyncEvents> {
   }
 }
 
-/** The renderer's view: no api keys, no MCP env/headers/command lines. */
+/** The renderer's view: no api keys. Unknown admin keys (e.g. mcp_servers) are dropped here. */
 export function sanitizeConfig(c: AdminConfig): AppConfig {
   return {
     config_version: c.config_version,
@@ -186,15 +186,12 @@ export function sanitizeConfig(c: AdminConfig): AppConfig {
       hasKey: typeof p.api_key === 'string' && p.api_key.length > 0
     })),
     search: { hasBraveKey: !!c.search.brave_api_key, monthly_quota: c.search.monthly_quota ?? null },
-    mcp_servers: c.mcp_servers.map((m) => ({ id: m.id, name: m.name, transport: m.transport, enabled: m.enabled })),
     allowed_models: [...c.allowed_models],
     default_models: { chat: c.default_models.chat ?? null, helper: c.default_models.helper ?? null },
     limits: {
       monthly_usd: c.limits.monthly_usd ?? null,
       daily_usd: c.limits.daily_usd ?? null,
-      per_message_warn_usd: c.limits.per_message_warn_usd ?? null,
-      sub_chat_usd: c.limits.sub_chat_usd ?? null,
-      sub_chat_steps: c.limits.sub_chat_steps ?? null
+      per_message_warn_usd: c.limits.per_message_warn_usd ?? null
     },
     spend: { month_usd: c.spend.month_usd, today_usd: c.spend.today_usd, ...(c.spend.month ? { month: c.spend.month } : {}) }
   }

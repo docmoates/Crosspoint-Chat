@@ -247,9 +247,6 @@ export function Sidebar(): ReactElement {
           <Soon className="ml-auto" />
         </button>
       </nav>
-      <div className="sb-soon" title="Background sub-chats are planned">
-        Sub-chats <Soon className="ml-auto" />
-      </div>
       <div className="sb-scroll">
         {listError && (
           <div className="sb-group">

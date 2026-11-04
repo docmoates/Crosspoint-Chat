@@ -1,11 +1,11 @@
 import * as Popover from '@radix-ui/react-popover'
 import { Check, ChevronDown, RefreshCw, Search } from 'lucide-react'
-import { useMemo, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { cn, ctx, perM } from '../lib/utils'
 import type { ChatSettings, ModelInfo, ThinkingLevelValue } from '../lib/types'
 import { useApp } from '../store/app'
 import { defaultChatModel, providerLabel, resolveTag, useConfig } from '../store/config'
-import { Seg, Soon, TagPill } from './ui/primitives'
+import { Seg, TagPill } from './ui/primitives'
 
 export function modelName(models: ModelInfo[], id: string | undefined): string {
   if (!id) return 'Default'
@@ -25,6 +25,83 @@ export const THINKING_LEVELS: { value: ThinkingLevelValue; label: string }[] = [
   { value: 'high', label: 'High' },
 ]
 
+/** Per-chat overrides (system prompt, temperature, max tokens), saved through conversations.update or kept as a draft. */
+function ChatSettingsFields(props: { settings: ChatSettings | undefined; onChange: (patch: Partial<ChatSettings>) => void }): ReactElement {
+  const s = props.settings ?? {}
+  const [system, setSystem] = useState(s.systemPrompt ?? '')
+  const [temp, setTemp] = useState<number | undefined>(s.temperature)
+  const [maxTokens, setMaxTokens] = useState(s.maxTokens != null ? String(s.maxTokens) : '')
+  useEffect(() => setSystem(s.systemPrompt ?? ''), [s.systemPrompt])
+  useEffect(() => setTemp(s.temperature), [s.temperature])
+  useEffect(() => setMaxTokens(s.maxTokens != null ? String(s.maxTokens) : ''), [s.maxTokens])
+
+  const commitTemp = (): void => {
+    if (temp != null && temp !== s.temperature) props.onChange({ temperature: temp })
+  }
+
+  return (
+    <div className="flex flex-col gap-3" style={{ padding: '2px 8px 8px' }}>
+      <label className="f">
+        System prompt
+        <textarea
+          className="input"
+          value={system}
+          rows={2}
+          placeholder="Optional instructions for this chat only"
+          onChange={(e) => setSystem(e.target.value)}
+          onBlur={() => {
+            if (system !== (s.systemPrompt ?? '')) props.onChange({ systemPrompt: system || undefined })
+          }}
+        />
+      </label>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2 text-[12px] muted">
+          Temperature
+          <span className="ml-auto mono">{temp == null ? 'model default' : temp.toFixed(1)}</span>
+          {temp != null && (
+            <button
+              type="button"
+              className="btn sm"
+              onClick={() => {
+                setTemp(undefined)
+                props.onChange({ temperature: undefined })
+              }}
+            >
+              Reset
+            </button>
+          )}
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={2}
+          step={0.1}
+          value={temp ?? 1}
+          aria-label="Temperature"
+          onChange={(e) => setTemp(Number(e.target.value))}
+          onPointerUp={commitTemp}
+          onKeyUp={commitTemp}
+          style={{ accentColor: 'var(--accent)' }}
+        />
+      </div>
+      <label className="f">
+        Max output tokens
+        <input
+          className="input mono"
+          inputMode="numeric"
+          placeholder="model default"
+          value={maxTokens}
+          onChange={(e) => setMaxTokens(e.target.value.replace(/\D/g, ''))}
+          onBlur={() => {
+            const n = maxTokens ? Number(maxTokens) : undefined
+            if (n !== s.maxTokens) props.onChange({ maxTokens: n && n > 0 ? Math.min(n, 200_000) : undefined })
+          }}
+        />
+      </label>
+    </div>
+  )
+}
+
 export function ModelPicker(props: {
   value: string | undefined
   onChange: (id: string | undefined) => void
@@ -40,6 +117,8 @@ export function ModelPicker(props: {
   const fallback = defaultChatModel(config)
   const selected = models.find((m) => m.id === (props.value ?? fallback))
   const effort: ThinkingLevelValue = props.settings?.thinking ?? 'off'
+  const s = props.settings
+  const tuned = Boolean(s?.systemPrompt) || s?.temperature != null || s?.maxTokens != null
 
   const groups = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -70,11 +149,12 @@ export function ModelPicker(props: {
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
-        <button type="button" className="pill" title="Choose model">
+        <button type="button" className={tuned ? 'pill on' : 'pill'} title="Model and chat settings">
           <span className="max-w-[220px] overflow-hidden text-ellipsis">
             {props.value ? modelName(models, props.value) : selected ? `Default · ${selected.name}` : 'Default'}
           </span>
           {effort !== 'off' && <span className="faint">· thinking {effort}</span>}
+          {tuned && <span className="faint">· tuned</span>}
           <ChevronDown className="ic-xs" />
         </button>
       </Popover.Trigger>
@@ -167,11 +247,6 @@ export function ModelPicker(props: {
             </div>
           ))}
 
-          <div className="eyebrow flex items-center gap-2">
-            On this PC <Soon />
-          </div>
-          <div className="px-2 pb-1 text-[12px] faint">Local models (Foundry Local) are planned and not available yet.</div>
-
           <div className="eyebrow" style={{ paddingTop: 10 }}>
             Thinking
           </div>
@@ -189,6 +264,8 @@ export function ModelPicker(props: {
               <div className="mt-1 text-[11px] faint">{selected.name} does not support thinking.</div>
             )}
           </div>
+          <div className="eyebrow">This chat</div>
+          <ChatSettingsFields settings={props.settings} onChange={props.onSettings} />
           <div className="menu-sep" />
           <button
             type="button"

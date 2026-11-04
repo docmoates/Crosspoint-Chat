@@ -178,13 +178,6 @@ export function HealthSection(): ReactElement {
                 {r.action}
               </div>
             ))}
-            <div className="row" style={{ alignItems: 'flex-start' }}>
-              <span className="sdot off" style={{ marginTop: 6 }} />
-              <div className="grow">
-                Local models
-                <small>Foundry Local runtime · coming soon</small>
-              </div>
-            </div>
           </div>
         </div>
       )}

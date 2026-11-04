@@ -1,7 +1,7 @@
 import { FileText, FolderClosed, Menu, PanelLeft, Plus, Trash2, X } from 'lucide-react'
 import { useEffect, useState, type ReactElement } from 'react'
 import { ConfirmDialog, PromptDialog } from '../components/ui/dialogs'
-import { Empty, ErrorLine, Soon, Spinner } from '../components/ui/primitives'
+import { Empty, ErrorLine, Spinner } from '../components/ui/primitives'
 import { api, errorText } from '../lib/api'
 import { bytes, cn, relTime } from '../lib/utils'
 import type { ConversationSummary, Project, ProjectFile } from '../lib/types'
@@ -141,12 +141,6 @@ function ProjectDetail(props: { project: Project }): ReactElement {
           <div className="mt-2.5 flex flex-wrap gap-1.5">
             <button type="button" className="btn sm" onClick={() => void addFiles()} disabled={adding}>
               {adding ? <Spinner /> : <Plus className="ic-sm" />} Add files
-            </button>
-            <button type="button" className="btn sm" disabled>
-              Add URL <Soon />
-            </button>
-            <button type="button" className="btn sm" disabled>
-              Sync GitHub repo <Soon />
             </button>
           </div>
         </div>

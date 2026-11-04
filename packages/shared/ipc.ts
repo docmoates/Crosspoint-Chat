@@ -36,15 +36,12 @@ export const AppConfigSchema = z.object({
   config_version: z.number(),
   providers: z.array(AppProviderSchema),
   search: z.object({ hasBraveKey: z.boolean(), monthly_quota: z.number().nullable() }),
-  mcp_servers: z.array(z.object({ id: z.string(), name: z.string(), transport: z.enum(['stdio', 'http']), enabled: z.boolean() })),
   allowed_models: z.array(z.string()),
   default_models: z.object({ chat: z.string().nullable(), helper: z.string().nullable() }),
   limits: z.object({
     monthly_usd: z.number().nullable(),
     daily_usd: z.number().nullable(),
-    per_message_warn_usd: z.number().nullable(),
-    sub_chat_usd: z.number().nullable(),
-    sub_chat_steps: z.number().nullable()
+    per_message_warn_usd: z.number().nullable()
   }),
   spend: z.object({ month_usd: z.number(), today_usd: z.number(), month: z.string().optional() })
 })
@@ -54,10 +51,9 @@ export const EMPTY_APP_CONFIG: AppConfig = {
   config_version: 0,
   providers: [],
   search: { hasBraveKey: false, monthly_quota: null },
-  mcp_servers: [],
   allowed_models: [],
   default_models: { chat: null, helper: null },
-  limits: { monthly_usd: null, daily_usd: null, per_message_warn_usd: null, sub_chat_usd: null, sub_chat_steps: null },
+  limits: { monthly_usd: null, daily_usd: null, per_message_warn_usd: null },
   spend: { month_usd: 0, today_usd: 0 }
 }
 
@@ -314,6 +310,8 @@ export const LocalSettingsSchema = z.object({
   /** Base UI text size in px (11-22, default 14). */
   fontSize: z.number().int().min(11).max(22),
   sendOnEnter: z.boolean(),
+  /** Under each reply: 'full' shows model, provider and cost; 'compact' shows the text only. */
+  replyDetails: z.enum(['full', 'compact']),
   defaultModelOverride: z.string().nullable(),
   dailyCapUsd: z.number().nonnegative().nullable(),
   /** Read-only: where data lives (%APPDATA%\Crosspoint). Writes are ignored. */

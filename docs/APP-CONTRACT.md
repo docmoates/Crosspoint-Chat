@@ -12,8 +12,8 @@ interface CrosspointApi {
     syncNow(): Promise<void>;
     onStatus(cb: (s: PairingStatus) => void): () => void;      // fires after every sync, revoke, deep link
   };
-  config: {   // sanitized mirror of admin config: NO api keys, NO mcp env/headers
-    get(): Promise<AppConfig>;   // providers [{id,kind,label,base_url,enabled,hasKey}], search {hasBraveKey}, mcp_servers [{id,name,transport,enabled}], allowed_models, default_models, limits, spend, config_version
+  config: {   // sanitized mirror of admin config: NO api keys
+    get(): Promise<AppConfig>;   // providers [{id,kind,label,base_url,enabled,hasKey}], search {hasBraveKey, monthly_quota}, allowed_models, default_models, limits {monthly_usd, daily_usd, per_message_warn_usd}, spend, config_version
     onChange(cb: (c: AppConfig) => void): () => void;
   };
   models: {
@@ -50,7 +50,7 @@ interface CrosspointApi {
     summary(): Promise<{ month_usd: number; today_usd: number; local_share: number; byDay: { day: string; usd: number }[] }>;   // month/today = admin all-device spend + this PC's unsent events; byDay is this PC only
     forMessage(messageId: string): Promise<UsageDetail | null>;   // UsageInfo + messageId, at, kind, pricing: {in,out} | null (catalog list price per 1M tokens)
   };
-  settings: { get(): Promise<LocalSettings>; set(patch: Partial<LocalSettings>): Promise<void> };   // theme, font, fontSize (int 11-22, default 14), sendOnEnter, defaultModelOverride, dailyCapUsd, dataFolder
+  settings: { get(): Promise<LocalSettings>; set(patch: Partial<LocalSettings>): Promise<void> };   // theme, font, fontSize (int 11-22, default 14), sendOnEnter, replyDetails ('full' | 'compact'), defaultModelOverride, dailyCapUsd, dataFolder
   health: { check(): Promise<HealthReport> };   // admin reachable, each provider ping, db ok, disk free, update state; every item may carry `fix` (plain-language next step)
   audit: { list(q?: { limit?: number; before?: string }): Promise<AuditEntry[]> };
   updates: { check(): Promise<UpdateState>; install(): Promise<void> };
@@ -59,4 +59,4 @@ interface CrosspointApi {
 
 Artifact previews: HTML and SVG artifacts are not rendered with `srcdoc`. Main registers the privileged scheme `crosspoint-artifact` (standard, secure) and serves `crosspoint-artifact://preview/<artifactId>?v=<version>` (helper `artifactPreviewUrl` in `packages/shared/channels.ts`) with the saved version's document and its own CSP (inline scripts allowed; scripts/styles also from cdnjs, jsDelivr, unpkg; images from data/blob/https; no fetch, frames or forms). The renderer embeds it in `<iframe sandbox="allow-scripts allow-modals">` without `allow-same-origin`, so artifact code runs in an opaque origin with no preload and no IPC. The renderer CSP allows `frame-src crosspoint-artifact:` only.
 
-Rules: zod-validate every IPC payload in main; `ipcMain.handle` channel names are `crosspoint:<area>:<method>`; events are `crosspoint:event:<name>`. Deep link `crosspoint://pair?code=...&host=...` is handled in main (single instance lock) and triggers `pairing.pair`. Features from the plan that are not yet implemented (sub-chats, local models, image generation, web search, MCP tools, scheduled tasks) must render as honest empty/disabled states with a "coming soon" note, never with invented data.
+Rules: zod-validate every IPC payload in main; `ipcMain.handle` channel names are `crosspoint:<area>:<method>`; events are `crosspoint:event:<name>`. Deep link `crosspoint://pair?code=...&host=...` is handled in main (single instance lock) and triggers `pairing.pair`. Features from the plan that are not yet implemented (coding workspace, sub-chats, local models, image generation, web search, MCP tools, skills, voice, scheduled tasks) are not shown in the UI, with two exceptions: the sidebar's Code entry (disabled, "soon") and the "Planned" line in Settings > About. Never invent data for them.

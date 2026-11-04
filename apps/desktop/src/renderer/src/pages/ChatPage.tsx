@@ -6,7 +6,7 @@ import { Spinner } from '../components/ui/primitives'
 import { useApp } from '../store/app'
 import { useArtifacts } from '../store/artifacts'
 import { isStreaming, useChat, type UIMessage } from '../store/chat'
-import { providerLabel, useConfig } from '../store/config'
+import { useConfig } from '../store/config'
 import { useProjects } from '../store/projects'
 import { usePairing } from '../store/pairing'
 import type { Artifact } from '../lib/types'
@@ -58,7 +58,6 @@ export function ChatPage(): ReactElement {
   const artifactsVersion = useChat((s) => s.artifactsVersion)
   const { send, regenerate } = useChat.getState()
   const models = useConfig((s) => s.models)
-  const config = useConfig((s) => s.config)
   const projects = useProjects((s) => s.projects)
   const app = useApp()
   const artifacts = useArtifacts()
@@ -94,7 +93,6 @@ export function ChatPage(): ReactElement {
   const onRegenerate = useCallback((key: string, modelId?: string) => void regenerate(key, modelId), [regenerate])
   const onOpenArtifact = useCallback((id: string) => useArtifacts.getState().openArtifact(id), [])
 
-  const model = models.find((m) => m.id === conversation?.modelId)
   const project = projects.find((p) => p.id === conversation?.projectId)
   const unattached = artifacts.list.filter((a) => !a.messageId || !messages.some((m) => m.id === a.messageId))
 
@@ -114,11 +112,6 @@ export function ChatPage(): ReactElement {
           <button type="button" className="pill desk-only" onClick={() => app.openProject(project.id)}>
             <FolderClosed className="ic-xs" /> {project.name}
           </button>
-        )}
-        {model && (
-          <span className="pill desk-only">
-            <span className="dot" /> {providerLabel(config, model.provider)}
-          </span>
         )}
         <button
           type="button"

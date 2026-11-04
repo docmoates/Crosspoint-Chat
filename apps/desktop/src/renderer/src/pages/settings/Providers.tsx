@@ -1,6 +1,6 @@
 import { ExternalLink, Info, KeyRound } from 'lucide-react'
 import type { ReactElement } from 'react'
-import { ErrorLine, Soon, Spinner } from '../../components/ui/primitives'
+import { ErrorLine, Spinner } from '../../components/ui/primitives'
 import { api } from '../../lib/api'
 import { adminUrl, usd } from '../../lib/utils'
 import { useApp } from '../../store/app'
@@ -56,36 +56,6 @@ export function ProvidersSection(): ReactElement {
                 </button>
               </div>
             ))}
-            <div className="row">
-              <span className="sdot off" />
-              <div className="grow">
-                Foundry Local (this PC)
-                <small>Local models on NPU/GPU</small>
-              </div>
-              <Soon />
-            </div>
-          </div>
-        </div>
-      )}
-      {config && (
-        <div className="card">
-          <h3>
-            Web search <Soon />
-          </h3>
-          <div className="list">
-            <div className="row">
-              <span className={config.search.hasBraveKey ? 'sdot ok' : 'sdot off'} />
-              <div className="grow">
-                Brave Search API
-                <small>
-                  {config.search.hasBraveKey ? 'Key present in admin' : 'No key in admin'}
-                  {config.search.monthly_quota != null && ` · ${config.search.monthly_quota.toLocaleString('en-US')} searches a month`}
-                </small>
-              </div>
-              <button type="button" className="btn sm" onClick={() => open('/integrations')}>
-                <ExternalLink className="ic-sm" /> Edit in admin
-              </button>
-            </div>
           </div>
         </div>
       )}

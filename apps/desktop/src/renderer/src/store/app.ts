@@ -15,14 +15,6 @@ export type SettingsTab =
   | 'usage'
   | 'data'
   | 'about'
-  | 'soon-mcp'
-  | 'soon-skills'
-  | 'soon-local'
-  | 'soon-images'
-  | 'soon-search'
-  | 'soon-tasks'
-  | 'soon-subchats'
-  | 'soon-voice'
 
 export interface Toast {
   id: string
@@ -35,6 +27,7 @@ const DEFAULT_SETTINGS: LocalSettings = {
   font: 'system',
   fontSize: 14,
   sendOnEnter: true,
+  replyDetails: 'full',
   defaultModelOverride: null,
   dailyCapUsd: null,
   dataFolder: '',

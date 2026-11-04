@@ -1,7 +1,7 @@
 import { ExternalLink, FolderOpen, RefreshCw } from 'lucide-react'
 import { useEffect, useState, type ReactElement } from 'react'
 import { ConfirmDialog } from '../../components/ui/dialogs'
-import { ErrorLine, Seg, Soon, Spinner, Switch } from '../../components/ui/primitives'
+import { ErrorLine, Seg, Spinner, Switch } from '../../components/ui/primitives'
 import { api, errorText } from '../../lib/api'
 import { adminUrl, relTime } from '../../lib/utils'
 import type { LocalSettings, UpdateState } from '../../lib/types'
@@ -73,6 +73,20 @@ export function GeneralSection(): ReactElement {
         </div>
         <div className="setting">
           <div className="grow">
+            Reply details<small>{settings.replyDetails === 'full' ? 'Model, provider and cost under each reply' : 'Replies show the text only'}</small>
+          </div>
+          <Seg<LocalSettings['replyDetails']>
+            label="Reply details"
+            value={settings.replyDetails}
+            onChange={(replyDetails) => void setSettings({ replyDetails })}
+            options={[
+              { value: 'full', label: 'Full' },
+              { value: 'compact', label: 'Compact' },
+            ]}
+          />
+        </div>
+        <div className="setting">
+          <div className="grow">
             Default model on this PC<small>Overrides the admin default for new chats</small>
           </div>
           <select
@@ -120,12 +134,6 @@ export function GeneralSection(): ReactElement {
           >
             <FolderOpen className="ic-sm" /> Open
           </button>
-        </div>
-        <div className="setting">
-          <div className="grow">
-            Notifications<small>When background runs or scheduled tasks finish</small>
-          </div>
-          <Soon />
         </div>
       </div>
     </section>
@@ -238,6 +246,15 @@ export function AboutSection(): ReactElement {
         <div className="setting">
           <div className="grow">
             Crosspoint Chat<small>Version {version || 'unknown'}</small>
+          </div>
+        </div>
+        <div className="setting">
+          <div className="grow">
+            Planned
+            <small style={{ whiteSpace: 'normal' }}>
+              Coding workspace, local models and Private mode, web search, MCP connectors, skills, image generation, voice, scheduled
+              tasks, sub-chats, chat export and import.
+            </small>
           </div>
         </div>
         <div className="setting">

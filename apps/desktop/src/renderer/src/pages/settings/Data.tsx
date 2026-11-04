@@ -1,6 +1,6 @@
 import { FolderOpen } from 'lucide-react'
 import { useEffect, useState, type ReactElement } from 'react'
-import { ErrorLine, Soon, Spinner } from '../../components/ui/primitives'
+import { ErrorLine, Spinner } from '../../components/ui/primitives'
 import { api, errorText } from '../../lib/api'
 import type { AuditEntry } from '../../lib/types'
 import { useApp } from '../../store/app'
@@ -42,18 +42,6 @@ export function DataSection(): ReactElement {
           <button type="button" className="btn sm" disabled={!dataFolder} onClick={() => dataFolder && void api.app.openPath(dataFolder)}>
             <FolderOpen className="ic-sm" /> Open
           </button>
-        </div>
-        <div className="setting">
-          <div className="grow">
-            Export all chats<small>Markdown + JSON, with attachments</small>
-          </div>
-          <Soon />
-        </div>
-        <div className="setting">
-          <div className="grow">
-            Import<small>From ChatGPT or Claude export zip</small>
-          </div>
-          <Soon />
         </div>
       </div>
       <div className="card">

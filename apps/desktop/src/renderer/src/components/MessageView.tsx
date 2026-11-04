@@ -17,6 +17,7 @@ import { memo, useState, type ReactElement } from 'react'
 import { bytes, cn } from '../lib/utils'
 import type { Artifact, ModelInfo } from '../lib/types'
 import type { UIMessage } from '../store/chat'
+import { useApp } from '../store/app'
 import { defaultChatModel, providerLabel, useConfig } from '../store/config'
 import { CopyButton, Markdown } from './Markdown'
 import { modelName } from './ModelPicker'
@@ -139,18 +140,21 @@ function AssistantMessage(props: {
 }): ReactElement {
   const { m, models } = props
   const config = useConfig((s) => s.config)
+  const full = useApp((s) => s.settings.replyDetails) === 'full'
   const shownModelId = m.modelId ?? defaultChatModel(config)
   const model = models.find((x) => x.id === shownModelId)
   const waiting = m.streaming && !m.content && !m.thinking && !m.error
   return (
     <div className="msg assistant">
-      <div className="meta">
-        <span className="model">
-          <Hexagon className="ic-sm" /> {shownModelId ? modelName(models, shownModelId) : 'Assistant'}
-        </span>
-        {(m.provider ?? model?.provider) && <span>· via {providerLabel(config, m.provider ?? model?.provider ?? '')}</span>}
-        {m.stopped && <span>· stopped</span>}
-      </div>
+      {full && (
+        <div className="meta">
+          <span className="model">
+            <Hexagon className="ic-sm" /> {shownModelId ? modelName(models, shownModelId) : 'Assistant'}
+          </span>
+          {(m.provider ?? model?.provider) && <span>· via {providerLabel(config, m.provider ?? model?.provider ?? '')}</span>}
+          {m.stopped && <span>· stopped</span>}
+        </div>
+      )}
       <div className="body">
         <Thinking m={m} />
         {m.tools.map((t) => (
@@ -237,7 +241,7 @@ function AssistantMessage(props: {
               )}
             </>
           )}
-          <UsagePopover messageId={m.id} usage={m.usage} models={models} />
+          {full && <UsagePopover messageId={m.id} usage={m.usage} models={models} />}
         </div>
       )}
     </div>

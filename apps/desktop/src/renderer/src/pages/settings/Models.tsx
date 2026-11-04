@@ -1,7 +1,7 @@
 import { ExternalLink, RefreshCw, Search } from 'lucide-react'
 import { useMemo, useState, type ReactElement } from 'react'
 import { modelName, price } from '../../components/ModelPicker'
-import { ErrorLine, Soon, Spinner, TagPill } from '../../components/ui/primitives'
+import { ErrorLine, Spinner, TagPill } from '../../components/ui/primitives'
 import { api } from '../../lib/api'
 import { adminUrl, cn, ctx, TAG_PALETTE, uid } from '../../lib/utils'
 import { defaultChatModel, providerLabel, resolveTag, useConfig } from '../../store/config'
@@ -62,12 +62,6 @@ export function ModelsSection(): ReactElement {
           <button type="button" className="btn sm" onClick={() => void api.app.openExternal(adminUrl(host, '/chat-settings'))}>
             <ExternalLink className="ic-sm" /> Edit in admin
           </button>
-        </div>
-        <div className="setting">
-          <div className="grow">
-            Auto routing between local and cloud<small>Picks a local or cloud model per message</small>
-          </div>
-          <Soon />
         </div>
       </div>
       <ErrorLine error={error} />
@@ -204,15 +198,6 @@ export function ModelsSection(): ReactElement {
         )}
       </div>
 
-      <div className="card">
-        <h3>
-          Image models <Soon />
-        </h3>
-        <div className="muted text-[13px]">
-          Local and cloud image generation with settings chosen by the chat model. Models tagged "images" will appear on the
-          image card.
-        </div>
-      </div>
     </section>
   )
 }

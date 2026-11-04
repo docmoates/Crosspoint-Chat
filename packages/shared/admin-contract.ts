@@ -77,32 +77,10 @@ export const AdminSearchSchema = z.looseObject({
 })
 export type AdminSearch = z.infer<typeof AdminSearchSchema>
 
-export const AdminMcpStdioSchema = z.looseObject({
-  id: z.string(),
-  name: z.string(),
-  transport: z.literal('stdio'),
-  command: z.string(),
-  args: z.array(z.string()).default([]),
-  env: z.record(z.string(), z.string()).default({}),
-  enabled: z.boolean().default(true)
-})
-export const AdminMcpHttpSchema = z.looseObject({
-  id: z.string(),
-  name: z.string(),
-  transport: z.literal('http'),
-  url: z.string(),
-  headers: z.record(z.string(), z.string()).default({}),
-  enabled: z.boolean().default(true)
-})
-export const AdminMcpServerSchema = z.discriminatedUnion('transport', [AdminMcpStdioSchema, AdminMcpHttpSchema])
-export type AdminMcpServer = z.infer<typeof AdminMcpServerSchema>
-
 export const LimitsSchema = z.looseObject({
   monthly_usd: z.number().nullable().default(null),
   daily_usd: z.number().nullable().default(null),
-  per_message_warn_usd: z.number().nullable().default(null),
-  sub_chat_usd: z.number().nullable().default(null),
-  sub_chat_steps: z.number().nullable().default(null)
+  per_message_warn_usd: z.number().nullable().default(null)
 })
 export type Limits = z.infer<typeof LimitsSchema>
 
@@ -131,16 +109,9 @@ export const AdminConfigSchema = z.looseObject({
   device: AdminDeviceSchema,
   providers: z.array(AdminProviderSchema).default([]),
   search: AdminSearchSchema.default({ brave_api_key: null, monthly_quota: null }),
-  mcp_servers: z.array(AdminMcpServerSchema).default([]),
   allowed_models: z.array(z.string()).default([]),
   default_models: DefaultModelsSchema.default({ chat: null, helper: null }),
-  limits: LimitsSchema.default({
-    monthly_usd: null,
-    daily_usd: null,
-    per_message_warn_usd: null,
-    sub_chat_usd: null,
-    sub_chat_steps: null
-  }),
+  limits: LimitsSchema.default({ monthly_usd: null, daily_usd: null, per_message_warn_usd: null }),
   spend: SpendSchema.default({ month_usd: 0, today_usd: 0 })
 })
 export type AdminConfig = z.infer<typeof AdminConfigSchema>
