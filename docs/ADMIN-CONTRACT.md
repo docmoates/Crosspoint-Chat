@@ -1,6 +1,6 @@
 # Admin contract: Crosspoint Chat <-> admin.docmoates.com
 
-Version 1. Implemented in `apps/docmoates` (Publications repo, `C:\Users\docmo\OneDrive\Desktop\Publications`) and consumed by the Windows app. The TypeScript mirror lives in `packages/shared/admin-contract.ts` in this repo; the admin side validates with zod in JS. Keep both in step.
+Version 1.1 (2026-11-05). Implemented in `apps/docmoates` (Publications repo, `D:\repos\Publications`), a Cloudflare Worker with D1 live at admin.docmoates.com since 2026-11-05, and consumed by the Windows app. The TypeScript mirror lives in `packages/shared/admin-contract.ts` in this repo; the admin side validates with zod in JS. Keep both in step.
 
 ## Auth
 
@@ -52,7 +52,7 @@ Status (2026-11-03): admin stores these rows but has no page that shows them. Ei
 
 ## Admin console pages (owner only)
 
-Target layout (v1.1): **one page, `/crosspoint`**, with three sections, replacing the four separate pages below. Everything the desktop app consumes lives on this one screen.
+Live since 2026-11-05 (v1.1): **one page, `/crosspoint`**, with three sections, replacing the four v1 pages. Everything the desktop app consumes lives on this one screen.
 
 1. **Devices**: table (name, os, version, last seen, month spend). A "Pair a new device" button at the top of the table reveals the code and `crosspoint://` link inline (10 min); no separate page. Per device: rename, **Revoke** (sets `revoked_at`).
 2. **Models and limits**: "Allow all models" toggle (default on, = empty `allowed_models`); when off, a textarea of allowed ids, one per line. Default chat model, default helper model. Three limits: monthly USD, daily USD, per-message warning USD. The Brave Search key and its monthly quota live here too (moved from Integrations) so the app's whole config is on one screen. Saving bumps `config_version`.
@@ -60,13 +60,7 @@ Target layout (v1.1): **one page, `/crosspoint`**, with three sections, replacin
 
 Removed: the `/mcp-servers` page and the `mcp_servers` table (nothing consumes MCP yet; re-add with the client support), the sub-chat limits, and the per-device usage table (the app shows spend itself; admin keeps the month total in the Devices table). Provider keys for OpenRouter, Anthropic and OpenAI stay under Integrations. Every write and every revoke is audited. Sidebar nav: one "Crosspoint Chat" entry.
 
-As built (v1, admin commit b463ab4c1), still live until the above lands:
-
-- `/devices`: list, "Pair a new device", per device rename / Revoke / usage table.
-- `/endpoints`: custom endpoints.
-- `/mcp-servers`: admin-pushed MCP servers (to be removed).
-- `/chat-settings`: allowed models, default chat/helper model, five limits (two to be removed).
-- Integrations: `brave` (to move into the Crosspoint page).
+The v1 paths `/devices`, `/endpoints`, `/mcp-servers` and `/chat-settings` redirect to `/crosspoint`. Hosting moved from the Azure VM to a Cloudflare Worker (`docmoates-portal`) with D1 on 2026-11-05; the v1 data was not carried over, so devices paired before that date must be paired again.
 
 ## Implementation notes (as built in admin commit b463ab4c1)
 
