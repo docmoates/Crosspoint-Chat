@@ -1,28 +1,24 @@
-import { ExternalLink, Link2 } from 'lucide-react'
-import { useEffect, useState, type ReactElement } from 'react'
+import { LogIn } from 'lucide-react'
+import { useState, type ReactElement } from 'react'
 import { ErrorLine, Spinner } from '../components/ui/primitives'
-import { api } from '../lib/api'
-import { ADMIN_HOST_DEFAULT, adminUrl } from '../lib/utils'
 import { usePairing } from '../store/pairing'
 
-/** Formats user input as XXXX-XXXX (letters and digits only). */
-export function formatCode(raw: string): string {
-  const clean = raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8)
-  return clean.length > 4 ? `${clean.slice(0, 4)}-${clean.slice(4)}` : clean
-}
+const MIN_PASSWORD = 12
 
+/** Sign in, or create an account from an invite. Accounts are invite only. */
 export function PairingPage(): ReactElement {
-  const { status, busy, error, pair, clearError } = usePairing()
+  const { status, busy, error, signIn, acceptInvite, clearError } = usePairing()
+  const [invite, setInvite] = useState(false)
   const [code, setCode] = useState('')
-  const [host, setHost] = useState(status?.host || ADMIN_HOST_DEFAULT)
-  const [showHost, setShowHost] = useState(false)
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
-  useEffect(() => {
-    if (status?.host) setHost(status.host)
-  }, [status?.host])
-
-  const valid = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)
-  const shownError = error ?? status?.error
+  const valid = invite ? code.trim() !== '' && email.trim() !== '' && password.length >= MIN_PASSWORD : email.trim() !== '' && password !== ''
+  const edit = (setter: (v: string) => void) => (e: { target: { value: string } }) => {
+    setter(e.target.value)
+    if (error) clearError()
+  }
 
   return (
     <div className="pair-wrap">
@@ -30,7 +26,8 @@ export function PairingPage(): ReactElement {
         className="pair-card"
         onSubmit={(e) => {
           e.preventDefault()
-          if (valid && !busy) void pair(code, host.trim() || undefined)
+          if (!valid || busy) return
+          void (invite ? acceptInvite({ code, fullName, email, password }) : signIn(email, password)).then((ok) => ok && setPassword(''))
         }}
       >
         <div className="brand" style={{ flex: 'none', fontSize: 18 }}>
@@ -40,65 +37,48 @@ export function PairingPage(): ReactElement {
           Crosspoint Chat
         </div>
         <div>
-          <h1 style={{ fontSize: 22 }}>Pair this PC</h1>
+          <h1 style={{ fontSize: 22 }}>{invite ? 'Create your account' : 'Sign in'}</h1>
           <p className="muted" style={{ margin: '6px 0 0' }}>
-            Your messages go through your admin site. Create a pairing code there, then enter it here. You only do
-            this once.
+            {invite ? 'Enter the invite code you were sent, then choose a password.' : 'Your chats, projects and files follow your account.'}
           </p>
         </div>
         <div className="card flex flex-col gap-3">
-          <label className="f">
-            Pairing code
-            <input
-              className="input code-input"
-              value={code}
-              onChange={(e) => {
-                setCode(formatCode(e.target.value))
-                if (error) clearError()
-              }}
-              placeholder="XXXX-XXXX"
-              autoFocus
-              inputMode="text"
-              autoComplete="off"
-              spellCheck={false}
-              aria-invalid={code.length === 9 && !valid}
-            />
-          </label>
-          {showHost ? (
-            <label className="f">
-              Admin host
-              <input
-                className="input"
-                value={host}
-                onChange={(e) => setHost(e.target.value)}
-                placeholder={ADMIN_HOST_DEFAULT}
-                spellCheck={false}
-              />
-            </label>
-          ) : (
-            <div className="text-[12px] faint">
-              Pairing with <span className="mono">{host}</span> ·{' '}
-              <button type="button" className="underline" onClick={() => setShowHost(true)}>
-                change
-              </button>
-            </div>
+          {invite && (
+            <>
+              <label className="f">
+                Invite code
+                <input className="input mono" value={code} onChange={edit(setCode)} autoComplete="off" spellCheck={false} autoFocus />
+              </label>
+              <label className="f">
+                Your name
+                <input className="input" value={fullName} onChange={edit(setFullName)} autoComplete="name" />
+              </label>
+            </>
           )}
-          <ErrorLine error={shownError} />
+          <label className="f">
+            Email
+            <input className="input" type="email" value={email} onChange={edit(setEmail)} autoComplete="username" spellCheck={false} autoFocus={!invite} />
+          </label>
+          <label className="f">
+            Password{invite ? ` (at least ${MIN_PASSWORD} characters)` : ''}
+            <input className="input" type="password" value={password} onChange={edit(setPassword)} autoComplete={invite ? 'new-password' : 'current-password'} />
+          </label>
+          <ErrorLine error={error ?? status?.error} />
           <button type="submit" className="btn primary justify-center" disabled={!valid || busy}>
-            {busy ? <Spinner /> : <Link2 className="ic-sm" />}
-            {busy ? 'Pairing…' : 'Pair'}
+            {busy ? <Spinner /> : <LogIn className="ic-sm" />}
+            {busy ? 'One moment…' : invite ? 'Create account' : 'Sign in'}
           </button>
         </div>
         <button
           type="button"
           className="btn self-start"
-          onClick={() => void api.app.openExternal(adminUrl(host, '/devices'))}
+          onClick={() => {
+            setInvite(!invite)
+            clearError()
+          }}
         >
-          <ExternalLink className="ic-sm" /> Open {host.replace(/^https?:\/\//, '').replace(/\/+$/, '')}/devices
+          {invite ? 'I already have an account' : 'I have an invite'}
         </button>
-        <p className="faint text-[12px]" style={{ margin: 0 }}>
-          A <span className="mono">crosspoint://pair</span> link from the admin site also pairs this PC automatically.
-        </p>
       </form>
     </div>
   )

@@ -1,6 +1,6 @@
 import { app, safeStorage } from 'electron'
 import { hostname, release } from 'node:os'
-import type { AppConfig, PairingStatus, StreamEvent, UpdateState } from '@shared/ipc'
+import type { AppConfig, KnowledgeCard, PairingStatus, StreamEvent, UpdateState } from '@shared/ipc'
 import { adminUrl, AuditEventSchema, AUDIT_BATCH_MAX, DEFAULT_GATEWAY_PATH } from '@shared/admin-contract'
 import { postSplitting } from './admin/batch'
 import { AdminApiError, AdminClient } from './admin/client'
@@ -14,9 +14,9 @@ import { SecureFile } from './secure-file'
 import { ArtifactStore } from './services/artifacts'
 import { AuditLog } from './services/audit'
 import { ChatService } from './services/chat'
+import { DataSync } from './services/data-sync'
 import { MediaClient } from './services/media'
 import { FileStore } from './services/files'
-import { KnowledgeService, SqliteKnowledgeCache } from './services/knowledge'
 import { Library } from './services/library'
 import { SettingsService } from './services/settings'
 import { UsageService } from './services/usage'
@@ -47,10 +47,11 @@ export interface Core {
   pairing: PairingService
   sync: ConfigSync
   usage: UsageService
-  knowledge: KnowledgeService
+  knowledge: { lookup(query: string): Promise<KnowledgeCard | null> }
   files: FileStore
   artifacts: ArtifactStore
   chat: ChatService
+  data: DataSync
   updater: Updater
   start(): void
   stop(): void
@@ -73,6 +74,7 @@ export function createCore(events: CoreEvents): Core {
   })
 
   // The only upstream: this device's token against the admin server, which picks the model and holds the keys.
+  let data: DataSync | null = null
   let gatewayCache: { fingerprint: string; provider: ChatProvider } | null = null
   const sync = new ConfigSync({
     client,
@@ -81,6 +83,7 @@ export function createCore(events: CoreEvents): Core {
     onAudit: (kind, summary) => audit.append(kind, summary),
     onWipe: () => {
       gatewayCache = null
+      data?.wipe()
     }
   })
   const gateway = (): ChatProvider | null => {
@@ -111,12 +114,24 @@ export function createCore(events: CoreEvents): Core {
     (count, reason) => audit.append('error', `admin rejected ${count} usage event(s) as invalid; dropped from the outbox: ${reason}`)
   )
 
-  const knowledge = new KnowledgeService({
-    cache: new SqliteKnowledgeCache(db),
-    userAgent: `CrosspointChat/${app.getVersion()} (desktop app)`,
-    isEnabled: () => settings.get().knowledgeCards,
-    onNetwork: (entity) => audit.append('outbound', `Wikipedia and Wikidata lookup for "${entity.slice(0, 80)}"; only this name was sent`)
+  const media = new MediaClient(() => {
+    const rec = pairing.device
+    return rec ? { baseUrl: adminUrl(rec.host, sync.full?.gateway.path ?? DEFAULT_GATEWAY_PATH), token: rec.token } : null
   })
+  data = new DataSync(db, () => (pairing.device ? media.syncRemote() : null), { attachments: paths.attachments, projectFiles: paths.projectFiles })
+  const dataSync = data
+  const syncData = (): void => {
+    dataSync
+      .run()
+      .then((changed) => {
+        if (changed) {
+          sync.dataVersion++
+          events.pairingStatus(sync.status())
+        }
+      })
+      .catch(() => undefined) // kept in the outbox; the next round retries
+  }
+  const knowledge = { lookup: async (query: string) => (settings.get().knowledgeCards ? media.knowledge(query) : null) }
 
   const files = new FileStore(db, paths.attachments, paths.projectFiles)
   const artifacts = new ArtifactStore(db)
@@ -126,10 +141,8 @@ export function createCore(events: CoreEvents): Core {
     artifacts,
     usage,
     gateway,
-    media: new MediaClient(() => {
-      const rec = pairing.device
-      return rec ? { baseUrl: adminUrl(rec.host, sync.full?.gateway.path ?? DEFAULT_GATEWAY_PATH), token: rec.token } : null
-    }),
+    media,
+    data: dataSync,
     settings,
     audit,
     config: () => sync.full,
@@ -137,7 +150,10 @@ export function createCore(events: CoreEvents): Core {
   })
   const updater = new Updater(events.updates)
 
-  sync.on('status', events.pairingStatus)
+  sync.on('status', (s) => {
+    events.pairingStatus(s)
+    if (s.paired && !s.offline) syncData()
+  })
   sync.on('config', (c) => {
     events.configChange(c)
   })
@@ -188,6 +204,6 @@ export function createCore(events: CoreEvents): Core {
     }
   }
 
-  return { paths, db, client, audit, settings, library, pairing, sync, usage, knowledge, files, artifacts, chat, updater, start, stop }
+  return { paths, db, client, audit, settings, library, pairing, sync, usage, knowledge, files, artifacts, chat, data: dataSync, updater, start, stop }
 }
 

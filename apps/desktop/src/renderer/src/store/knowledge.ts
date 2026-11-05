@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
 import { create } from 'zustand'
-import { extractEntityQuery } from '@shared/entity-query'
 import { api } from '../lib/api'
 import type { KnowledgeCard } from '../lib/types'
 import { useApp } from './app'
+
+const MAX_QUESTION = 300
 
 type Entry = { state: 'loading' } | { state: 'done'; card: KnowledgeCard | null }
 
@@ -12,7 +13,7 @@ interface KnowledgeState {
   load(entity: string): void
 }
 
-/** One lookup per entity name per session; main also caches on disk, so reopening an old chat is instant. */
+/** One lookup per question per session. The server finds the name and caches the card. */
 export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
   entries: {},
   load(entity) {
@@ -26,7 +27,8 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
 /** The knowledge card for what a question is about, or null (setting off, not an entity question, no match, still loading). */
 export function useKnowledgeCard(question: string | undefined): KnowledgeCard | null {
   const enabled = useApp((s) => s.settings.knowledgeCards)
-  const entity = enabled && question ? extractEntityQuery(question) : null
+  // Long messages are not questions about a name, so they are not sent for a card.
+  const entity = enabled && question && question.length <= MAX_QUESTION ? question.trim() : null
   const entry = useKnowledgeStore((s) => (entity ? s.entries[entity] : undefined))
   useEffect(() => {
     if (entity) useKnowledgeStore.getState().load(entity)

@@ -71,6 +71,32 @@ export class PairingService {
     }
   }
 
+  async signIn(email: string, password: string): Promise<PairResult> {
+    const info = this.deps.deviceInfo()
+    return this.connect(() => this.deps.client.signIn(this.host, { email, password, name: info.name, os: info.os, app_version: info.appVersion }))
+  }
+
+  async acceptInvite(input: { code: string; fullName: string; email: string; password: string }): Promise<PairResult> {
+    const info = this.deps.deviceInfo()
+    return this.connect(() =>
+      this.deps.client.acceptInvite(this.host, { code: input.code, full_name: input.fullName, email: input.email, password: input.password, name: info.name, os: info.os, app_version: info.appVersion })
+    )
+  }
+
+  private async connect(call: () => Promise<{ device_id: string; token: string }>): Promise<PairResult> {
+    const host = this.host
+    const info = this.deps.deviceInfo()
+    try {
+      const res = await call()
+      const record: DeviceRecord = { host, deviceId: res.device_id, deviceName: info.name, token: res.token, pairedAt: new Date().toISOString() }
+      this.deps.store.write(record)
+      this.record = record
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, error: pairingErrorMessage(err, host) }
+    }
+  }
+
   /** Forget the token. Callers also wipe the config/key cache. */
   unpair(): void {
     this.deps.store.remove()
@@ -93,7 +119,9 @@ export function pairingErrorMessage(err: unknown, host: string): string {
   if (err instanceof AdminApiError) {
     switch (err.code) {
       case 'bad_code':
-        return 'That code is wrong or has expired. Make a new one in Admin > Devices > Pair a new device.'
+        return err.message
+      case 'bad_login':
+        return err.message
       case 'rate_limited':
         return 'Too many pairing attempts. Wait a minute and try again.'
       case 'network':

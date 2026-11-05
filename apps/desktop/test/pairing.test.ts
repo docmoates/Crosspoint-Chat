@@ -88,7 +88,7 @@ describe('pairing', () => {
 
   it('explains bad codes, rate limits, HTML answers and network failures', async () => {
     const bad = setup(async () => json(400, { error: 'bad code', code: 'bad_code' }))
-    expect(await bad.pairing.pair('ABCD-EFGH')).toEqual({ ok: false, error: expect.stringMatching(/wrong or has expired/) })
+    expect(await bad.pairing.pair('ABCD-EFGH')).toEqual({ ok: false, error: 'bad code' })
     expect(bad.store.exists()).toBe(false)
 
     const limited = setup(async () => json(429, { error: 'slow down', code: 'rate_limited' }))

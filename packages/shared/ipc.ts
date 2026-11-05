@@ -13,6 +13,10 @@ export const PairingStatusSchema = z.object({
   device: z.object({ id: z.string(), name: z.string() }).optional(),
   host: z.string(),
   lastSyncAt: z.string().optional(),
+  /** No connection: chats stay readable, sending is off. */
+  offline: z.boolean().optional(),
+  /** Ticks when chats, projects or memory changed from the server. */
+  dataVersion: z.number().optional(),
   error: z.string().optional()
 })
 export type PairingStatus = z.infer<typeof PairingStatusSchema>
@@ -355,6 +359,8 @@ export interface CrosspointApi {
     pair(code: string, host?: string): Promise<PairResult>
     unpair(): Promise<void>
     syncNow(): Promise<void>
+    signIn(email: string, password: string): Promise<PairResult>
+    acceptInvite(input: { code: string; fullName: string; email: string; password: string }): Promise<PairResult>
     onStatus(cb: (s: PairingStatus) => void): () => void
   }
   config: { get(): Promise<AppConfig>; onChange(cb: (c: AppConfig) => void): () => void }

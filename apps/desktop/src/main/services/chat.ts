@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { existsSync } from 'node:fs'
 import type { AdminConfig } from '@shared/admin-contract'
 import type { AttachmentRef, ChatSendInput, ChatSettings, Message, MessagePart, StreamEvent, UsageInfo } from '@shared/ipc'
 import { IMAGE_TOKEN_ESTIMATE, estimateTokens } from '../providers/cost'
@@ -19,6 +20,7 @@ export interface ChatDeps {
   /** The admin server, which picks the model. Null when not paired. */
   gateway: () => ChatProvider | null
   media: MediaClient
+  data: { ensureFile(id: string, path: string): Promise<void>; run(): Promise<boolean> }
   settings: SettingsService
   audit: AuditLog
   config: () => AdminConfig | null
@@ -195,6 +197,15 @@ export class ChatService {
     const limit = this.d.usage.checkLimits(cfg.limits, this.d.settings.get().dailyCapUsd)
     if (limit.blocked) return fail(limit.blocked.message, limit.blocked.code)
 
+    // Files added on another PC come down before the prompt is built.
+    for (const m of this.d.library.listMessages(ctx.conversationId)) {
+      for (const p of m.parts) {
+        if (p.type !== 'attachment') continue
+        const a = this.d.files.getAttachment(p.attachment.id)
+        if (a?.kind === 'image') await this.d.data.ensureFile(a.id, a.path).catch(() => undefined)
+      }
+    }
+
     let history: ChatMessage[]
     let system: string | undefined
     try {
@@ -315,6 +326,7 @@ export class ChatService {
       }
     }
 
+    void this.d.data.run().catch(() => undefined)
     const title = !stopped && (text || created.length) ? await this.maybeTitle(ctx, text).catch(() => undefined) : undefined
     this.emit(ctx, { type: 'done', finishReason: finish, ...(title ? { title } : {}) })
   }
@@ -378,7 +390,7 @@ export class ChatService {
         continue
       }
       if (a.kind === 'image') {
-        if (VISION_MIME.has(a.mime)) content.push({ type: 'image', mime: a.mime, base64: this.d.files.readBase64(a.path) })
+        if (VISION_MIME.has(a.mime) && existsSync(a.path)) content.push({ type: 'image', mime: a.mime, base64: this.d.files.readBase64(a.path) })
         else docs.push(`[image ${a.name} attached; this image type is not supported]`)
       } else if (a.text) {
         docs.push(`<attachment name="${a.name.replace(/"/g, "'")}">\n${a.text}\n</attachment>`)

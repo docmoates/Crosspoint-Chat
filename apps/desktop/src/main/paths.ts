@@ -27,7 +27,8 @@ export function appPaths(): {
     root,
     deviceFile: join(root, 'device.bin'),
     configFile: join(root, 'config.bin'),
-    database: join(root, 'crosspoint.sqlite'),
+    // A new file: the old local chats stay untouched in crosspoint.sqlite and are not shown.
+    database: join(root, 'crosspoint-account.sqlite'),
     attachments: join(root, 'attachments'),
     projectFiles: join(root, 'project-files'),
     chromium: join(root, 'Chromium')

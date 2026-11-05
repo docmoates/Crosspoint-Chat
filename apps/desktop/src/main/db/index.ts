@@ -168,6 +168,37 @@ const MIGRATIONS: string[] = [
     json TEXT NOT NULL,
     fetched_at INTEGER NOT NULL
   );
+  `,
+  // v3: the server holds the data. Triggers note each local change so it can be sent; rows from the server set `applying` and are not noted.
+  `
+  CREATE TABLE sync_state (applying INTEGER NOT NULL DEFAULT 0, last_seq INTEGER NOT NULL DEFAULT 0);
+  INSERT INTO sync_state DEFAULT VALUES;
+  CREATE TABLE sync_outbox (tbl TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY (tbl, id));
+  CREATE TABLE sync_files (id TEXT PRIMARY KEY);
+  CREATE TRIGGER sync_projects_i AFTER INSERT ON projects WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('projects', NEW.id); END;
+  CREATE TRIGGER sync_projects_u AFTER UPDATE ON projects WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('projects', NEW.id); END;
+  CREATE TRIGGER sync_projects_d AFTER DELETE ON projects WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('projects', OLD.id); END;
+  CREATE TRIGGER sync_conversations_i AFTER INSERT ON conversations WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('conversations', NEW.id); END;
+  CREATE TRIGGER sync_conversations_u AFTER UPDATE ON conversations WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('conversations', NEW.id); END;
+  CREATE TRIGGER sync_conversations_d AFTER DELETE ON conversations WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('conversations', OLD.id); END;
+  CREATE TRIGGER sync_memories_i AFTER INSERT ON memories WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('memories', NEW.id); END;
+  CREATE TRIGGER sync_memories_u AFTER UPDATE ON memories WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('memories', NEW.id); END;
+  CREATE TRIGGER sync_memories_d AFTER DELETE ON memories WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('memories', OLD.id); END;
+  CREATE TRIGGER sync_project_files_i AFTER INSERT ON project_files WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('project_files', NEW.id); END;
+  CREATE TRIGGER sync_project_files_u AFTER UPDATE ON project_files WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('project_files', NEW.id); END;
+  CREATE TRIGGER sync_project_files_d AFTER DELETE ON project_files WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('project_files', OLD.id); END;
+  CREATE TRIGGER sync_attachments_i AFTER INSERT ON attachments WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('attachments', NEW.id); END;
+  CREATE TRIGGER sync_attachments_u AFTER UPDATE ON attachments WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('attachments', NEW.id); END;
+  CREATE TRIGGER sync_attachments_d AFTER DELETE ON attachments WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('attachments', OLD.id); END;
+  CREATE TRIGGER sync_messages_i AFTER INSERT ON messages WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('messages', NEW.id); END;
+  CREATE TRIGGER sync_messages_u AFTER UPDATE ON messages WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('messages', NEW.id); END;
+  CREATE TRIGGER sync_messages_d AFTER DELETE ON messages WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('messages', OLD.id); END;
+  CREATE TRIGGER sync_artifacts_i AFTER INSERT ON artifacts WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('artifacts', NEW.id); END;
+  CREATE TRIGGER sync_artifacts_u AFTER UPDATE ON artifacts WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('artifacts', NEW.id); END;
+  CREATE TRIGGER sync_artifacts_d AFTER DELETE ON artifacts WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('artifacts', OLD.id); END;
+  CREATE TRIGGER sync_av_i AFTER INSERT ON artifact_versions WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('artifact_versions', NEW.artifact_id || '|' || NEW.version); END;
+  CREATE TRIGGER sync_av_u AFTER UPDATE ON artifact_versions WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('artifact_versions', NEW.artifact_id || '|' || NEW.version); END;
+  CREATE TRIGGER sync_av_d AFTER DELETE ON artifact_versions WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('artifact_versions', OLD.artifact_id || '|' || OLD.version); END;
   `
 ]
 

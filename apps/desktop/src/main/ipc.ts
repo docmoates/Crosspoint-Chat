@@ -77,9 +77,25 @@ export function registerIpc(core: Core, opts: { isTrustedUrl: (url: string) => b
     }
     return res
   })
+  const afterSignIn = async (res: { ok: boolean }): Promise<void> => {
+    if (!res.ok) return
+    core.audit.append('sync', `signed in on ${core.pairing.host}`)
+    opts.afterPair()
+    await core.sync.onPaired()
+  }
+  h(Channels.pairing.signIn, z.tuple([z.string().trim().min(1).max(200), z.string().min(1).max(200)]), async (email, password) => {
+    const res = await core.pairing.signIn(email, password)
+    await afterSignIn(res)
+    return res
+  })
+  h(Channels.pairing.acceptInvite, z.tuple([z.object({ code: z.string().trim().min(1).max(100), fullName: z.string().trim().max(80), email: z.string().trim().min(1).max(200), password: z.string().min(1).max(200) })]), async (input) => {
+    const res = await core.pairing.acceptInvite(input)
+    await afterSignIn(res)
+    return res
+  })
   h(Channels.pairing.unpair, none, () => {
     core.chat.stopAll()
-    core.audit.append('sync', 'unpaired by user; local keys wiped')
+    core.audit.append('sync', 'signed out; local copy removed')
     core.sync.wipe()
   })
   h(Channels.pairing.syncNow, none, () => core.sync.syncNow())
@@ -142,7 +158,8 @@ export function registerIpc(core: Core, opts: { isTrustedUrl: (url: string) => b
   h(Channels.attachments.fromPaste, z.tuple([PasteDataSchema]), (data) => core.files.addAttachmentFromPaste(data))
   h(Channels.attachments.read, id, (aid) => {
     const a = core.files.getAttachment(aid)
-    return a ? { mime: a.mime, base64: core.files.readBase64(a.path) } : null
+    if (!a) return null
+    return core.data.ensureFile(a.id, a.path).then(() => ({ mime: a.mime, base64: core.files.readBase64(a.path) }))
   })
 
   // artifacts
@@ -167,7 +184,7 @@ export function registerIpc(core: Core, opts: { isTrustedUrl: (url: string) => b
   h(Channels.memories.remove, id, (mid) => core.library.removeMemory(mid))
 
   // knowledge cards
-  h(Channels.knowledge.lookup, z.tuple([z.string().trim().min(1).max(100)]), (query) => core.knowledge.lookup(query))
+  h(Channels.knowledge.lookup, z.tuple([z.string().trim().min(1).max(300)]), (query) => core.knowledge.lookup(query))
 
   // usage
   h(Channels.usage.summary, none, () => core.usage.summary())

@@ -55,6 +55,7 @@ export function ChatPage(): ReactElement {
   const loading = useChat((s) => s.loading)
   const loadError = useChat((s) => s.loadError)
   const busy = useChat(isStreaming)
+  const offline = usePairing((s) => s.status?.offline ?? false)
   const artifactsVersion = useChat((s) => s.artifactsVersion)
   const { send, regenerate } = useChat.getState()
   const projects = useProjects((s) => s.projects)
@@ -188,7 +189,13 @@ export function ChatPage(): ReactElement {
         )}
       </div>
 
-      <Composer />
+      {offline ? (
+        <div className="notice" role="status" style={{ margin: '0 16px 16px' }}>
+          You're offline. Your chats are read-only until the connection returns.
+        </div>
+      ) : (
+        <Composer />
+      )}
     </section>
   )
 }

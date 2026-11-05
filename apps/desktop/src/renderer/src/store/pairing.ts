@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { api, errorText } from '../lib/api'
-import type { PairingStatus } from '../lib/types'
+import type { PairResult, PairingStatus } from '../lib/types'
 
 interface PairingState {
   status: PairingStatus | null
@@ -9,10 +9,27 @@ interface PairingState {
   syncing: boolean
   error: string | null
   init(): () => void
-  pair(code: string, host?: string): Promise<boolean>
+  signIn(email: string, password: string): Promise<boolean>
+  acceptInvite(input: { code: string; fullName: string; email: string; password: string }): Promise<boolean>
   clearError(): void
   unpair(): Promise<void>
   syncNow(): Promise<void>
+}
+
+async function finish(set: (p: Partial<PairingState>) => void, call: () => Promise<PairResult>): Promise<boolean> {
+  set({ busy: true, error: null })
+  try {
+    const res = await call()
+    if (!res.ok) {
+      set({ busy: false, error: res.error })
+      return false
+    }
+    set({ busy: false, status: await api.pairing.status() })
+    return true
+  } catch (err) {
+    set({ busy: false, error: errorText(err) })
+    return false
+  }
 }
 
 export const usePairing = create<PairingState>((set) => ({
@@ -35,25 +52,15 @@ export const usePairing = create<PairingState>((set) => ({
     }
   },
 
-  async pair(code, host) {
-    set({ busy: true, error: null })
-    try {
-      const res = await api.pairing.pair(code, host)
-      if (!res.ok) {
-        set({ busy: false, error: res.error })
-        return false
-      }
-      const status = await api.pairing.status()
-      set({ busy: false, status })
-      return true
-    } catch (err) {
-      set({ busy: false, error: errorText(err) })
-      return false
-    }
+  async signIn(email, password) {
+    return finish(set, () => api.pairing.signIn(email, password))
+  },
+
+  async acceptInvite(input) {
+    return finish(set, () => api.pairing.acceptInvite(input))
   },
 
   clearError: () => set({ error: null }),
-
   async unpair() {
     set({ busy: true })
     try {

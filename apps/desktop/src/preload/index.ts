@@ -22,6 +22,8 @@ const api: CrosspointApi = {
   pairing: {
     status: () => invoke(C.pairing.status),
     pair: (code, host) => invoke(C.pairing.pair, code, host),
+    signIn: (email, password) => invoke(C.pairing.signIn, email, password),
+    acceptInvite: (input) => invoke(C.pairing.acceptInvite, input),
     unpair: () => invoke(C.pairing.unpair),
     syncNow: () => invoke(C.pairing.syncNow),
     onStatus: (cb) => subscribe<PairingStatus>(Events.pairingStatus, cb)

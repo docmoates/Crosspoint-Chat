@@ -171,15 +171,15 @@ export function DeviceSection(): ReactElement {
           <ExternalLink className="ic-sm" /> Manage devices in admin
         </button>
         <button type="button" className="btn sm danger" disabled={!status?.paired || busy} onClick={() => setConfirm(true)}>
-          Unpair this PC
+          Sign out
         </button>
       </div>
       <ConfirmDialog
         open={confirm}
         onOpenChange={setConfirm}
-        title="Unpair this PC?"
+        title="Sign out of this PC?"
         description="The device token is removed from this PC. Chats stay on disk, but nothing can be sent until you pair again."
-        confirmLabel="Unpair"
+        confirmLabel="Sign out"
         danger
         onConfirm={() => unpair()}
       />

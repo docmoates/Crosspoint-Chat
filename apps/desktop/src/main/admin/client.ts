@@ -14,7 +14,7 @@ import {
   type UsagePostResponse
 } from '@shared/admin-contract'
 
-export type AdminFailureCode = 'unauthorized' | 'revoked' | 'bad_code' | 'rate_limited' | 'invalid' | 'network' | 'bad_response' | 'server'
+export type AdminFailureCode = 'unauthorized' | 'revoked' | 'bad_code' | 'bad_login' | 'rate_limited' | 'invalid' | 'network' | 'bad_response' | 'server'
 
 export class AdminApiError extends Error {
   constructor(
@@ -76,6 +76,16 @@ export class AdminClient {
     this.fetchImpl = opts.fetch ?? ((input, init) => fetch(input, init))
     this.timeoutMs = opts.timeoutMs ?? 15_000
     this.userAgent = opts.userAgent ?? 'CrosspointChat'
+  }
+
+  async signIn(host: string, body: { email: string; password: string; name: string; os: string; app_version: string }): Promise<PairResponse> {
+    const res = await this.request(host, AdminPaths.signIn, { method: 'POST', body: JSON.stringify(body) })
+    return this.parse(res, PairResponseSchema, host)
+  }
+
+  async acceptInvite(host: string, body: { code: string; full_name: string; email: string; password: string; name: string; os: string; app_version: string }): Promise<PairResponse> {
+    const res = await this.request(host, AdminPaths.acceptInvite, { method: 'POST', body: JSON.stringify(body) })
+    return this.parse(res, PairResponseSchema, host)
   }
 
   async pair(host: string, body: PairRequest): Promise<PairResponse> {

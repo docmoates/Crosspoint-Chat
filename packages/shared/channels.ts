@@ -11,6 +11,8 @@ export const Channels = {
   pairing: {
     status: channel('pairing', 'status'),
     pair: channel('pairing', 'pair'),
+    signIn: channel('pairing', 'signIn'),
+    acceptInvite: channel('pairing', 'acceptInvite'),
     unpair: channel('pairing', 'unpair'),
     syncNow: channel('pairing', 'syncNow')
   },

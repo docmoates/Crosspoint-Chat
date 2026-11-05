@@ -87,6 +87,16 @@ function Shell(): ReactElement {
     void useApp.getState().refreshUsage()
   }, [lastSync])
 
+  // Another PC changed chats, projects or memory.
+  const dataVersion = usePairing((s) => s.status?.dataVersion ?? 0)
+  useEffect(() => {
+    if (dataVersion === 0) return
+    void useChat.getState().loadList()
+    const chat = useChat.getState()
+    if (chat.currentId && !isStreaming(chat)) void chat.open(chat.currentId)
+    void useProjects.getState().load()
+  }, [dataVersion])
+
   const showArtifacts = app.view === 'chat' && app.artifactPaneOpen
   return (
     <div

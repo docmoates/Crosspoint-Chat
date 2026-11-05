@@ -28,7 +28,7 @@ export function normalizePairingCode(input: string): string | null {
 
 // ---------- errors ----------
 
-export const AdminErrorCodeSchema = z.enum(['unauthorized', 'revoked', 'bad_code', 'rate_limited', 'invalid'])
+export const AdminErrorCodeSchema = z.enum(['unauthorized', 'revoked', 'bad_code', 'bad_login', 'rate_limited', 'invalid'])
 export type AdminErrorCode = z.infer<typeof AdminErrorCodeSchema>
 
 export const AdminErrorBodySchema = z.looseObject({
@@ -147,7 +147,9 @@ export const AdminPaths = {
   pair: '/api/devices/pair',
   config: '/api/devices/me/config',
   usage: '/api/devices/me/usage',
-  audit: '/api/devices/me/audit'
+  audit: '/api/devices/me/audit',
+  signIn: '/api/auth/sign-in',
+  acceptInvite: '/api/auth/accept-invite'
 } as const
 
 /** Accepts "admin.docmoates.com", "https://admin.docmoates.com/", etc.; returns a bare host[:port]. */

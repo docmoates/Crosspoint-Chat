@@ -36,6 +36,9 @@ export class ConfigSync extends EventEmitter<SyncEvents> {
   private config: AdminConfig | null = null
   private lastSyncAt: string | undefined
   private error: string | undefined
+  private offline = false
+  /** Ticks when the server sent changed chats, projects or memory. */
+  dataVersion = 0
   private timer: NodeJS.Timeout | null = null
   private inflight: Promise<void> | null = null
   /** Epoch ms before which admin asked us (Retry-After) not to call again. */
@@ -61,6 +64,8 @@ export class ConfigSync extends EventEmitter<SyncEvents> {
     if (rec) status.device = { id: rec.deviceId, name: this.config?.device.name ?? rec.deviceName }
     if (this.lastSyncAt) status.lastSyncAt = this.lastSyncAt
     if (this.error) status.error = this.error
+    if (this.offline) status.offline = true
+    status.dataVersion = this.dataVersion
     return status
   }
 
@@ -96,6 +101,7 @@ export class ConfigSync extends EventEmitter<SyncEvents> {
     this.config = null
     this.lastSyncAt = undefined
     this.error = reason
+    this.offline = false
     this.deps.onWipe?.()
     this.emit('config', this.sanitized())
     this.emit('status', this.status())
@@ -120,6 +126,7 @@ export class ConfigSync extends EventEmitter<SyncEvents> {
       const res = await this.deps.client.getConfig(rec.host, rec.token, before)
       this.lastSyncAt = new Date().toISOString()
       this.error = undefined
+      this.offline = false
       if (res.status === 'updated') {
         this.config = res.config
         this.deps.pairing.setDeviceName(res.config.device.name)
@@ -140,6 +147,7 @@ export class ConfigSync extends EventEmitter<SyncEvents> {
         return
       }
       if (err instanceof AdminApiError && err.retryAfterMs != null) this.retryAt = Date.now() + err.retryAfterMs
+      if (err instanceof AdminApiError && err.code === 'network') this.offline = true
       const detail = err instanceof Error ? err.message : String(err)
       this.error = this.config ? `${detail} Using the cached config.` : detail
     }
