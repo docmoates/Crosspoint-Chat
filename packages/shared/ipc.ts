@@ -294,7 +294,13 @@ export const KnowledgeCardSchema = z.object({
   /** The server is tidying this card; ask again shortly. */
   cleaning: z.boolean().optional(),
   /** A model tidied the wording and passed the check against the source. */
-  cleaned: z.boolean().optional()
+  cleaned: z.boolean().optional(),
+  /** What sort of thing this is: Book, Weather, Company. */
+  kind: z.string().optional(),
+  sources: z.array(z.object({ label: z.string(), url: z.string() })).optional(),
+  note: z.string().optional(),
+  /** Logos, flags and diagrams show whole instead of cropped. */
+  imageFit: z.boolean().optional()
 })
 export type KnowledgeCard = z.infer<typeof KnowledgeCardSchema>
 

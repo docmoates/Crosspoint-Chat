@@ -18,7 +18,7 @@ const SECTION_OF = new Map(SECTIONS.flatMap(([name, labels]) => labels.map((l) =
 const ORDER = [...SECTIONS.map(([name]) => name), OTHER]
 const sectionOf = (f: KnowledgeCard['facts'][number]): string => (f.section && ORDER.includes(f.section) ? f.section : (SECTION_OF.get(f.label) ?? OTHER))
 /** Handles and addresses must stay exactly as written. */
-const KEEP_CASE = new Set(['Website', 'X (Twitter)', 'Instagram', 'Facebook', 'ORCID', 'IMDb'])
+const KEEP_CASE = new Set(['Website', 'X (Twitter)', 'Instagram', 'Facebook', 'ORCID', 'IMDb', 'Purpose', 'Used for', 'IUPAC name', 'Scientific name', 'Repository', 'License', 'Code', 'DOI', 'Exchange rate', 'Generic name', 'Formula'])
 const SMALL_WORDS = new Set(['a', 'an', 'and', 'at', 'by', 'for', 'in', 'of', 'on', 'or', 'the', 'to', 'with'])
 
 /** "licensed behavior analyst" -> "Licensed Behavior Analyst". Small joining words stay lower case unless they start a line. */
@@ -89,10 +89,11 @@ export function KnowledgeCardView(props: { card: KnowledgeCard }): ReactElement 
     <aside className="kcard" aria-label={`About ${card.title}`}>
       <div className="kc-head">
         <div className="kc-title">
+          {card.kind && <div className="kc-kind">{card.kind}</div>}
           <h3>{card.title}</h3>
           {card.description && <div className="kc-desc">{card.description}</div>}
         </div>
-        {card.thumbnail && <img className="kc-thumb" src={card.thumbnail} alt="" />}
+        {card.thumbnail && <img className={card.imageFit ? 'kc-thumb fit' : 'kc-thumb'} src={card.thumbnail} alt="" />}
       </div>
       {card.extract && <p className={more ? 'kc-extract open' : 'kc-extract'}>{card.extract}</p>}
       {card.extract.length > 260 && (
@@ -111,8 +112,14 @@ export function KnowledgeCardView(props: { card: KnowledgeCard }): ReactElement 
         </details>
       )}
       <div className="kc-foot">
+        {card.note && <span className="faint">{card.note}</span>}
         {card.wikipediaUrl && <SourceLink url={card.wikipediaUrl}>Wikipedia</SourceLink>}
         {card.wikidataUrl && <SourceLink url={card.wikidataUrl}>Wikidata</SourceLink>}
+        {card.sources?.map((s) => (
+          <SourceLink key={s.label} url={s.url}>
+            {s.label}
+          </SourceLink>
+        ))}
         {card.wikipediaUrl && <span className="faint">Text from Wikipedia, CC BY-SA 4.0</span>}
         {card.cleaned && <span className="faint">Tidied by AI from these sources</span>}
       </div>

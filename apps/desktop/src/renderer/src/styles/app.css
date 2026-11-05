@@ -642,6 +642,16 @@ details.thinking {
   color: var(--fg-3);
   margin-top: 2px;
 }
+.kc-kind {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.kc-thumb.fit {
+  object-fit: contain;
+  background: #fff;
+  padding: 4px;
+}
 .kc-thumb {
   width: 84px;
   height: 84px;
