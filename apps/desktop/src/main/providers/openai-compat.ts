@@ -20,6 +20,8 @@ export interface OpenAICompatConfig {
 
 /** Minimal structural view of a Chat Completions stream chunk (OpenAI, OpenRouter and most compatible servers). */
 export interface CompatChunk {
+  /** Set by the Crosspoint server when the router made an image or started a video instead of text. */
+  crosspoint?: { image?: { media_type: string; b64_json: string; cost_usd: number }; video?: { job_id: string } }
   choices?: Array<{
     delta?: {
       content?: string | null
@@ -54,6 +56,8 @@ export class CompatChunkMapper {
 
   map(chunk: CompatChunk): ProviderStreamEvent[] {
     const out: ProviderStreamEvent[] = []
+    if (chunk.crosspoint?.image) out.push({ type: 'media_image', mime: chunk.crosspoint.image.media_type, base64: chunk.crosspoint.image.b64_json, costUsd: chunk.crosspoint.image.cost_usd })
+    if (chunk.crosspoint?.video) out.push({ type: 'media_video', jobId: chunk.crosspoint.video.job_id })
     for (const choice of chunk.choices ?? []) {
       const d = choice.delta
       const reasoning = d?.reasoning ?? d?.reasoning_content

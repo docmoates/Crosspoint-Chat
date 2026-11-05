@@ -4,6 +4,8 @@ type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K>
 
 /** A StreamEvent before the chat service stamps runId / conversationId / messageId on it. */
 export type ProviderStreamEvent = DistributiveOmit<StreamEvent, 'runId' | 'conversationId' | 'messageId'>
+  | { type: 'media_image'; mime: string; base64: string; costUsd: number }
+  | { type: 'media_video'; jobId: string }
 
 export type ChatContentPart = { type: 'text'; text: string } | { type: 'image'; mime: string; base64: string }
 

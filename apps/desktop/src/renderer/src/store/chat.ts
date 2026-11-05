@@ -80,7 +80,7 @@ interface ChatState {
   loadList(): Promise<void>
   open(id: string): Promise<void>
   newChat(projectId?: string): void
-  send(text: string, attachments: AttachmentRef[], media?: { id: string; kind: 'image' | 'video' }): Promise<void>
+  send(text: string, attachments: AttachmentRef[]): Promise<void>
   stop(): Promise<void>
   regenerate(key: string, modelId?: string): Promise<void>
   setModel(modelId: string | undefined): Promise<void>
@@ -246,7 +246,7 @@ export const useChat = create<ChatState>((set, get) => {
       })
     },
 
-    async send(text, attachments, media) {
+    async send(text, attachments) {
       const trimmed = text.trim()
       if (!trimmed && attachments.length === 0) return
       let conv = get().conversation
@@ -290,7 +290,6 @@ export const useChat = create<ChatState>((set, get) => {
           conversationId: c.id,
           text: trimmed,
           attachments: attachments.length ? attachments : undefined,
-          ...(media ? { media } : {}),
           modelId: c.modelId ?? undefined,
           settings: c.settings,
         })

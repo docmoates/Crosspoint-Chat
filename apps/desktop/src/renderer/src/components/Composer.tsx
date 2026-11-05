@@ -1,14 +1,11 @@
 import * as DM from '@radix-ui/react-dropdown-menu'
-import { ArrowUp, Clapperboard, FileText, FolderClosed, Image as ImageIcon, Paperclip, Plus, Square, X } from 'lucide-react'
+import { ArrowUp, FileText, FolderClosed, Image as ImageIcon, Paperclip, Plus, Square, X } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { api, errorText } from '../lib/api'
 import { bytes, fileToBase64 } from '../lib/utils'
-import type { AppMediaOption, AttachmentRef } from '../lib/types'
-import { useConfig } from '../store/config'
+import type { AttachmentRef } from '../lib/types'
 import { useApp } from '../store/app'
 import { isStreaming, useChat } from '../store/chat'
-
-const NO_MEDIA: AppMediaOption[] = []
 
 export function Composer(): ReactElement {
   const conversation = useChat((s) => s.conversation)
@@ -20,13 +17,7 @@ export function Composer(): ReactElement {
   const toast = useApp((s) => s.toast)
 
   const [text, setText] = useState('')
-  const mediaOptions = useConfig((s) => s.config?.media ?? NO_MEDIA)
-  const [mediaKind, setMediaKind] = useState<'image' | 'video' | null>(null)
-  const [mediaId, setMediaId] = useState('')
-  const mediaList = mediaOptions.filter((m) => m.kind === mediaKind)
-  const media = mediaList.find((m) => m.id === mediaId) ?? mediaList[0]
   const [attachments, setAttachments] = useState<AttachmentRef[]>([])
-  const needsImage = Boolean(mediaKind && media?.needs_image && !attachments.some((a) => a.kind === 'image'))
   const [uploading, setUploading] = useState(0)
   const [drag, setDrag] = useState(false)
   const ta = useRef<HTMLTextAreaElement>(null)
@@ -70,15 +61,14 @@ export function Composer(): ReactElement {
   const submit = (): void => {
     if (streaming || uploading > 0) return
     if (!text.trim() && attachments.length === 0) return
-    if (mediaKind && (!media || !text.trim() || needsImage)) return
     const t = text
     const a = attachments
     setText('')
     setAttachments([])
-    void send(t, a, mediaKind && media ? { id: media.id, kind: mediaKind } : undefined)
+    void send(t, a)
   }
 
-  const canSend = !streaming && uploading === 0 && (mediaKind ? Boolean(media) && text.trim().length > 0 && !needsImage : text.trim().length > 0 || attachments.length > 0)
+  const canSend = !streaming && uploading === 0 && (text.trim().length > 0 || attachments.length > 0)
 
   return (
     <div className="composer-wrap">
@@ -117,29 +107,11 @@ export function Composer(): ReactElement {
             {uploading > 0 && <span className="attach faint">Attaching {uploading}…</span>}
           </div>
         )}
-        {mediaKind && (
-          <div className="flex flex-wrap items-center gap-2" style={{ padding: '6px 10px 0' }}>
-            <span className="attach">
-              {mediaKind === 'image' ? 'Create image' : 'Create video'}
-              <button type="button" aria-label="Back to chat" onClick={() => setMediaKind(null)}>
-                <X className="ic-xs" />
-              </button>
-            </span>
-            <select className="input" style={{ width: 'auto' }} aria-label="What to create" value={media?.id ?? ''} onChange={(e) => setMediaId(e.target.value)}>
-              {mediaList.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} · about ${m.est_usd.toFixed(m.est_usd < 0.1 ? 3 : 2)}
-                </option>
-              ))}
-            </select>
-            <span className="faint text-[12px]">{needsImage ? 'Attach an image first.' : media?.blurb}</span>
-          </div>
-        )}
         <textarea
           ref={ta}
           rows={1}
           value={text}
-          placeholder={mediaKind ? `Describe the ${mediaKind} you want…` : 'Message Crosspoint…'}
+          placeholder="Message Crosspoint…"
           aria-label="Message"
           onChange={(e) => setText(e.target.value)}
           onPaste={(e) => {
@@ -184,16 +156,6 @@ export function Composer(): ReactElement {
                   <FolderClosed className="ic-sm" /> Add project knowledge
                   {!projectId && <span className="right">chat is not in a project</span>}
                 </DM.Item>
-                {mediaOptions.some((m) => m.kind === 'image') && (
-                  <DM.Item className="menu-item" onSelect={() => { setMediaKind('image'); setMediaId('') }}>
-                    <ImageIcon className="ic-sm" /> Create image
-                  </DM.Item>
-                )}
-                {mediaOptions.some((m) => m.kind === 'video') && (
-                  <DM.Item className="menu-item" onSelect={() => { setMediaKind('video'); setMediaId('') }}>
-                    <Clapperboard className="ic-sm" /> Create video
-                  </DM.Item>
-                )}
               </DM.Content>
             </DM.Portal>
           </DM.Root>

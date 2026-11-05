@@ -1,10 +1,4 @@
-/** Calls the admin server's image and video endpoints. The server picks the model and holds the keys. */
-export interface MediaRequest {
-  capability: string
-  prompt: string
-  images?: string[]
-}
-
+/** Calls the admin server's video job endpoints. The server picks the model and holds the keys. */
 export class MediaClient {
   constructor(private readonly target: () => { baseUrl: string; token: string } | null) {}
 
@@ -15,14 +9,6 @@ export class MediaClient {
     if (res.ok) return res
     const body = (await res.json().catch(() => null)) as { error?: string } | null
     throw new Error(body?.error ?? `The server answered ${res.status}.`)
-  }
-
-  async image(body: MediaRequest, signal: AbortSignal): Promise<{ media_type: string; b64_json: string; cost_usd: number }> {
-    return (await this.call('/media/image', { method: 'POST', body: JSON.stringify(body) }, signal)).json() as never
-  }
-
-  async submitVideo(body: MediaRequest, signal: AbortSignal): Promise<{ job_id: string }> {
-    return (await this.call('/media/video', { method: 'POST', body: JSON.stringify(body) }, signal)).json() as never
   }
 
   async pollVideo(id: string, signal: AbortSignal): Promise<{ status: string; cost_usd: number | null; error?: string | undefined }> {

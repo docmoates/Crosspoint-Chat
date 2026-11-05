@@ -287,7 +287,7 @@ function AssistantMessage(props: {
         {m.attachments.map((a) => <GeneratedMedia key={a.id} attachment={a} />)}
         {waiting && (
           <div className="status-row">
-            <Spinner /> {m.modelId?.startsWith('media:') ? 'Creating…' : 'Waiting for a reply…'}
+            <Spinner /> Working…
           </div>
         )}
         {m.error && (

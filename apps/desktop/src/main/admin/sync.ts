@@ -173,7 +173,6 @@ export class ConfigSync extends EventEmitter<SyncEvents> {
 export function sanitizeConfig(c: AdminConfig): AppConfig {
   return {
     config_version: c.config_version,
-    media: c.media.map((m) => ({ id: m.id, kind: m.kind, name: m.name, blurb: m.blurb, needs_image: m.needs_image, est_usd: m.est_usd })),
     limits: {
       monthly_usd: c.limits.monthly_usd ?? null,
       daily_usd: c.limits.daily_usd ?? null,

@@ -39,8 +39,6 @@ const PROJECT_CONTEXT_MAX_CHARS = 300_000
 const AUTO_MODEL = 'auto'
 const TITLE_MODEL = 'system:title'
 const GATEWAY_ID = 'crosspoint'
-/** Assistant messages made by the image and video list keep the job here so Regenerate repeats it. */
-const MEDIA_PREFIX = 'media:'
 const VIDEO_POLL_MS = 10_000
 const VIDEO_MAX_MS = 20 * 60_000
 const DEFAULT_TITLE_WORDS = 6
@@ -91,7 +89,6 @@ export class ChatService {
     })
     for (const a of attachments) this.d.files.linkAttachment(a.id, conv.id, userId)
 
-    if (input.media) return this.startRun(conv.id, userId, conv.settings, undefined, input.media)
     return this.startRun(conv.id, userId, { ...conv.settings, ...(input.settings ?? {}) })
   }
 
@@ -115,9 +112,7 @@ export class ChatService {
     }
     const conv = this.d.library.getConversation(msg.conversationId)
     this.requirePaired()
-    const job = msg.role === 'assistant' && msg.modelId?.startsWith(MEDIA_PREFIX) ? msg.modelId.slice(MEDIA_PREFIX.length).split(':') : null
-    const media = job?.[0] && job[1] ? { kind: job[0] as 'image' | 'video', id: job[1] } : undefined
-    const { runId } = await this.startRun(conv.id, parentId, conv.settings, createdAt ?? new Date(Date.parse(msg.createdAt) + 1).toISOString(), media)
+    const { runId } = await this.startRun(conv.id, parentId, conv.settings, createdAt ?? new Date(Date.parse(msg.createdAt) + 1).toISOString())
     return { runId }
   }
 
@@ -137,8 +132,7 @@ export class ChatService {
     conversationId: string,
     parentId: string,
     settings: ChatSettings,
-    createdAt?: string,
-    media?: { id: string; kind: 'image' | 'video' }
+    createdAt?: string
   ): Promise<{ messageId: string; runId: string }> {
     const messageId = randomUUID()
     const runId = randomUUID()
@@ -147,7 +141,7 @@ export class ChatService {
       conversationId,
       role: 'assistant',
       parts: [],
-      modelId: media ? `${MEDIA_PREFIX}${media.kind}:${media.id}` : AUTO_MODEL,
+      modelId: AUTO_MODEL,
       provider: GATEWAY_ID,
       status: 'streaming',
       usage: null,
@@ -159,7 +153,7 @@ export class ChatService {
     this.runs.set(runId, ctx)
     // Let the renderer receive { messageId, runId } before the first event.
     setImmediate(() => {
-      void (media ? this.runMedia(ctx, media) : this.run(ctx))
+      void this.run(ctx)
         .catch((err) => this.failRun(ctx, err instanceof Error ? err.message : String(err)))
         .finally(() => this.runs.delete(runId))
     })
@@ -219,6 +213,7 @@ export class ChatService {
     let usage: UsageInfo | null = null
     let finish: Extract<StreamEvent, { type: 'done' }>['finishReason'] = 'stop'
     let failure: ProviderError | null = null
+    const created: MessagePart[] = []
 
     this.d.audit.append('outbound', 'chat request to the Crosspoint server')
     try {
@@ -238,6 +233,14 @@ export class ChatService {
         } else if (ev.type === 'tool_call') {
           toolCalls.push({ type: 'tool_call', id: ev.id, name: ev.name, input: ev.input })
           this.emit(ctx, ev)
+        } else if (ev.type === 'media_image') {
+          created.push(await this.saveMedia(ctx, ev.base64, ev.mime, mediaName(history)))
+          usage = { provider: GATEWAY_ID, model: AUTO_MODEL, tokensIn: 0, tokensOut: 0, cachedTokens: 0, costUsd: ev.costUsd }
+        } else if (ev.type === 'media_video') {
+          const notice_ = 'Creating your video. This can take a few minutes.'
+          notice('info', notice_, 'video_started')
+          const costUsd = await this.finishVideo(ctx, ev.jobId, mediaName(history), created)
+          usage = { provider: GATEWAY_ID, model: AUTO_MODEL, tokensIn: 0, tokensOut: 0, cachedTokens: 0, costUsd }
         } else if (ev.type === 'usage') {
           usage = ev.usage
         } else if (ev.type === 'done') {
@@ -270,14 +273,14 @@ export class ChatService {
       this.d.usage.record({ ...usage, kind: 'chat', conversationId: ctx.conversationId, messageId: ctx.messageId, estimated: true })
       this.emit(ctx, { type: 'usage', usage })
     } else if (usage) {
-      this.d.usage.record({ ...usage, kind: 'chat', conversationId: ctx.conversationId, messageId: ctx.messageId })
+      this.d.usage.record({ ...usage, kind: created.length ? 'image' : 'chat', conversationId: ctx.conversationId, messageId: ctx.messageId })
       this.emit(ctx, { type: 'usage', usage })
     }
 
     const parts: MessagePart[] = [...notices]
     if (thinking) parts.push({ type: 'thinking', text: thinking })
     if (text) parts.push({ type: 'text', text })
-    parts.push(...toolCalls)
+    parts.push(...toolCalls, ...created)
 
     if (failure && !text && !stopped) {
       this.d.audit.append('error', `chat failed: ${failure.status ?? 'network'}`)
@@ -312,76 +315,37 @@ export class ChatService {
       }
     }
 
-    const title = !stopped && text ? await this.maybeTitle(ctx, text).catch(() => undefined) : undefined
+    const title = !stopped && (text || created.length) ? await this.maybeTitle(ctx, text).catch(() => undefined) : undefined
     this.emit(ctx, { type: 'done', finishReason: finish, ...(title ? { title } : {}) })
   }
 
-  /** Creates one image or video from the user's message and saves it on the reply. */
-  private async runMedia(ctx: RunContext, media: { id: string; kind: 'image' | 'video' }): Promise<void> {
-    const cfg = this.d.config()
-    if (!cfg) return this.failRun(ctx, 'This device is not paired with admin.')
-    const limit = this.d.usage.checkLimits(cfg.limits, this.d.settings.get().dailyCapUsd)
-    if (limit.blocked) return this.failRun(ctx, limit.blocked.message)
-    const parent = this.d.library.getMessage(ctx.parentId)
-    const prompt = textOf(parent.parts).trim()
-    if (!prompt) return this.failRun(ctx, 'Describe what you want to create.')
-    const images: string[] = []
-    for (const p of parent.parts) {
-      if (p.type !== 'attachment' || p.attachment.kind !== 'image') continue
-      const a = this.d.files.getAttachment(p.attachment.id)
-      if (a) images.push(`data:${a.mime};base64,${this.d.files.readBase64(a.path)}`)
-    }
-    const body = { capability: media.id, prompt, images: images.slice(0, 4) }
+  /** Saves what the router created on this reply and shows it. */
+  private async saveMedia(ctx: RunContext, base64: string, mime: string, name: string): Promise<MessagePart> {
+    const ext = ({ 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/svg+xml': 'svg', 'video/mp4': 'mp4', 'video/webm': 'webm' } as Record<string, string>)[mime] ?? 'bin'
+    const ref = await this.d.files.addAttachmentFromPaste({ name: `${name || 'created'}.${ext}`, mime, base64 })
+    this.d.files.linkAttachment(ref.id, ctx.conversationId, ctx.messageId)
+    this.d.emit({ type: 'attachment', attachment: ref, runId: ctx.runId, conversationId: ctx.conversationId, messageId: ctx.messageId } as StreamEvent)
+    return { type: 'attachment', attachment: ref }
+  }
+
+  /** The router started a video on the server: wait for it, then download it. Returns its cost. */
+  private async finishVideo(ctx: RunContext, jobId: string, name: string, out: MessagePart[]): Promise<number> {
     const signal = ctx.controller.signal
-    this.d.audit.append('outbound', `${media.kind} request to the Crosspoint server`)
-    try {
-      let bytes: Buffer
-      let mime: string
-      let costUsd: number
-      if (media.kind === 'image') {
-        const out = await this.d.media.image(body, signal)
-        bytes = Buffer.from(out.b64_json, 'base64')
-        mime = out.media_type
-        costUsd = out.cost_usd
-      } else {
-        const { job_id } = await this.d.media.submitVideo(body, signal)
-        this.emit(ctx, { type: 'notice', level: 'info', message: 'Creating your video. This can take a few minutes.', code: 'video_started' })
-        const deadline = Date.now() + VIDEO_MAX_MS
-        for (;;) {
-          await new Promise((r) => setTimeout(r, VIDEO_POLL_MS))
-          if (signal.aborted) throw new DOMException('Stopped', 'AbortError')
-          if (Date.now() > deadline) throw new Error('The video took too long. Try again.')
-          const s = await this.d.media.pollVideo(job_id, signal).catch((err: unknown) => {
-            if (signal.aborted) throw err
-            return { status: 'pending', cost_usd: null, error: undefined }
-          })
-          if (s.status === 'completed') {
-            costUsd = s.cost_usd ?? 0
-            break
-          }
-          if (['failed', 'cancelled', 'expired'].includes(s.status)) throw new Error(s.error ?? 'The video could not be created. Try a different prompt.')
-        }
-        const file = await this.d.media.videoContent(job_id, signal)
-        bytes = file.bytes
-        mime = file.mime
+    const deadline = Date.now() + VIDEO_MAX_MS
+    for (;;) {
+      await new Promise((r) => setTimeout(r, VIDEO_POLL_MS))
+      if (signal.aborted) throw new DOMException('Stopped', 'AbortError')
+      if (Date.now() > deadline) throw new Error('The video took too long. Try again.')
+      const s = await this.d.media.pollVideo(jobId, signal).catch((err: unknown) => {
+        if (signal.aborted) throw err
+        return { status: 'pending', cost_usd: null, error: undefined }
+      })
+      if (['failed', 'cancelled', 'expired'].includes(s.status)) throw new Error(s.error ?? 'The video could not be created. Try a different prompt.')
+      if (s.status === 'completed') {
+        const file = await this.d.media.videoContent(jobId, signal)
+        out.push(await this.saveMedia(ctx, file.bytes.toString('base64'), file.mime, name))
+        return s.cost_usd ?? 0
       }
-      const ext = ({ 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/svg+xml': 'svg', 'video/mp4': 'mp4', 'video/webm': 'webm' } as Record<string, string>)[mime] ?? (media.kind === 'image' ? 'png' : 'mp4')
-      const ref = await this.d.files.addAttachmentFromPaste({ name: `${firstWords(prompt, 4) || media.kind}.${ext}`, mime, base64: bytes.toString('base64') })
-      this.d.files.linkAttachment(ref.id, ctx.conversationId, ctx.messageId)
-      const usage: UsageInfo = { provider: GATEWAY_ID, model: media.id, tokensIn: 0, tokensOut: 0, cachedTokens: 0, costUsd }
-      this.d.usage.record({ ...usage, kind: 'image', conversationId: ctx.conversationId, messageId: ctx.messageId })
-      this.d.library.updateMessage(ctx.messageId, { parts: [{ type: 'attachment', attachment: ref }], status: 'complete', usage, costUsd })
-      this.d.emit({ type: 'attachment', attachment: ref, runId: ctx.runId, conversationId: ctx.conversationId, messageId: ctx.messageId } as StreamEvent)
-      this.emit(ctx, { type: 'usage', usage })
-      const title = await this.maybeTitle(ctx, '').catch(() => undefined)
-      this.emit(ctx, { type: 'done', finishReason: 'stop', ...(title ? { title } : {}) })
-    } catch (err) {
-      if (signal.aborted || isAbortError(err)) {
-        this.d.library.updateMessage(ctx.messageId, { parts: [], status: 'stopped' })
-        this.emit(ctx, { type: 'done', finishReason: 'stopped' })
-        return
-      }
-      this.failRun(ctx, err instanceof Error ? err.message : String(err))
     }
   }
 
@@ -494,6 +458,12 @@ export class ChatService {
     this.d.library.setGeneratedTitle(ctx.conversationId, final, title ? 'helper' : 'first_words')
     return final
   }
+}
+
+function mediaName(history: ChatMessage[]): string {
+  const last = history[history.length - 1]
+  const text = last?.content.map((p) => (p.type === 'text' ? p.text : '')).join(' ') ?? ''
+  return firstWords(text, 4)
 }
 
 export function firstWords(text: string, n = DEFAULT_TITLE_WORDS): string {
