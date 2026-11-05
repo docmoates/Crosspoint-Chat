@@ -5,6 +5,9 @@ import type { KnowledgeCard } from '../lib/types'
 import { useApp } from './app'
 
 const MAX_QUESTION = 300
+/** The plain card shows first; the tidied one replaces it when the server has it. */
+const MAX_ASKS = 4
+const ASK_AGAIN_MS = 4_000
 
 type Entry = { state: 'loading' } | { state: 'done'; card: KnowledgeCard | null }
 
@@ -20,7 +23,20 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
     if (get().entries[entity]) return
     set((s) => ({ entries: { ...s.entries, [entity]: { state: 'loading' } } }))
     const done = (card: KnowledgeCard | null): void => set((s) => ({ entries: { ...s.entries, [entity]: { state: 'done', card } } }))
-    api.knowledge.lookup(entity).then(done, () => done(null))
+    const ask = (tries: number): void => {
+      api.knowledge.lookup(entity).then(
+        (card) => {
+          // Keep what is showing if a later ask fails.
+          if (card) done(card)
+          else if (tries === MAX_ASKS) done(null)
+          if (card?.cleaning && tries > 1) setTimeout(() => ask(tries - 1), ASK_AGAIN_MS)
+        },
+        () => {
+          if (tries === MAX_ASKS) done(null)
+        }
+      )
+    }
+    ask(MAX_ASKS)
   },
 }))
 

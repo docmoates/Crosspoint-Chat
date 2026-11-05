@@ -271,7 +271,8 @@ export type UsageDetail = z.infer<typeof UsageDetailSchema>
 
 // ---------- knowledge cards ----------
 
-export const KnowledgeFactSchema = z.object({ label: z.string(), value: z.string(), href: z.string().optional() })
+export const KnowledgeFactSchema = z.object({
+  section: z.string().optional(), label: z.string(), value: z.string(), href: z.string().optional() })
 export type KnowledgeFact = z.infer<typeof KnowledgeFactSchema>
 
 /** A Google-style panel for one entity: Wikipedia summary plus Wikidata facts. Built in main; the renderer never calls the network. */
@@ -289,7 +290,11 @@ export const KnowledgeCardSchema = z.object({
   /** Null when the card comes from Wikidata alone. */
   wikipediaUrl: z.string().nullable(),
   wikidataUrl: z.string().nullable(),
-  website: z.string().nullable()
+  website: z.string().nullable(),
+  /** The server is tidying this card; ask again shortly. */
+  cleaning: z.boolean().optional(),
+  /** A model tidied the wording and passed the check against the source. */
+  cleaned: z.boolean().optional()
 })
 export type KnowledgeCard = z.infer<typeof KnowledgeCardSchema>
 

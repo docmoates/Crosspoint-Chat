@@ -517,8 +517,11 @@ kbd {
   gap: 4px;
   color: var(--fg-2);
 }
-.msg .body {
+/* Text keeps a readable width; the knowledge card may use the full thread. */
+.msg .body > :not(.kcard) {
   max-width: 68ch;
+}
+.msg .body {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -617,7 +620,7 @@ details.thinking {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-width: 560px;
+  width: 100%;
 }
 .kc-head {
   display: flex;
@@ -671,27 +674,66 @@ details.thinking {
   align-items: center;
   gap: 4px;
 }
+/* Google-style facts: "Born: 14 January 1995", each one a tight run of text. */
 .kc-facts {
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid var(--line);
+}
+.kc-section + .kc-section {
+  margin-top: 12px;
+}
+.kc-section h4 {
+  margin: 0;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--line);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-3);
 }
 .kc-fact {
-  display: grid;
-  grid-template-columns: 110px 1fr;
-  gap: 12px;
   padding: 6px 0;
   border-bottom: 1px solid var(--line);
   font-size: 13px;
+  line-height: 1.4;
 }
 .kc-fact dt {
-  color: var(--fg-3);
+  display: inline;
+  font-weight: 600;
+  color: var(--fg);
+}
+.kc-fact dt::after {
+  content: ': ';
 }
 .kc-fact dd {
+  display: inline;
   margin: 0;
   color: var(--fg);
   overflow-wrap: anywhere;
+}
+/* Two columns keep long cards short. A fact never splits across them. */
+.kc-facts {
+  columns: 2;
+  column-gap: 28px;
+}
+.kc-fact {
+  break-inside: avoid;
+}
+@media (max-width: 720px) {
+  .kc-facts {
+    columns: 1;
+  }
+}
+/* Several values: the label on its own line, then one value per line. */
+.kc-fact.multi dt {
+  display: block;
+}
+.kc-fact.multi dt::after {
+  content: '';
+}
+.kc-fact.multi dd {
+  display: block;
+  white-space: pre-line;
 }
 .kc-fact dd a {
   color: var(--accent);

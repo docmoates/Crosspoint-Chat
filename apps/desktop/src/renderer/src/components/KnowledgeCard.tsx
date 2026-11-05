@@ -3,32 +3,69 @@ import { useState, type ReactElement } from 'react'
 import { api } from '../lib/api'
 import type { KnowledgeCard } from '../lib/types'
 
-const VISIBLE_FACTS = 6
+const VISIBLE_FACTS = 12
+
+/** Sections in display order. Facts not listed here go under Details. */
+const SECTIONS: [string, string[]][] = [
+  ['Personal', ['Born', 'Died', 'Citizenship', 'Residence', 'Languages', 'Also known as']],
+  ['Education', ['Education', 'Degree', 'Field of study', 'Doctoral advisor']],
+  ['Career', ['Occupation', 'Employer', 'Field of work', 'Position held', 'Member of', 'Movement', 'Founder', 'CEO', 'Industry', 'Notable work']],
+  ['Recognition', ['Awards']],
+  ['Online', ['Website', 'X (Twitter)', 'Instagram', 'Facebook', 'ORCID', 'IMDb']],
+]
+const OTHER = 'Details'
+const SECTION_OF = new Map(SECTIONS.flatMap(([name, labels]) => labels.map((l) => [l, name] as const)))
+const ORDER = [...SECTIONS.map(([name]) => name), OTHER]
+const sectionOf = (f: KnowledgeCard['facts'][number]): string => (f.section && ORDER.includes(f.section) ? f.section : (SECTION_OF.get(f.label) ?? OTHER))
+/** Handles and addresses must stay exactly as written. */
+const KEEP_CASE = new Set(['Website', 'X (Twitter)', 'Instagram', 'Facebook', 'ORCID', 'IMDb'])
+const SMALL_WORDS = new Set(['a', 'an', 'and', 'at', 'by', 'for', 'in', 'of', 'on', 'or', 'the', 'to', 'with'])
+
+/** "licensed behavior analyst" -> "Licensed Behavior Analyst". Small joining words stay lower case unless they start a line. */
+export function capitalizeWords(text: string): string {
+  return text
+    .split('\n')
+    .map((line) => line.replace(/\p{L}[\p{L}\p{M}'’-]*/gu, (w, at: number) => (at > 0 && SMALL_WORDS.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1))))
+    .join('\n')
+}
 
 function Facts(props: { facts: KnowledgeCard['facts'] }): ReactElement {
+  const present = ORDER.filter((name) => props.facts.some((f) => sectionOf(f) === name))
   return (
-    <dl className="kc-facts">
-      {props.facts.map((f) => (
-        <div key={f.label} className="kc-fact">
-          <dt>{f.label}</dt>
-          <dd>
-            {f.href ? (
-              <a
-                href={f.href}
-                onClick={(e) => {
-                  e.preventDefault()
-                  void api.app.openExternal(f.href as string)
-                }}
-              >
-                {f.value}
-              </a>
-            ) : (
-              f.value
-            )}
-          </dd>
-        </div>
+    <div className="kc-sections">
+      {present.map((name) => (
+        <section key={name} className="kc-section">
+          {present.length > 1 && <h4>{name}</h4>}
+          <dl className="kc-facts">
+            {props.facts
+              .filter((f) => sectionOf(f) === name)
+              .map((f) => {
+                const value = f.href || f.section || KEEP_CASE.has(f.label) ? f.value : capitalizeWords(f.value)
+                return (
+                  <div key={f.label} className={value.includes('\n') ? 'kc-fact multi' : 'kc-fact'}>
+                    <dt>{f.label}</dt>
+                    <dd>
+                      {f.href ? (
+                        <a
+                          href={f.href}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            void api.app.openExternal(f.href as string)
+                          }}
+                        >
+                          {value}
+                        </a>
+                      ) : (
+                        value
+                      )}
+                    </dd>
+                  </div>
+                )
+              })}
+          </dl>
+        </section>
       ))}
-    </dl>
+    </div>
   )
 }
 
@@ -44,8 +81,10 @@ function SourceLink(props: { url: string; children: string }): ReactElement {
 export function KnowledgeCardView(props: { card: KnowledgeCard }): ReactElement {
   const { card } = props
   const [more, setMore] = useState(false)
-  const shown = card.facts.slice(0, VISIBLE_FACTS)
-  const rest = card.facts.slice(VISIBLE_FACTS)
+  // Sorted by section first, so the summary and "More facts" keep the same order.
+  const ordered = [...card.facts].sort((a, b) => ORDER.indexOf(sectionOf(a)) - ORDER.indexOf(sectionOf(b)))
+  const shown = ordered.slice(0, VISIBLE_FACTS)
+  const rest = ordered.slice(VISIBLE_FACTS)
   return (
     <aside className="kcard" aria-label={`About ${card.title}`}>
       <div className="kc-head">
@@ -75,6 +114,7 @@ export function KnowledgeCardView(props: { card: KnowledgeCard }): ReactElement 
         {card.wikipediaUrl && <SourceLink url={card.wikipediaUrl}>Wikipedia</SourceLink>}
         {card.wikidataUrl && <SourceLink url={card.wikidataUrl}>Wikidata</SourceLink>}
         {card.wikipediaUrl && <span className="faint">Text from Wikipedia, CC BY-SA 4.0</span>}
+        {card.cleaned && <span className="faint">Tidied by AI from these sources</span>}
       </div>
     </aside>
   )
