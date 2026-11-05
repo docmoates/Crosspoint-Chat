@@ -32,7 +32,7 @@ export const Channels = {
     filesAdd: channel('projects.files', 'add'),
     filesRemove: channel('projects.files', 'remove')
   },
-  attachments: { pick: channel('attachments', 'pick'), fromPaste: channel('attachments', 'fromPaste') },
+  attachments: { pick: channel('attachments', 'pick'), fromPaste: channel('attachments', 'fromPaste'), read: channel('attachments', 'read') },
   artifacts: {
     list: channel('artifacts', 'list'),
     listAll: channel('artifacts', 'listAll'),

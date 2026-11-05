@@ -140,6 +140,10 @@ export function registerIpc(core: Core, opts: { isTrustedUrl: (url: string) => b
     return out
   })
   h(Channels.attachments.fromPaste, z.tuple([PasteDataSchema]), (data) => core.files.addAttachmentFromPaste(data))
+  h(Channels.attachments.read, id, (aid) => {
+    const a = core.files.getAttachment(aid)
+    return a ? { mime: a.mime, base64: core.files.readBase64(a.path) } : null
+  })
 
   // artifacts
   h(Channels.artifacts.list, id, (cid) => core.artifacts.list(cid))

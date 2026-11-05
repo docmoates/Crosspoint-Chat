@@ -14,6 +14,7 @@ import { SecureFile } from './secure-file'
 import { ArtifactStore } from './services/artifacts'
 import { AuditLog } from './services/audit'
 import { ChatService } from './services/chat'
+import { MediaClient } from './services/media'
 import { FileStore } from './services/files'
 import { KnowledgeService, SqliteKnowledgeCache } from './services/knowledge'
 import { Library } from './services/library'
@@ -125,6 +126,10 @@ export function createCore(events: CoreEvents): Core {
     artifacts,
     usage,
     gateway,
+    media: new MediaClient(() => {
+      const rec = pairing.device
+      return rec ? { baseUrl: adminUrl(rec.host, sync.full?.gateway.path ?? DEFAULT_GATEWAY_PATH), token: rec.token } : null
+    }),
     settings,
     audit,
     config: () => sync.full,

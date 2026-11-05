@@ -55,6 +55,7 @@ const api: CrosspointApi = {
     }
   },
   attachments: {
+    read: (id) => invoke(C.attachments.read, id),
     pick: () => invoke(C.attachments.pick),
     fromPaste: (data) => invoke(C.attachments.fromPaste, data)
   },

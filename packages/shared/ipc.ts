@@ -21,8 +21,12 @@ export type PairResult = { ok: true } | { ok: false; error: string }
 
 // ---------- sanitized config ----------
 
+export const AppMediaOptionSchema = z.object({ id: z.string(), kind: z.enum(['image', 'video']), name: z.string(), blurb: z.string(), needs_image: z.boolean(), est_usd: z.number() })
+export type AppMediaOption = z.infer<typeof AppMediaOptionSchema>
+
 export const AppConfigSchema = z.object({
   config_version: z.number(),
+  media: z.array(AppMediaOptionSchema),
   limits: z.object({
     monthly_usd: z.number().nullable(),
     daily_usd: z.number().nullable(),
@@ -34,6 +38,7 @@ export type AppConfig = z.infer<typeof AppConfigSchema>
 
 export const EMPTY_APP_CONFIG: AppConfig = {
   config_version: 0,
+  media: [],
   limits: { monthly_usd: null, daily_usd: null, per_message_warn_usd: null },
   spend: { month_usd: 0, today_usd: 0 }
 }
@@ -82,6 +87,8 @@ export const ChatSendInputSchema = z.object({
   text: z.string().max(2_000_000),
   attachments: z.array(AttachmentRefSchema).max(50).optional(),
   modelId: z.string().optional(),
+  /** A row of the admin's image and video list: create that instead of a text reply. */
+  media: z.object({ id: z.string(), kind: z.enum(['image', 'video']) }).optional(),
   settings: ChatSettingsSchema.optional()
 })
 export type ChatSendInput = z.infer<typeof ChatSendInputSchema>
@@ -103,6 +110,7 @@ export const StreamEventSchema = z.discriminatedUnion('type', [
   z.object({ ...StreamBase, type: z.literal('tool_call'), id: z.string(), name: z.string(), input: z.unknown() }),
   z.object({ ...StreamBase, type: z.literal('tool_result'), id: z.string(), output: z.unknown(), isError: z.boolean().optional() }),
   z.object({ ...StreamBase, type: z.literal('usage'), usage: UsageInfoSchema }),
+  z.object({ ...StreamBase, type: z.literal('attachment'), attachment: AttachmentRefSchema }),
   z.object({
     ...StreamBase,
     type: z.literal('notice'),
@@ -377,7 +385,7 @@ export interface CrosspointApi {
     remove(id: string): Promise<void>
     files: { list(projectId: string): Promise<ProjectFile[]>; add(projectId: string): Promise<ProjectFile[]>; remove(id: string): Promise<void> }
   }
-  attachments: { pick(): Promise<AttachmentRef[]>; fromPaste(data: PasteData): Promise<AttachmentRef> }
+  attachments: { pick(): Promise<AttachmentRef[]>; fromPaste(data: PasteData): Promise<AttachmentRef>; read(id: string): Promise<{ mime: string; base64: string } | null> }
   artifacts: {
     list(conversationId: string): Promise<Artifact[]>
     /** Artifacts across all non-archived chats, newest first (default 200, max 1000). */

@@ -13,9 +13,10 @@ import {
   RotateCcw,
   Wrench,
 } from 'lucide-react'
-import { memo, useState, type ReactElement } from 'react'
+import { useEffect, memo, useState, type ReactElement } from 'react'
 import { bytes, cn } from '../lib/utils'
-import type { Artifact } from '../lib/types'
+import type { Artifact, AttachmentRef } from '../lib/types'
+import { api } from '../lib/api'
 import type { UIMessage } from '../store/chat'
 import { useApp } from '../store/app'
 import { useKnowledgeCard } from '../store/knowledge'
@@ -35,6 +36,44 @@ function Attachments(props: { m: UIMessage }): ReactElement | null {
         </span>
       ))}
     </div>
+  )
+}
+
+/** Created images and videos. Bytes come over IPC, so the page's content policy stays closed to file paths. */
+function GeneratedMedia(props: { attachment: AttachmentRef }): ReactElement {
+  const { attachment: a } = props
+  const [url, setUrl] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    let live = true
+    let made: string | null = null
+    api.attachments
+      .read(a.id)
+      .then((f) => {
+        if (!f) return setFailed(true)
+        const bin = Uint8Array.from(atob(f.base64), (c) => c.charCodeAt(0))
+        made = URL.createObjectURL(new Blob([bin], { type: f.mime }))
+        if (live) setUrl(made)
+      })
+      .catch(() => setFailed(true))
+    return () => {
+      live = false
+      if (made) URL.revokeObjectURL(made)
+    }
+  }, [a.id])
+  if (failed) return <div className="notice">This file is no longer available.</div>
+  if (!url) return <div className="status-row"><Spinner /> Loading…</div>
+  return (
+    <figure style={{ margin: '8px 0' }}>
+      {a.mime.startsWith('video/') ? (
+        <video src={url} controls style={{ maxWidth: '100%', maxHeight: 480, borderRadius: 10 }} aria-label={a.name} />
+      ) : (
+        <img src={url} alt={a.name} style={{ maxWidth: '100%', maxHeight: 480, borderRadius: 10, background: a.mime === 'image/svg+xml' ? '#fff' : undefined }} />
+      )}
+      <figcaption style={{ marginTop: 4 }}>
+        <a className="btn sm" href={url} download={a.name}>Save</a>
+      </figcaption>
+    </figure>
   )
 }
 
@@ -245,9 +284,10 @@ function AssistantMessage(props: {
         {knowledge && <KnowledgeCardView card={knowledge} />}
         <Notices notices={m.notices} />
         {m.content && <Markdown text={m.content} />}
+        {m.attachments.map((a) => <GeneratedMedia key={a.id} attachment={a} />)}
         {waiting && (
           <div className="status-row">
-            <Spinner /> Waiting for a reply…
+            <Spinner /> {m.modelId?.startsWith('media:') ? 'Creating…' : 'Waiting for a reply…'}
           </div>
         )}
         {m.error && (

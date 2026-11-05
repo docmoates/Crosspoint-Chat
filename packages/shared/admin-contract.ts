@@ -81,10 +81,21 @@ export const AdminDeviceSchema = z.looseObject({
   last_seen_at: z.string().nullable().optional()
 })
 
+export const MediaOptionSchema = z.looseObject({
+  id: z.string(),
+  kind: z.enum(['image', 'video']),
+  name: z.string(),
+  blurb: z.string().default(''),
+  needs_image: z.boolean().default(false),
+  est_usd: z.number().default(0)
+})
+export type MediaOption = z.infer<typeof MediaOptionSchema>
+
 export const AdminConfigSchema = z.looseObject({
   config_version: z.number().int().nonnegative(),
   device: AdminDeviceSchema,
   gateway: GatewaySchema.default({ path: DEFAULT_GATEWAY_PATH }),
+  media: z.array(MediaOptionSchema).default([]),
   limits: LimitsSchema.default({ monthly_usd: null, daily_usd: null, per_message_warn_usd: null }),
   spend: SpendSchema.default({ month_usd: 0, today_usd: 0 })
 })

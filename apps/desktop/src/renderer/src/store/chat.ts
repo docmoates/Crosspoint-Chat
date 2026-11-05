@@ -80,7 +80,7 @@ interface ChatState {
   loadList(): Promise<void>
   open(id: string): Promise<void>
   newChat(projectId?: string): void
-  send(text: string, attachments: AttachmentRef[]): Promise<void>
+  send(text: string, attachments: AttachmentRef[], media?: { id: string; kind: 'image' | 'video' }): Promise<void>
   stop(): Promise<void>
   regenerate(key: string, modelId?: string): Promise<void>
   setModel(modelId: string | undefined): Promise<void>
@@ -246,7 +246,7 @@ export const useChat = create<ChatState>((set, get) => {
       })
     },
 
-    async send(text, attachments) {
+    async send(text, attachments, media) {
       const trimmed = text.trim()
       if (!trimmed && attachments.length === 0) return
       let conv = get().conversation
@@ -290,6 +290,7 @@ export const useChat = create<ChatState>((set, get) => {
           conversationId: c.id,
           text: trimmed,
           attachments: attachments.length ? attachments : undefined,
+          ...(media ? { media } : {}),
           modelId: c.modelId ?? undefined,
           settings: c.settings,
         })
@@ -507,6 +508,9 @@ export const useChat = create<ChatState>((set, get) => {
             ...m,
             tools: m.tools.map((t) => (t.id === e.id ? { ...t, output: e.output, isError: e.isError, done: true } : t)),
           }))
+          break
+        case 'attachment':
+          patchMessage(k, (m) => ({ ...m, attachments: [...m.attachments, e.attachment], id: e.messageId || m.id }))
           break
         case 'usage':
           patchMessage(k, (m) => ({ ...m, usage: e.usage, modelId: e.usage.model || m.modelId, provider: e.usage.provider }))
