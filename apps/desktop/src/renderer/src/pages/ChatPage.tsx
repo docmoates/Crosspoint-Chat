@@ -89,6 +89,17 @@ export function ChatPage(): ReactElement {
     return map
   }, [artifacts.list])
 
+  // Each reply gets the question it answers, so it can show a card for the thing the question is about.
+  const questions = useMemo(() => {
+    const out = new Map<string, string>()
+    let last = ''
+    for (const m of messages) {
+      if (m.role === 'user') last = m.content
+      else out.set(m.key, last)
+    }
+    return out
+  }, [messages])
+
   const onResend = useCallback((text: string, m: UIMessage) => void send(text, m.attachments ?? []), [send])
   const onRegenerate = useCallback((key: string, modelId?: string) => void regenerate(key, modelId), [regenerate])
   const onOpenArtifact = useCallback((id: string) => useArtifacts.getState().openArtifact(id), [])
@@ -157,6 +168,7 @@ export function ChatPage(): ReactElement {
               <MessageView
                 key={m.key}
                 m={m}
+                question={questions.get(m.key)}
                 models={models}
                 busy={busy}
                 artifacts={(m.id && byMessage.get(m.id)) || NO_ARTIFACTS}

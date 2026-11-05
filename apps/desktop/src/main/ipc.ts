@@ -170,6 +170,9 @@ export function registerIpc(core: Core, opts: { isTrustedUrl: (url: string) => b
   h(Channels.memories.add, z.tuple([z.string().trim().min(1).max(5_000)]), (text) => core.library.addMemory(text))
   h(Channels.memories.remove, id, (mid) => core.library.removeMemory(mid))
 
+  // knowledge cards
+  h(Channels.knowledge.lookup, z.tuple([z.string().trim().min(1).max(100)]), (query) => core.knowledge.lookup(query))
+
   // usage
   h(Channels.usage.summary, none, () => core.usage.summary())
   h(Channels.usage.forMessage, id, (mid) => {

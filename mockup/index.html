@@ -418,6 +418,21 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
 
 <style>
 /* Added for the current app version */
+.kcard{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--panel);padding:14px 16px;display:flex;flex-direction:column;gap:10px;max-width:560px}
+.kc-head{display:flex;gap:14px;align-items:flex-start}
+.kc-title{flex:1;min-width:0}
+.kc-title h3{font-size:18px;font-weight:600;margin:0}
+.kc-desc{font-size:13px;color:var(--fg-3);margin-top:2px}
+.kc-thumb{width:84px;height:84px;flex:none;border-radius:10px;border:1px solid var(--line);background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:600;font-size:22px}
+.kc-extract{margin:0;font-size:13.5px;line-height:1.55;color:var(--fg-2);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.kc-more,.kc-link{align-self:flex-start;font-size:12px;color:var(--accent);display:inline-flex;align-items:center;gap:4px}
+.kc-facts{margin:0;display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.kc-fact{display:grid;grid-template-columns:110px 1fr;gap:12px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+.kc-fact dt{color:var(--fg-3)}
+.kc-fact dd{margin:0;color:var(--fg)}
+details.kc-rest .kc-facts{border-top:0;margin-left:8px}
+.kc-foot{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;font-size:11.5px;color:var(--fg-3)}
+
 details.codebox{display:block;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);overflow:hidden}
 details.codebox>summary{list-style:none;display:flex;align-items:center;gap:8px;padding:6px 12px;font-size:12px;color:var(--fg-3);cursor:pointer;user-select:none}
 details.codebox>summary::-webkit-details-marker{display:none}
@@ -599,6 +614,17 @@ body.pairing #s-pair{display:block}
             <div class="actions"><button title="Copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button><button title="Regenerate"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button><span class="cost">1,402 in · 288 out · $0.009</span></div>
           </div>
 
+          <div class="msg user"><div class="bubble">Who is Marie Curie?</div></div>
+
+          <div class="msg assistant">
+            <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg> Claude Sonnet 5.5</span> · via OpenRouter</div>
+            <div class="body">
+              <aside class="kcard" aria-label="About Marie Curie"><div class="kc-head"><div class="kc-title"><h3>Marie Curie</h3><div class="kc-desc">Polish-French physicist and chemist (1867–1934)</div></div><div class="kc-thumb" aria-hidden="true">MC</div></div><p class="kc-extract">Maria Salomea Skłodowska-Curie, known simultaneously as Marie Curie, was a Polish and naturalised-French physicist and chemist who conducted pioneering research on radioactivity. She was the first woman to win a Nobel Prize, the first person to win a Nobel Prize twice, and the only person to win a Nobel Prize in two scientific fields.</p><button class="kc-more" type="button">Read more</button><dl class="kc-facts"><div class="kc-fact"><dt>Born</dt><dd>7 November 1867 · Warsaw</dd></div><div class="kc-fact"><dt>Died</dt><dd>4 July 1934 · Sancellemoz</dd></div><div class="kc-fact"><dt>Citizenship</dt><dd>Russian Empire, France</dd></div><div class="kc-fact"><dt>Occupation</dt><dd>physicist, chemist, university teacher</dd></div><div class="kc-fact"><dt>Education</dt><dd>Science Faculty of Paris, Flying University, University of Paris</dd></div><div class="kc-fact"><dt>Notable work</dt><dd>Treatise on Radioactivity</dd></div></dl><details class="activity kc-rest"><summary><span>More facts (2)</span><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary><dl class="kc-facts"><div class="kc-fact"><dt>Awards</dt><dd>Nobel Prize in Chemistry, Nobel Prize in Physics</dd></div><div class="kc-fact"><dt>Spouse</dt><dd>Pierre Curie</dd></div></dl></details><div class="kc-foot"><span class="kc-link">Wikipedia</span><span class="kc-link">Wikidata</span><span>Text from Wikipedia, CC BY-SA 4.0</span></div></aside>
+              <p>Marie Curie (1867–1934) was a physicist and chemist who pioneered research on radioactivity and discovered polonium and radium. She won the Nobel Prize in Physics in 1903 and in Chemistry in 1911.</p>
+            </div>
+            <div class="actions"><button title="Copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button><button title="Regenerate"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button><span class="cost">612 in · 96 out · $0.003</span></div>
+          </div>
+
           <div class="msg user"><div class="bubble">And explain what 429 means in one line.</div></div>
 
           <div class="msg assistant">
@@ -726,6 +752,7 @@ body.pairing #s-pair{display:block}
             <div class="setting"><div class="grow">Font size<small>Text size across the app</small></div><span class="seg"><button>12</button><button>13</button><button class="on">14</button><button>15</button><button>16</button><button>18</button></span></div>
             <div class="setting"><div class="grow">Font<small>Typeface for the interface and messages</small></div><select class="input" style="width:auto"><option>System</option><option>Segoe UI</option><option>Serif</option><option>Monospace</option></select></div>
             <div class="setting"><div class="grow">Send with Enter<small>Shift+Enter inserts a new line</small></div><span class="switch on"></span></div>
+            <div class="setting"><div class="grow">Knowledge cards<small>Show a Wikipedia and Wikidata panel when a question is about a person, place or thing. Only that name is sent.</small></div><span class="switch on"></span></div>
             <div class="setting"><div class="grow">Reply details<small id="replyHint">Model, provider and cost under each reply</small></div><span class="seg" id="replySeg"><button class="on" data-reply="full">Full</button><button data-reply="compact">Compact</button></span></div>
             <div class="setting"><div class="grow">Default model on this PC<small>Overrides the admin default for new chats</small></div><select class="input" style="width:auto;max-width:260px"><option>Use the admin default</option><option>Claude Sonnet 5.5</option><option>GPT-5.5</option><option>DeepSeek V4</option></select></div>
             <div class="setting"><div class="grow">Daily cap on this PC<small>Optional, in USD. The monthly limit is set in admin and always applies.</small></div><input class="input mono" style="width:110px" placeholder="none" aria-label="Daily cap"></div>

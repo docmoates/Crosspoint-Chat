@@ -14,6 +14,7 @@ import { ArtifactStore } from './services/artifacts'
 import { AuditLog } from './services/audit'
 import { ChatService } from './services/chat'
 import { FileStore } from './services/files'
+import { KnowledgeService, SqliteKnowledgeCache } from './services/knowledge'
 import { Library } from './services/library'
 import { ModelCatalog } from './services/models'
 import { SettingsService } from './services/settings'
@@ -47,6 +48,7 @@ export interface Core {
   registry: ProviderRegistry
   catalog: ModelCatalog
   usage: UsageService
+  knowledge: KnowledgeService
   files: FileStore
   artifacts: ArtifactStore
   chat: ChatService
@@ -102,6 +104,13 @@ export function createCore(events: CoreEvents): Core {
     (spend) => sync.applySpend(spend),
     (count, reason) => audit.append('error', `admin rejected ${count} usage event(s) as invalid; dropped from the outbox: ${reason}`)
   )
+
+  const knowledge = new KnowledgeService({
+    cache: new SqliteKnowledgeCache(db),
+    userAgent: `CrosspointChat/${app.getVersion()} (desktop app)`,
+    isEnabled: () => settings.get().knowledgeCards,
+    onNetwork: (entity) => audit.append('outbound', `Wikipedia and Wikidata lookup for "${entity.slice(0, 80)}"; only this name was sent`)
+  })
 
   const files = new FileStore(db, paths.attachments, paths.projectFiles)
   const artifacts = new ArtifactStore(db)
@@ -173,6 +182,6 @@ export function createCore(events: CoreEvents): Core {
     }
   }
 
-  return { paths, db, client, audit, settings, library, pairing, sync, registry, catalog, usage, files, artifacts, chat, updater, start, stop }
+  return { paths, db, client, audit, settings, library, pairing, sync, registry, catalog, usage, knowledge, files, artifacts, chat, updater, start, stop }
 }
 

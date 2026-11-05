@@ -49,6 +49,7 @@ export const Channels = {
     exportTo: channel('artifacts', 'exportTo')
   },
   memories: { list: channel('memories', 'list'), add: channel('memories', 'add'), remove: channel('memories', 'remove') },
+  knowledge: { lookup: channel('knowledge', 'lookup') },
   usage: { summary: channel('usage', 'summary'), forMessage: channel('usage', 'forMessage') },
   settings: { get: channel('settings', 'get'), set: channel('settings', 'set') },
   health: { check: channel('health', 'check') },

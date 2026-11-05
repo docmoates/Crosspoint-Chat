@@ -6,6 +6,7 @@ const DEFAULTS: Omit<LocalSettings, 'dataFolder'> = {
   font: 'system',
   fontSize: 14,
   sendOnEnter: true,
+  knowledgeCards: true,
   replyDetails: 'full',
   defaultModelOverride: null,
   dailyCapUsd: null

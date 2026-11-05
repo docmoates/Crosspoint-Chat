@@ -160,6 +160,14 @@ const MIGRATIONS: string[] = [
     hash TEXT NOT NULL,
     reported INTEGER NOT NULL DEFAULT 0
   );
+  `,
+  // v2: Wikipedia/Wikidata knowledge cards, cached so reopening an old chat does not hit the network again.
+  `
+  CREATE TABLE knowledge_cache (
+    key TEXT PRIMARY KEY,
+    json TEXT NOT NULL,
+    fetched_at INTEGER NOT NULL
+  );
   `
 ]
 

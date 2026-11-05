@@ -19,6 +19,8 @@ import type { Artifact, ModelInfo } from '../lib/types'
 import type { UIMessage } from '../store/chat'
 import { useApp } from '../store/app'
 import { defaultChatModel, providerLabel, useConfig } from '../store/config'
+import { useKnowledgeCard } from '../store/knowledge'
+import { KnowledgeCardView } from './KnowledgeCard'
 import { CopyButton, Markdown } from './Markdown'
 import { modelName } from './ModelPicker'
 import { Spinner } from './ui/primitives'
@@ -223,10 +225,12 @@ function AssistantMessage(props: {
   artifacts: Artifact[]
   activeArtifactId: string | null
   canRegenerate: boolean
+  question?: string
   onRegenerate: (modelId?: string) => void
   onOpenArtifact: (id: string) => void
 }): ReactElement {
   const { m, models } = props
+  const knowledge = useKnowledgeCard(m.error ? undefined : props.question)
   const config = useConfig((s) => s.config)
   const full = useApp((s) => s.settings.replyDetails) === 'full'
   const shownModelId = m.modelId ?? defaultChatModel(config)
@@ -245,6 +249,7 @@ function AssistantMessage(props: {
       )}
       <div className="body">
         <Activity m={m} />
+        {knowledge && <KnowledgeCardView card={knowledge} />}
         <Notices notices={m.notices} />
         {m.content && <Markdown text={m.content} />}
         {waiting && (
@@ -324,6 +329,8 @@ export const MessageView = memo(function MessageView(props: {
   busy: boolean
   artifacts: Artifact[]
   activeArtifactId: string | null
+  /** What the user asked, to look up the entity it is about. */
+  question?: string
   onResend: (text: string, m: UIMessage) => void
   onRegenerate: (key: string, modelId?: string) => void
   onOpenArtifact: (id: string) => void
@@ -338,6 +345,7 @@ export const MessageView = memo(function MessageView(props: {
       artifacts={props.artifacts}
       activeArtifactId={props.activeArtifactId}
       canRegenerate={Boolean(props.m.id) && !props.busy}
+      question={props.question}
       onRegenerate={(id) => props.onRegenerate(props.m.key, id)}
       onOpenArtifact={props.onOpenArtifact}
     />

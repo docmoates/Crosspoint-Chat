@@ -608,6 +608,107 @@ details.thinking {
   background: var(--thinking);
 }
 
+/* Knowledge card: Wikipedia summary and Wikidata facts for the thing a question is about */
+.kcard {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--panel);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 560px;
+}
+.kc-head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.kc-title {
+  flex: 1;
+  min-width: 0;
+}
+.kc-title h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.kc-desc {
+  font-size: 13px;
+  color: var(--fg-3);
+  margin-top: 2px;
+}
+.kc-thumb {
+  width: 84px;
+  height: 84px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+}
+.kc-extract {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--fg-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.kc-extract.open {
+  display: block;
+  -webkit-line-clamp: unset;
+}
+.kc-more,
+.kc-link {
+  align-self: flex-start;
+  font-size: 12px;
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.kc-facts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+}
+.kc-fact {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.kc-fact dt {
+  color: var(--fg-3);
+}
+.kc-fact dd {
+  margin: 0;
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+.kc-fact dd a {
+  color: var(--accent);
+}
+details.kc-rest .kc-facts {
+  border-top: 0;
+  margin-left: 8px;
+}
+.kc-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  font-size: 11.5px;
+  color: var(--fg-3);
+}
+
 /* Activity dropdown: thinking and tool calls folded into one quiet line per reply */
 details.activity {
   font-size: 13px;

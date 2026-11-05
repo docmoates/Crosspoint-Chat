@@ -80,6 +80,7 @@ const api: CrosspointApi = {
     add: (text) => invoke(C.memories.add, text),
     remove: (id) => invoke(C.memories.remove, id)
   },
+  knowledge: { lookup: (query) => invoke(C.knowledge.lookup, query) },
   usage: {
     summary: () => invoke(C.usage.summary),
     forMessage: (messageId) => invoke(C.usage.forMessage, messageId)

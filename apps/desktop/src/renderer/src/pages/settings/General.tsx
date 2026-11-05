@@ -73,6 +73,13 @@ export function GeneralSection(): ReactElement {
         </div>
         <div className="setting">
           <div className="grow">
+            Knowledge cards
+            <small>Show a Wikipedia and Wikidata panel when a question is about a person, place or thing. Only that name is sent.</small>
+          </div>
+          <Switch label="Knowledge cards" checked={settings.knowledgeCards} onChange={(v) => void setSettings({ knowledgeCards: v })} />
+        </div>
+        <div className="setting">
+          <div className="grow">
             Reply details<small>{settings.replyDetails === 'full' ? 'Model, provider and cost under each reply' : 'Replies show the text only'}</small>
           </div>
           <Seg<LocalSettings['replyDetails']>

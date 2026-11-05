@@ -46,11 +46,12 @@ interface CrosspointApi {
     get(id: string): Promise<Artifact & { content: string }>; save(id: string, content: string): Promise<void>; exportTo(id: string): Promise<void>
   };
   memories: { list(): Promise<Memory[]>; add(text: string): Promise<Memory>; remove(id: string): Promise<void> };
+  knowledge: { lookup(query: string): Promise<KnowledgeCard | null> };   // Google-style panel from Wikipedia + Wikidata; see "Knowledge cards" below
   usage: {
     summary(): Promise<{ month_usd: number; today_usd: number; local_share: number; byDay: { day: string; usd: number }[] }>;   // month/today = admin all-device spend + this PC's unsent events; byDay is this PC only
     forMessage(messageId: string): Promise<UsageDetail | null>;   // UsageInfo + messageId, at, kind, pricing: {in,out} | null (catalog list price per 1M tokens)
   };
-  settings: { get(): Promise<LocalSettings>; set(patch: Partial<LocalSettings>): Promise<void> };   // theme, font, fontSize (int 11-22, default 14), sendOnEnter, replyDetails ('full' | 'compact'), defaultModelOverride, dailyCapUsd, dataFolder
+  settings: { get(): Promise<LocalSettings>; set(patch: Partial<LocalSettings>): Promise<void> };   // theme, font, fontSize (int 11-22, default 14), sendOnEnter, knowledgeCards (boolean, default true), replyDetails ('full' | 'compact'), defaultModelOverride, dailyCapUsd, dataFolder
   health: { check(): Promise<HealthReport> };   // admin reachable, each provider ping, db ok, disk free, update state; every item may carry `fix` (plain-language next step)
   audit: { list(q?: { limit?: number; before?: string }): Promise<AuditEntry[]> };
   updates: { check(): Promise<UpdateState>; install(): Promise<void> };
@@ -60,3 +61,12 @@ interface CrosspointApi {
 Artifact previews: HTML and SVG artifacts are not rendered with `srcdoc`. Main registers the privileged scheme `crosspoint-artifact` (standard, secure) and serves `crosspoint-artifact://preview/<artifactId>?v=<version>` (helper `artifactPreviewUrl` in `packages/shared/channels.ts`) with the saved version's document and its own CSP (inline scripts allowed; scripts/styles also from cdnjs, jsDelivr, unpkg; images from data/blob/https; no fetch, frames or forms). The renderer embeds it in `<iframe sandbox="allow-scripts allow-modals">` without `allow-same-origin`, so artifact code runs in an opaque origin with no preload and no IPC. The renderer CSP allows `frame-src crosspoint-artifact:` only.
 
 Rules: zod-validate every IPC payload in main; `ipcMain.handle` channel names are `crosspoint:<area>:<method>`; events are `crosspoint:event:<name>`. Deep link `crosspoint://pair?code=...&host=...` is handled in main (single instance lock) and triggers `pairing.pair`. Features from the plan that are not yet implemented (coding workspace, sub-chats, local models, image generation, web search, MCP tools, skills, voice, scheduled tasks) are not shown in the UI, with two exceptions: the sidebar's Code entry (disabled, "soon") and the "Planned" line in Settings > About. Never invent data for them.
+
+## Knowledge cards
+
+When a question is about one thing (a person, place, organisation, work or concept), the reply shows a panel above its text: title, short description, thumbnail, the Wikipedia lead paragraph, up to six Wikidata facts and a closed "More facts" dropdown, with links to both sources and the CC BY-SA 4.0 attribution.
+
+- **What leaves the PC.** Only the entity name. The renderer extracts it from the question with `extractEntityQuery` (`packages/shared/entity-query.ts`: "Who is X", "What is X", "Tell me about X", or a bare capitalised name; chit-chat, personal, multi-line, code and long questions are ignored). Main re-validates it and sends it to en.wikipedia.org and www.wikidata.org with a generic `CrosspointChat/<version> (desktop app)` user agent. Each uncached lookup is written to the audit log as an `outbound` entry. Settings > General > Knowledge cards turns the whole thing off.
+- **Flow (main, `services/knowledge.ts`).** Wikipedia title search, pick the first result whose name matches (word overlap at least 0.6; disambiguation pages are skipped), read its REST summary, then Wikidata `wbgetentities` for claims and a second call for English item labels. Facts come from a fixed property list (born, died, citizenship, occupation, spouse, education, notable work, awards, country, located in, capital, population, area, coordinates, founded, founder, headquarters, CEO, author, director, published, genre, website, and a few more); concepts without those fall back to "Type" and "Subclass of". Dates are formatted by Wikidata precision.
+- **Images.** The thumbnail is downloaded by main (wikimedia.org over https, at most 400 KB) and sent to the renderer as a `data:` URL, so the content security policy of the renderer stays closed to remote images.
+- **Caching.** SQLite table `knowledge_cache`: cards for 7 days, "no match" for 1 day. A card whose Wikidata step failed is shown but not cached, so the facts can arrive on the next try. Offline or slow (6 s timeout per request) simply means no card.

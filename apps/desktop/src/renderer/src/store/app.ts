@@ -27,6 +27,7 @@ const DEFAULT_SETTINGS: LocalSettings = {
   font: 'system',
   fontSize: 14,
   sendOnEnter: true,
+  knowledgeCards: true,
   replyDetails: 'full',
   defaultModelOverride: null,
   dailyCapUsd: null,

@@ -302,6 +302,29 @@ export const UsageDetailSchema = UsageInfoSchema.extend({
 })
 export type UsageDetail = z.infer<typeof UsageDetailSchema>
 
+// ---------- knowledge cards ----------
+
+export const KnowledgeFactSchema = z.object({ label: z.string(), value: z.string(), href: z.string().optional() })
+export type KnowledgeFact = z.infer<typeof KnowledgeFactSchema>
+
+/** A Google-style panel for one entity: Wikipedia summary plus Wikidata facts. Built in main; the renderer never calls the network. */
+export const KnowledgeCardSchema = z.object({
+  /** Wikidata id, e.g. Q7186. */
+  id: z.string(),
+  title: z.string(),
+  /** Short Wikidata/Wikipedia description, e.g. "Polish-French physicist and chemist". */
+  description: z.string(),
+  /** Wikipedia lead paragraph (CC BY-SA 4.0). */
+  extract: z.string(),
+  /** Thumbnail as a data: URL, fetched by main so the renderer's CSP stays closed. */
+  thumbnail: z.string().nullable(),
+  facts: z.array(KnowledgeFactSchema),
+  wikipediaUrl: z.string(),
+  wikidataUrl: z.string().nullable(),
+  website: z.string().nullable()
+})
+export type KnowledgeCard = z.infer<typeof KnowledgeCardSchema>
+
 // ---------- local settings ----------
 
 export const LocalSettingsSchema = z.object({
@@ -310,6 +333,8 @@ export const LocalSettingsSchema = z.object({
   /** Base UI text size in px (11-22, default 14). */
   fontSize: z.number().int().min(11).max(22),
   sendOnEnter: z.boolean(),
+  /** Look up the person, place or thing a question is about on Wikipedia and Wikidata and show a card. */
+  knowledgeCards: z.boolean(),
   /** Under each reply: 'full' shows model, provider and cost; 'compact' shows the text only. */
   replyDetails: z.enum(['full', 'compact']),
   defaultModelOverride: z.string().nullable(),
@@ -406,6 +431,8 @@ export interface CrosspointApi {
     exportTo(id: string): Promise<void>
   }
   memories: { list(): Promise<Memory[]>; add(text: string): Promise<Memory>; remove(id: string): Promise<void> }
+  /** Wikipedia + Wikidata card for an entity name; null when nothing matches or the setting is off. */
+  knowledge: { lookup(query: string): Promise<KnowledgeCard | null> }
   usage: { summary(): Promise<UsageSummary>; forMessage(messageId: string): Promise<UsageDetail | null> }
   settings: { get(): Promise<LocalSettings>; set(patch: Partial<LocalSettings>): Promise<void> }
   health: { check(): Promise<HealthReport> }
