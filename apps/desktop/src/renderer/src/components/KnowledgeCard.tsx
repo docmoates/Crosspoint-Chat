@@ -55,7 +55,7 @@ export function KnowledgeCardView(props: { card: KnowledgeCard }): ReactElement 
         </div>
         {card.thumbnail && <img className="kc-thumb" src={card.thumbnail} alt="" />}
       </div>
-      <p className={more ? 'kc-extract open' : 'kc-extract'}>{card.extract}</p>
+      {card.extract && <p className={more ? 'kc-extract open' : 'kc-extract'}>{card.extract}</p>}
       {card.extract.length > 260 && (
         <button type="button" className="kc-more" onClick={() => setMore((v) => !v)}>
           {more ? 'Show less' : 'Read more'}
@@ -72,9 +72,9 @@ export function KnowledgeCardView(props: { card: KnowledgeCard }): ReactElement 
         </details>
       )}
       <div className="kc-foot">
-        <SourceLink url={card.wikipediaUrl}>Wikipedia</SourceLink>
+        {card.wikipediaUrl && <SourceLink url={card.wikipediaUrl}>Wikipedia</SourceLink>}
         {card.wikidataUrl && <SourceLink url={card.wikidataUrl}>Wikidata</SourceLink>}
-        <span className="faint">Text from Wikipedia, CC BY-SA 4.0</span>
+        {card.wikipediaUrl && <span className="faint">Text from Wikipedia, CC BY-SA 4.0</span>}
       </div>
     </aside>
   )

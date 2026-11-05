@@ -286,7 +286,8 @@ export const KnowledgeCardSchema = z.object({
   /** Thumbnail as a data: URL, fetched by main so the renderer's CSP stays closed. */
   thumbnail: z.string().nullable(),
   facts: z.array(KnowledgeFactSchema),
-  wikipediaUrl: z.string(),
+  /** Null when the card comes from Wikidata alone. */
+  wikipediaUrl: z.string().nullable(),
   wikidataUrl: z.string().nullable(),
   website: z.string().nullable()
 })
