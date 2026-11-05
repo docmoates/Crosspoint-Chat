@@ -1,5 +1,7 @@
 # Crosspoint Chat — Build Plan
 
+> **Current direction (2026-11-05):** this plan's single-user, on-device design is superseded where they differ. The app is a thin client with invite-only accounts. Models, keys, routing, prompts, image and video jobs, knowledge cards and data live on the server (Cloudflare Worker, D1, R2). The PC keeps only a read-only offline copy, app preferences and file text extraction. Local models (Foundry Local, local image generation), the model picker, tags, and direct provider keys are dropped for now. See `docs/ADMIN-CONTRACT.md` and `docs/router-sheet.xlsx`.
+
 A **Windows desktop app** with Claude Desktop / ChatGPT / Gemini feature parity, running on third-party model APIs (OpenRouter, OpenAI-compatible endpoints, Anthropic direct). Single user. All provider keys, connector credentials, MCP server definitions and spend limits come from the **admin portal at admin.docmoates.com**; the app never stores a raw provider key the admin did not hand it.
 
 Decisions (2026-11-03): Windows desktop app (not web), design = carbon copy of Claude Desktop (see `mockup/index.html`), providers OpenRouter + OpenAI-compatible + Anthropic, scope = everything the subscriptions do, keys and connectors managed in admin.docmoates.com, model tags are user-defined.
