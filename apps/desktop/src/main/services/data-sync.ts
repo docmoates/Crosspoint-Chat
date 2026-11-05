@@ -126,7 +126,12 @@ export class DataSync {
           this.db.prepare('INSERT OR IGNORE INTO sync_files (id) VALUES (?)').run(row.id)
         }
         const allowed = (this.db.prepare(`PRAGMA table_info(${tbl})`).all() as { name: string }[]).map((c) => c.name).filter((c) => c in data)
-        this.db.prepare(`INSERT OR REPLACE INTO ${tbl} (${allowed.join(', ')}) VALUES (${allowed.map(() => '?').join(', ')})`).run(...allowed.map((c) => data[c] as never))
+        // An update, never a replace: replacing a chat row would delete its messages through the foreign key.
+        const key = tbl === 'artifact_versions' ? ['artifact_id', 'version'] : ['id']
+        const sets = allowed.filter((c) => !key.includes(c)).map((c) => `${c} = excluded.${c}`)
+        this.db
+          .prepare(`INSERT INTO ${tbl} (${allowed.join(', ')}) VALUES (${allowed.map(() => '?').join(', ')}) ON CONFLICT(${key.join(', ')}) DO ${sets.length ? `UPDATE SET ${sets.join(', ')}` : 'NOTHING'}`)
+          .run(...allowed.map((c) => data[c] as never))
       }
       this.db.prepare('UPDATE sync_state SET applying = 0, last_seq = ?').run(rows[rows.length - 1]!.seq)
     })()

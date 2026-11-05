@@ -78,6 +78,8 @@ interface ChatState {
 
   init(): () => void
   loadList(): Promise<void>
+  /** Picks up changes from another PC in the open chat. */
+  reload(): Promise<void>
   open(id: string): Promise<void>
   newChat(projectId?: string): void
   send(text: string, attachments: AttachmentRef[]): Promise<void>
@@ -207,6 +209,8 @@ export const useChat = create<ChatState>((set, get) => {
       void get().loadList()
       return api.chat.onEvent((e) => get().handleEvent(e))
     },
+
+    reload: reloadCurrent,
 
     async loadList() {
       try {

@@ -92,8 +92,7 @@ function Shell(): ReactElement {
   useEffect(() => {
     if (dataVersion === 0) return
     void useChat.getState().loadList()
-    const chat = useChat.getState()
-    if (chat.currentId && !isStreaming(chat)) void chat.open(chat.currentId)
+    void useChat.getState().reload()
     void useProjects.getState().load()
   }, [dataVersion])
 

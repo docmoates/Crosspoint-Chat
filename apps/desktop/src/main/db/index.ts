@@ -199,7 +199,9 @@ const MIGRATIONS: string[] = [
   CREATE TRIGGER sync_av_i AFTER INSERT ON artifact_versions WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('artifact_versions', NEW.artifact_id || '|' || NEW.version); END;
   CREATE TRIGGER sync_av_u AFTER UPDATE ON artifact_versions WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('artifact_versions', NEW.artifact_id || '|' || NEW.version); END;
   CREATE TRIGGER sync_av_d AFTER DELETE ON artifact_versions WHEN (SELECT applying FROM sync_state) = 0 BEGIN INSERT OR REPLACE INTO sync_outbox (tbl, id) VALUES ('artifact_versions', OLD.artifact_id || '|' || OLD.version); END;
-  `
+  `,
+  // v4: an earlier build lost local messages while syncing. The server still has them, so fetch everything again.
+  `UPDATE sync_state SET last_seq = 0;`
 ]
 
 export function openDatabase(file: string): DB {

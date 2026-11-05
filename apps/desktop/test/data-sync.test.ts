@@ -63,6 +63,19 @@ describe('data sync', () => {
     expect(a.library.listMessages(conv.id)).toEqual([])
   })
 
+  it('keeps a chat's messages when the chat row arrives again after them', async () => {
+    const s = fakeServer()
+    const a = device(s.remote, 'a')
+    const conv = a.library.createConversation({ title: 'Trip' })
+    a.library.insertMessage({ id: 'm1', conversationId: conv.id, role: 'user', parts: [{ type: 'text', text: 'hello' }], modelId: null, provider: null, status: 'complete', usage: null, costUsd: null, parentId: null })
+    a.library.updateConversation(conv.id, { title: 'Trip 2' })
+    await a.data.run()
+    a.library.updateConversation(conv.id, { title: 'Trip 3' })
+    await a.data.run()
+    expect(a.library.listMessages(conv.id).map((m) => m.id)).toEqual(['m1'])
+    expect(a.library.getConversation(conv.id).title).toBe('Trip 3')
+  })
+
   it('keeps unsent changes when the server is down, and sends them later', async () => {
     const s = fakeServer()
     const down: DataSyncRemote = { ...s.remote, push: async () => { throw new Error('offline') } }
