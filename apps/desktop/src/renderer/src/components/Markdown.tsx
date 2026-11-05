@@ -44,8 +44,8 @@ function CodeBlock(props: { children?: ReactNode }): ReactElement {
   const lang = /language-([\w+-]+)/.exec(className)?.[1] ?? ''
   const raw = textOf(props.children).replace(/\n$/, '')
   const lines = raw.split('\n').length
-  // Anything longer than a few lines is a dropdown that starts closed; short snippets stay inline.
-  const foldable = lines > 8
+  // Every code block is a dropdown and starts closed.
+  const foldable = true
   const [open, setOpen] = useState(false)
   const closed = foldable && !open
   return (
@@ -69,7 +69,7 @@ function CodeBlock(props: { children?: ReactNode }): ReactElement {
       >
         <Code2 className="ic-sm" />
         {lang || 'code'}
-        {foldable && <span className="faint">{lines} lines</span>}
+        {foldable && <span className="faint">{lines === 1 ? '1 line' : `${lines} lines`}</span>}
         <span onClick={(e) => e.stopPropagation()} style={{ marginLeft: 'auto', display: 'inline-flex' }}>
           <CopyButton text={raw} label />
         </span>
