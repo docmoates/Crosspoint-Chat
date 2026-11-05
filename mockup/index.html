@@ -418,6 +418,16 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
 
 <style>
 /* Added for the current app version */
+.kc-chips{display:flex;gap:6px;flex-wrap:wrap}
+.kc-thumb.tall{width:64px;height:92px;border-radius:6px;font-size:13px;text-align:center;line-height:1.2;padding:4px}
+.kc-thumb.flag{font-size:40px;background:var(--panel-2);color:inherit}
+.kc-now{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);font-size:13px}
+.kc-now b{font-size:20px;font-weight:600}
+.kc-def{margin:0;padding-left:18px;font-size:13.5px;color:var(--fg-2);display:flex;flex-direction:column;gap:4px}
+.cardview{display:none;flex-direction:column;gap:20px}
+.cardview.on{display:flex}
+.src-tag{font-size:11px}
+
 .kcard{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--panel);padding:14px 16px;display:flex;flex-direction:column;gap:10px;max-width:560px}
 .kc-head{display:flex;gap:14px;align-items:flex-start}
 .kc-title{flex:1;min-width:0}
@@ -729,6 +739,115 @@ body.pairing #s-pair{display:block}
       </div></div>
     </section>
 
+    <!-- ---- CARD TYPES ---- -->
+    <section class="screen" id="s-cards">
+      <div class="topbar"><button class="iconbtn mob-only" data-open-sb><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><div class="title">Knowledge cards</div><button class="btn sm" data-go="settings" data-tab-go="sources">Sources</button></div>
+      <div class="page"><div class="page-inner">
+        <h1>Card types</h1>
+        <p class="muted" style="margin:0">Every card starts from Wikipedia and Wikidata. Wikidata also says what kind of thing it is and holds the exact IDs of the other free sources, so those are looked up directly, not searched by name. Examples below use sample data; only Wikipedia and Wikidata are built so far.</p>
+        <span class="seg" id="cardSeg" style="align-self:flex-start;flex-wrap:wrap"><button class="on" data-card="person">Person</button><button data-card="place">Place</button><button data-card="book">Book</button><button data-card="film">Film</button><button data-card="music">Music</button><button data-card="chem">Chemical</button><button data-card="species">Species</button><button data-card="word">Word</button><button data-card="paper">Paper</button></span>
+        <div class="cardview on" data-cv="person">
+      <div class="msg user"><div class="bubble">Who is Marie Curie?</div></div>
+      <div class="msg assistant">
+        <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg> Claude Sonnet 5.5</span> · via OpenRouter</div>
+        <div class="body">
+          <aside class="kcard" aria-label="About Marie Curie"><div class="kc-head"><div class="kc-title"><h3>Marie Curie</h3><div class="kc-desc">Polish-French physicist and chemist (1867–1934)</div></div><div class="kc-thumb" aria-hidden="true">MC</div></div><p class="kc-extract">Maria Salomea Skłodowska-Curie, known simultaneously as Marie Curie, was a Polish and naturalised-French physicist and chemist who conducted pioneering research on radioactivity.</p><dl class="kc-facts"><div class="kc-fact"><dt>Born</dt><dd>7 November 1867 · Warsaw</dd></div><div class="kc-fact"><dt>Died</dt><dd>4 July 1934 · Sancellemoz</dd></div><div class="kc-fact"><dt>Occupation</dt><dd>physicist, chemist</dd></div><div class="kc-fact"><dt>Awards</dt><dd>Nobel Prize in Chemistry, Nobel Prize in Physics</dd></div></dl><div class="kc-foot"><span class="kc-link">Wikipedia</span><span class="kc-link">Wikidata</span><span>Example data</span></div></aside>
+          <p>Marie Curie pioneered research on radioactivity and won Nobel Prizes in two different sciences.</p>
+        </div>
+        <div class="actions"><button title="Copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button><button title="Regenerate"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button><span class="cost">612 in · 96 out · $0.003</span></div>
+      </div>
+      </div>
+        <div class="cardview" data-cv="place">
+      <div class="msg user"><div class="bubble">Tell me about France</div></div>
+      <div class="msg assistant">
+        <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg> Claude Sonnet 5.5</span> · via OpenRouter</div>
+        <div class="body">
+          <aside class="kcard" aria-label="About France"><div class="kc-head"><div class="kc-title"><h3>France</h3><div class="kc-desc">Country in Western Europe</div></div><div class="kc-thumb flag" aria-hidden="true" style="display:flex;align-items:stretch;overflow:hidden;padding:0;width:84px;height:56px;margin-top:4px"><i style="flex:1;background:#0055a4"></i><i style="flex:1;background:#fff"></i><i style="flex:1;background:#ef4135"></i></div></div><p class="kc-extract">France is a country located primarily in Western Europe, with overseas regions and territories on other continents. Its capital and largest city is Paris.</p><div class="kc-now"><b>11 °C</b><span>Paris now · light rain · wind 14 km/h</span></div><dl class="kc-facts"><div class="kc-fact"><dt>Capital</dt><dd>Paris</dd></div><div class="kc-fact"><dt>Population</dt><dd>about 68 million</dd></div><div class="kc-fact"><dt>Currency</dt><dd>Euro (EUR)</dd></div><div class="kc-fact"><dt>Languages</dt><dd>French</dd></div><div class="kc-fact"><dt>Calling code</dt><dd>+33</dd></div><div class="kc-fact"><dt>Coordinates</dt><dd>46.0000° N, 2.0000° E</dd></div></dl><details class="activity kc-rest"><summary><span>More facts (2)</span><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary><dl class="kc-facts"><div class="kc-fact"><dt>Time zone</dt><dd>UTC+01:00</dd></div><div class="kc-fact"><dt>Internet domain</dt><dd>.fr</dd></div></dl></details><div class="kc-foot"><span class="kc-link">Wikipedia</span><span class="kc-link">Wikidata</span><span class="kc-link">REST Countries</span><span class="kc-link">Open-Meteo</span><span class="kc-link">OpenStreetMap</span><span>Example data</span></div></aside>
+          <p>France is a Western European republic whose capital is Paris. It uses the euro and French is the official language.</p>
+        </div>
+        <div class="actions"><button title="Copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button><button title="Regenerate"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button><span class="cost">588 in · 120 out · $0.003</span></div>
+      </div>
+      </div>
+        <div class="cardview" data-cv="book">
+      <div class="msg user"><div class="bubble">What is Dune?</div></div>
+      <div class="msg assistant">
+        <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg> Claude Sonnet 5.5</span> · via OpenRouter</div>
+        <div class="body">
+          <aside class="kcard" aria-label="About Dune"><div class="kc-head"><div class="kc-title"><h3>Dune</h3><div class="kc-desc">1965 science fiction novel by Frank Herbert</div></div><div class="kc-thumb tall" aria-hidden="true">DUNE</div></div><p class="kc-extract">Dune is a 1965 epic science fiction novel by American author Frank Herbert, originally published as two separate serials in Analog magazine. It tied with Roger Zelazny’s This Immortal for the Hugo Award in 1966 and won the inaugural Nebula Award for Best Novel.</p><div class="kc-chips"><span class="mtag" style="--tc:#0369a1">science fiction</span><span class="mtag" style="--tc:#b45309">adventure</span><span class="mtag" style="--tc:#15803d">ecology</span></div><dl class="kc-facts"><div class="kc-fact"><dt>Author</dt><dd>Frank Herbert</dd></div><div class="kc-fact"><dt>First published</dt><dd>1965</dd></div><div class="kc-fact"><dt>Genre</dt><dd>science fiction</dd></div><div class="kc-fact"><dt>Language</dt><dd>English</dd></div><div class="kc-fact"><dt>Series</dt><dd>Dune</dd></div><div class="kc-fact"><dt>Editions</dt><dd>many; first on Open Library</dd></div></dl><details class="activity kc-rest"><summary><span>More facts (2)</span><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary><dl class="kc-facts"><div class="kc-fact"><dt>Awards</dt><dd>Hugo Award, Nebula Award</dd></div><div class="kc-fact"><dt>Adaptations</dt><dd>films, television, games</dd></div></dl></details><div class="kc-foot"><span class="kc-link">Wikipedia</span><span class="kc-link">Wikidata</span><span class="kc-link">Open Library</span><span>Example data</span></div></aside>
+          <p>Dune is Frank Herbert’s 1965 science fiction novel about politics, ecology and power on the desert planet Arrakis.</p>
+        </div>
+        <div class="actions"><button title="Copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button><button title="Regenerate"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button><span class="cost">540 in · 88 out · $0.003</span></div>
+      </div>
+      </div>
+        <div class="cardview" data-cv="film">
+      <div class="msg user"><div class="bubble">What is Blade Runner?</div></div>
+      <div class="msg assistant">
+        <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg> Claude Sonnet 5.5</span> · via OpenRouter</div>
+        <div class="body">
+          <aside class="kcard" aria-label="About Blade Runner"><div class="kc-head"><div class="kc-title"><h3>Blade Runner</h3><div class="kc-desc">1982 science fiction film directed by Ridley Scott</div></div><div class="kc-thumb tall" aria-hidden="true">BLADE RUNNER</div></div><p class="kc-extract">Blade Runner is a 1982 science fiction film directed by Ridley Scott from a screenplay by Hampton Fancher and David Peoples, loosely based on Philip K. Dick’s 1968 novel Do Androids Dream of Electric Sheep?</p><div class="kc-chips"><span class="mtag" style="--tc:#0369a1">science fiction</span><span class="mtag" style="--tc:#64748b">neo-noir</span></div><dl class="kc-facts"><div class="kc-fact"><dt>Director</dt><dd>Ridley Scott</dd></div><div class="kc-fact"><dt>Starring</dt><dd>Harrison Ford, Rutger Hauer, Sean Young</dd></div><div class="kc-fact"><dt>Released</dt><dd>25 June 1982</dd></div><div class="kc-fact"><dt>Runtime</dt><dd>117 min</dd></div><div class="kc-fact"><dt>Country</dt><dd>United States</dd></div><div class="kc-fact"><dt>Rating</dt><dd>7.9 / 10 on TMDB</dd></div></dl><details class="activity kc-rest"><summary><span>More facts (2)</span><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary><dl class="kc-facts"><div class="kc-fact"><dt>Screenplay</dt><dd>Hampton Fancher, David Peoples</dd></div><div class="kc-fact"><dt>Based on</dt><dd>Do Androids Dream of Electric Sheep?</dd></div></dl></details><div class="kc-foot"><span class="kc-link">Wikipedia</span><span class="kc-link">Wikidata</span><span class="kc-link">TMDB</span><span>Example data</span></div></aside>
+          <p>Blade Runner is Ridley Scott’s 1982 science fiction film about a detective hunting artificial humans in a future Los Angeles.</p>
+        </div>
+        <div class="actions"><button title="Copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button><button title="Regenerate"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button><span class="cost">560 in · 90 out · $0.003</span></div>
+      </div>
+      </div>
+        <div class="cardview" data-cv="music">
+      <div class="msg user"><div class="bubble">Who is Radiohead?</div></div>
+      <div class="msg assistant">
+        <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg> Claude Sonnet 5.5</span> · via OpenRouter</div>
+        <div class="body">
+          <aside class="kcard" aria-label="About Radiohead"><div class="kc-head"><div class="kc-title"><h3>Radiohead</h3><div class="kc-desc">English rock band formed in 1985</div></div><div class="kc-thumb" aria-hidden="true">RH</div></div><p class="kc-extract">Radiohead are an English rock band formed in Abingdon, Oxfordshire, in 1985. The band consists of Thom Yorke, Jonny Greenwood, Colin Greenwood, Ed O’Brien and Philip Selway.</p><div class="kc-chips"><span class="mtag" style="--tc:#be185d">alternative rock</span><span class="mtag" style="--tc:#6d28d9">art rock</span><span class="mtag" style="--tc:#0f766e">electronic</span></div><dl class="kc-facts"><div class="kc-fact"><dt>Formed</dt><dd>1985 · Abingdon, England</dd></div><div class="kc-fact"><dt>Members</dt><dd>Thom Yorke, Jonny Greenwood, Colin Greenwood, Ed O’Brien, Philip Selway</dd></div><div class="kc-fact"><dt>Albums</dt><dd>OK Computer (1997), Kid A (2000), In Rainbows (2007)</dd></div><div class="kc-fact"><dt>Genres</dt><dd>alternative rock, art rock</dd></div></dl><details class="activity kc-rest"><summary><span>More facts (1)</span><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary><dl class="kc-facts"><div class="kc-fact"><dt>Record labels</dt><dd>Parlophone, XL Recordings</dd></div></dl></details><div class="kc-foot"><span class="kc-link">Wikipedia</span><span class="kc-link">Wikidata</span><span class="kc-link">MusicBrainz</span><span>Example data</span></div></aside>
+          <p>Radiohead are an English band known for albums like OK Computer, Kid A and In Rainbows.</p>
+        </div>
+        <div class="actions"><button title="Copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button><button title="Regenerate"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button><span class="cost">530 in · 84 out · $0.003</span></div>
+      </div>
+      </div>
+        <div class="cardview" data-cv="chem">
+      <div class="msg user"><div class="bubble">What is caffeine?</div></div>
+      <div class="msg assistant">
+        <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg> Claude Sonnet 5.5</span> · via OpenRouter</div>
+        <div class="body">
+          <aside class="kcard" aria-label="About Caffeine"><div class="kc-head"><div class="kc-title"><h3>Caffeine</h3><div class="kc-desc">Central nervous system stimulant</div></div><div class="kc-thumb" aria-hidden="true">C₈H₁₀N₄O₂</div></div><p class="kc-extract">Caffeine is a central nervous system stimulant of the methylxanthine class and is the world’s most widely consumed psychoactive drug. It is found in coffee, tea and cacao.</p><dl class="kc-facts"><div class="kc-fact"><dt>Formula</dt><dd>C₈H₁₀N₄O₂</dd></div><div class="kc-fact"><dt>Molar mass</dt><dd>194.19 g/mol</dd></div><div class="kc-fact"><dt>IUPAC name</dt><dd>1,3,7-trimethylpurine-2,6-dione</dd></div><div class="kc-fact"><dt>CAS number</dt><dd>58-08-2</dd></div><div class="kc-fact"><dt>PubChem CID</dt><dd>2519</dd></div></dl><details class="activity kc-rest"><summary><span>More facts (1)</span><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary><dl class="kc-facts"><div class="kc-fact"><dt>Melting point</dt><dd>about 235 °C</dd></div></dl></details><div class="kc-foot"><span class="kc-link">Wikipedia</span><span class="kc-link">Wikidata</span><span class="kc-link">PubChem</span><span>Example data</span></div></aside>
+          <p>Caffeine is a stimulant found in coffee, tea and cacao that blocks adenosine receptors in the brain.</p>
+        </div>
+        <div class="actions"><button title="Copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button><button title="Regenerate"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button><span class="cost">520 in · 80 out · $0.003</span></div>
+      </div>
+      </div>
+        <div class="cardview" data-cv="species">
+      <div class="msg user"><div class="bubble">What is a red fox?</div></div>
+      <div class="msg assistant">
+        <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg> Claude Sonnet 5.5</span> · via OpenRouter</div>
+        <div class="body">
+          <aside class="kcard" aria-label="About Red fox"><div class="kc-head"><div class="kc-title"><h3>Red fox</h3><div class="kc-desc">Vulpes vulpes · species of mammal</div></div><div class="kc-thumb" aria-hidden="true">🦊</div></div><p class="kc-extract">The red fox is the largest of the true foxes and one of the most widely distributed members of the order Carnivora, being present across the entire Northern Hemisphere.</p><dl class="kc-facts"><div class="kc-fact"><dt>Scientific name</dt><dd>Vulpes vulpes</dd></div><div class="kc-fact"><dt>Family</dt><dd>Canidae</dd></div><div class="kc-fact"><dt>Order</dt><dd>Carnivora</dd></div><div class="kc-fact"><dt>Conservation</dt><dd>Least concern (IUCN)</dd></div><div class="kc-fact"><dt>Range</dt><dd>Northern Hemisphere; introduced to Australia</dd></div></dl><details class="activity kc-rest"><summary><span>More facts (2)</span><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary><dl class="kc-facts"><div class="kc-fact"><dt>Kingdom</dt><dd>Animalia</dd></div><div class="kc-fact"><dt>GBIF taxon</dt><dd>Vulpes vulpes (Linnaeus, 1758)</dd></div></dl></details><div class="kc-foot"><span class="kc-link">Wikipedia</span><span class="kc-link">Wikidata</span><span class="kc-link">GBIF</span><span class="kc-link">iNaturalist</span><span>Example data</span></div></aside>
+          <p>The red fox is a widespread, adaptable canid found across the Northern Hemisphere.</p>
+        </div>
+        <div class="actions"><button title="Copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button><button title="Regenerate"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button><span class="cost">510 in · 76 out · $0.003</span></div>
+      </div>
+      </div>
+        <div class="cardview" data-cv="word">
+      <div class="msg user"><div class="bubble">Define ephemeral</div></div>
+      <div class="msg assistant">
+        <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg> Claude Sonnet 5.5</span> · via OpenRouter</div>
+        <div class="body">
+          <aside class="kcard" aria-label="Definition of ephemeral"><div class="kc-head"><div class="kc-title"><h3>ephemeral</h3><div class="kc-desc">/ɪˈfɛm(ə)rəl/ · adjective</div></div></div><ol class="kc-def"><li>Lasting for a very short time. <span class="faint">“Fashions are ephemeral.”</span></li><li>(Biology) Living or lasting only one day, as some insects and flowers.</li></ol><dl class="kc-facts"><div class="kc-fact"><dt>Synonyms</dt><dd>fleeting, transient, short-lived</dd></div><div class="kc-fact"><dt>Etymology</dt><dd>Greek ephēmeros, “lasting a day”</dd></div><div class="kc-fact"><dt>Related</dt><dd>ephemera, ephemerality</dd></div></dl><div class="kc-foot"><span class="kc-link">Wiktionary</span><span class="kc-link">Free Dictionary API</span><span>Example data</span></div></aside>
+          <p>Ephemeral means lasting only a very short time. It comes from the Greek for “lasting a day”.</p>
+        </div>
+        <div class="actions"><button title="Copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button><button title="Regenerate"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button><span class="cost">420 in · 60 out · $0.002</span></div>
+      </div>
+      </div>
+        <div class="cardview" data-cv="paper">
+      <div class="msg user"><div class="bubble">Tell me about Attention Is All You Need</div></div>
+      <div class="msg assistant">
+        <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg> Claude Sonnet 5.5</span> · via OpenRouter</div>
+        <div class="body">
+          <aside class="kcard" aria-label="About Attention Is All You Need"><div class="kc-head"><div class="kc-title"><h3>Attention Is All You Need</h3><div class="kc-desc">Paper · 2017 · NeurIPS</div></div><div class="kc-thumb" aria-hidden="true">PDF</div></div><p class="kc-extract">The paper introduces the Transformer, a network architecture based solely on attention mechanisms that dispenses with recurrence and convolutions entirely.</p><dl class="kc-facts"><div class="kc-fact"><dt>Authors</dt><dd>Ashish Vaswani, Noam Shazeer, Niki Parmar and 5 others</dd></div><div class="kc-fact"><dt>Published</dt><dd>June 2017 · arXiv</dd></div><div class="kc-fact"><dt>Venue</dt><dd>Advances in Neural Information Processing Systems</dd></div><div class="kc-fact"><dt>DOI</dt><dd>10.48550/arXiv.1706.03762</dd></div><div class="kc-fact"><dt>Cited by</dt><dd>100,000+ (OpenAlex)</dd></div></dl><div class="kc-foot"><span class="kc-link">Crossref</span><span class="kc-link">OpenAlex</span><span class="kc-link">arXiv</span><span>Example data</span></div></aside>
+          <p>It is the 2017 paper that introduced the Transformer architecture behind most modern language models.</p>
+        </div>
+        <div class="actions"><button title="Copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button><button title="Regenerate"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button><span class="cost">575 in · 82 out · $0.003</span></div>
+      </div>
+      </div>
+      </div></div>
+    </section>
+
     <!-- ---- SETTINGS ---- -->
     <section class="screen" id="s-settings">
       <div class="topbar"><button class="iconbtn mob-only" data-open-sb><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><div class="title">Settings</div></div>
@@ -738,6 +857,7 @@ body.pairing #s-pair{display:block}
           <button data-tab="health">Health</button>
           <button data-tab="device">Device</button>
           <button data-tab="providers">Providers</button>
+          <button data-tab="sources">Knowledge sources</button>
           <button data-tab="models">Models and tags</button>
           <button data-tab="memory">Memory</button>
           <button data-tab="usage">Usage</button>
@@ -752,7 +872,7 @@ body.pairing #s-pair{display:block}
             <div class="setting"><div class="grow">Font size<small>Text size across the app</small></div><span class="seg"><button>12</button><button>13</button><button class="on">14</button><button>15</button><button>16</button><button>18</button></span></div>
             <div class="setting"><div class="grow">Font<small>Typeface for the interface and messages</small></div><select class="input" style="width:auto"><option>System</option><option>Segoe UI</option><option>Serif</option><option>Monospace</option></select></div>
             <div class="setting"><div class="grow">Send with Enter<small>Shift+Enter inserts a new line</small></div><span class="switch on"></span></div>
-            <div class="setting"><div class="grow">Knowledge cards<small>Show a Wikipedia and Wikidata panel when a question is about a person, place or thing. Only that name is sent.</small></div><span class="switch on"></span></div>
+            <div class="setting"><div class="grow">Knowledge cards<small>Show a Wikipedia and Wikidata panel when a question is about a person, place or thing. Only that name is sent.</small></div><button class="btn sm" data-go="cards">Card types</button><span class="switch on"></span></div>
             <div class="setting"><div class="grow">Reply details<small id="replyHint">Model, provider and cost under each reply</small></div><span class="seg" id="replySeg"><button class="on" data-reply="full">Full</button><button data-reply="compact">Compact</button></span></div>
             <div class="setting"><div class="grow">Default model on this PC<small>Overrides the admin default for new chats</small></div><select class="input" style="width:auto;max-width:260px"><option>Use the admin default</option><option>Claude Sonnet 5.5</option><option>GPT-5.5</option><option>DeepSeek V4</option></select></div>
             <div class="setting"><div class="grow">Daily cap on this PC<small>Optional, in USD. The monthly limit is set in admin and always applies.</small></div><input class="input mono" style="width:110px" placeholder="none" aria-label="Daily cap"></div>
@@ -798,6 +918,25 @@ body.pairing #s-pair{display:block}
             <div class="faint" style="font-size:11px">Config version 12</div>
           </section>
 
+          <section data-pane="sources">
+            <h2>Knowledge sources</h2>
+            <div class="note"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg><div>Cards are built from free public sources. Only the name of the thing you asked about is sent, never the question. Wikidata supplies the exact IDs, so each extra source is looked up directly. <button class="btn sm" data-go="cards" style="margin-left:6px">See card types</button></div></div>
+            <div class="card"><div class="list">
+              <div class="row"><span class="sdot ok"></span><div class="grow">Wikipedia and Wikidata<small>Summary, thumbnail and facts for any person, place, thing or idea · no key</small></div><span class="tag src-tag">live</span><span class="switch on"></span></div>
+              <div class="row"><span class="sdot off"></span><div class="grow">REST Countries<small>Flag, capital, currency, languages and calling code for a country · no key</small></div><span class="tag src-tag">planned</span><span class="switch"></span></div>
+              <div class="row"><span class="sdot off"></span><div class="grow">Open-Meteo<small>Current weather for a place · no key · non-commercial use</small></div><span class="tag src-tag">planned</span><span class="switch"></span></div>
+              <div class="row"><span class="sdot off"></span><div class="grow">OpenStreetMap Nominatim<small>Coordinates and map link for a place (one request a second) · no key</small></div><span class="tag src-tag">planned</span><span class="switch"></span></div>
+              <div class="row"><span class="sdot off"></span><div class="grow">Open Library<small>Book cover, author, first published, editions · no key</small></div><span class="tag src-tag">planned</span><span class="switch"></span></div>
+              <div class="row"><span class="sdot off"></span><div class="grow">TVmaze<small>TV shows: cast, network, status · no key</small></div><span class="tag src-tag">planned</span><span class="switch"></span></div>
+              <div class="row"><span class="sdot off"></span><div class="grow">TMDB<small>Films and shows: poster, cast, rating · free key set in admin · credit required</small></div><span class="tag src-tag">planned</span><span class="switch"></span></div>
+              <div class="row"><span class="sdot off"></span><div class="grow">MusicBrainz<small>Artists and albums, members, releases · no key</small></div><span class="tag src-tag">planned</span><span class="switch"></span></div>
+              <div class="row"><span class="sdot off"></span><div class="grow">PubChem<small>Chemicals: formula, mass, structure, CAS number · no key</small></div><span class="tag src-tag">planned</span><span class="switch"></span></div>
+              <div class="row"><span class="sdot off"></span><div class="grow">GBIF and iNaturalist<small>Species: taxonomy, range, photos · no key</small></div><span class="tag src-tag">planned</span><span class="switch"></span></div>
+              <div class="row"><span class="sdot off"></span><div class="grow">Wiktionary and Free Dictionary API<small>Definitions, pronunciation, etymology · no key</small></div><span class="tag src-tag">planned</span><span class="switch"></span></div>
+              <div class="row"><span class="sdot off"></span><div class="grow">PubMed, Crossref and OpenAlex<small>Papers: authors, journal, DOI, citations · no key</small></div><span class="tag src-tag">planned</span><span class="switch"></span></div>
+            </div></div>
+            <div class="setting"><div class="grow">Cache<small>Cards are kept on this PC: 7 days for a match, 1 day for no match. Each lookup is listed in Data and audit.</small></div><button class="btn sm">Clear cache</button></div>
+          </section>
           <section data-pane="models">
             <h2>Models</h2>
             <div class="setting"><div class="grow">Default chat model<small>Set in admin</small></div><span class="pill">Claude Sonnet 5.5</span></div>
@@ -924,7 +1063,7 @@ body.pairing #s-pair{display:block}
 (function(){
   const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
   const app=$('#app'), sb=$('#sidebar'), scrim=$('#scrim'), pal=$('#palette');
-  const screens={chat:'s-chat',projects:'s-projects',artifacts:'s-artifacts',settings:'s-settings'};
+  const screens={chat:'s-chat',projects:'s-projects',artifacts:'s-artifacts',settings:'s-settings',cards:'s-cards'};
 
   function show(name){
     if(name==='palette'){openPal(true);return;}
@@ -948,6 +1087,7 @@ body.pairing #s-pair{display:block}
     const at=e.target.closest('#artTabs button'); if(at){$$('#artTabs button').forEach(b=>b.classList.toggle('on',b===at));$$('.art-view').forEach(v=>v.classList.toggle('on',v.dataset.artv===at.dataset.art));return;}
     const sw=e.target.closest('.switch'); if(sw){sw.classList.toggle('on');e.stopPropagation();return;}
     const rs=e.target.closest('#replySeg button'); if(rs){const c=rs.dataset.reply==='compact';app.classList.toggle('reply-compact',c);$('#replyHint').textContent=c?'Replies show the text only':'Model, provider and cost under each reply';}
+    const cd=e.target.closest('#cardSeg button'); if(cd){$$('#cardSeg button').forEach(b=>b.classList.toggle('on',b===cd));$$('.cardview').forEach(v=>v.classList.toggle('on',v.dataset.cv===cd.dataset.card));return;}
     const seg=e.target.closest('.seg button'); if(seg){seg.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===seg));return;}
     if(e.target.closest('#toolsBtn')){toggleMenu('#toolsMenu');return;}
     if(e.target.closest('#modelBtn')){toggleMenu('#modelMenu');return;}
