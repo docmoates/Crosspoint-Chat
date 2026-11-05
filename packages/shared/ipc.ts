@@ -4,7 +4,6 @@
  * The renderer never sees provider keys, MCP env/headers or the device token.
  */
 import { z } from 'zod'
-import { ProviderKindSchema } from './admin-contract'
 export * from './channels'
 
 // ---------- pairing ----------
@@ -22,22 +21,8 @@ export type PairResult = { ok: true } | { ok: false; error: string }
 
 // ---------- sanitized config ----------
 
-export const AppProviderSchema = z.object({
-  id: z.string(),
-  kind: ProviderKindSchema,
-  label: z.string(),
-  base_url: z.string(),
-  enabled: z.boolean(),
-  hasKey: z.boolean()
-})
-export type AppProvider = z.infer<typeof AppProviderSchema>
-
 export const AppConfigSchema = z.object({
   config_version: z.number(),
-  providers: z.array(AppProviderSchema),
-  search: z.object({ hasBraveKey: z.boolean(), monthly_quota: z.number().nullable() }),
-  allowed_models: z.array(z.string()),
-  default_models: z.object({ chat: z.string().nullable(), helper: z.string().nullable() }),
   limits: z.object({
     monthly_usd: z.number().nullable(),
     daily_usd: z.number().nullable(),
@@ -49,10 +34,6 @@ export type AppConfig = z.infer<typeof AppConfigSchema>
 
 export const EMPTY_APP_CONFIG: AppConfig = {
   config_version: 0,
-  providers: [],
-  search: { hasBraveKey: false, monthly_quota: null },
-  allowed_models: [],
-  default_models: { chat: null, helper: null },
   limits: { monthly_usd: null, daily_usd: null, per_message_warn_usd: null },
   spend: { month_usd: 0, today_usd: 0 }
 }
@@ -63,25 +44,6 @@ export const EMPTY_APP_CONFIG: AppConfig = {
 export const ModelPricingSchema = z.object({ in: z.number().nullable(), out: z.number().nullable() })
 export type ModelPricing = z.infer<typeof ModelPricingSchema>
 
-export const ModelInfoSchema = z.object({
-  /** Unique across providers: OpenRouter ids as-is (`vendor/model`), Anthropic raw ids, custom endpoints `<providerId>:<model>`. */
-  id: z.string(),
-  /** Provider id from config (`openrouter`, `anthropic`, `openai`, `custom:<slug>`). */
-  provider: z.string(),
-  name: z.string(),
-  context: z.number().nullable(),
-  pricing: ModelPricingSchema,
-  capabilities: z.object({ vision: z.boolean(), tools: z.boolean(), reasoning: z.boolean() }),
-  tags: z.array(z.string())
-})
-export type ModelInfo = z.infer<typeof ModelInfoSchema>
-
-export const TagSchema = z.object({
-  id: z.string().min(1).max(64),
-  name: z.string().min(1).max(64),
-  color: z.string().max(32)
-})
-export type Tag = z.infer<typeof TagSchema>
 
 // ---------- attachments ----------
 
@@ -365,7 +327,7 @@ const CheckSchema = z.object({
 export const HealthReportSchema = z.object({
   checkedAt: z.string(),
   admin: CheckSchema.extend({ host: z.string(), paired: z.boolean() }),
-  providers: z.array(CheckSchema.extend({ id: z.string(), label: z.string(), kind: ProviderKindSchema })),
+  providers: z.array(CheckSchema.extend({ id: z.string(), label: z.string(), kind: z.string() })),
   db: CheckSchema.extend({ path: z.string(), sizeBytes: z.number().optional() }),
   disk: CheckSchema.extend({ path: z.string(), freeBytes: z.number().nullable() }),
   update: UpdateStateSchema.extend({ fix: z.string().optional() })
@@ -395,12 +357,6 @@ export interface CrosspointApi {
     onStatus(cb: (s: PairingStatus) => void): () => void
   }
   config: { get(): Promise<AppConfig>; onChange(cb: (c: AppConfig) => void): () => void }
-  models: {
-    list(): Promise<ModelInfo[]>
-    refresh(): Promise<void>
-    setTags(modelId: string, tags: string[]): Promise<void>
-    tags: { list(): Promise<Tag[]>; save(t: Tag): Promise<void>; remove(id: string): Promise<void> }
-  }
   chat: {
     send(input: ChatSendInput): Promise<{ messageId: string; runId: string }>
     stop(runId: string): Promise<void>

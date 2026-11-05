@@ -6,7 +6,6 @@ import { bytes, fileToBase64 } from '../lib/utils'
 import type { AttachmentRef } from '../lib/types'
 import { useApp } from '../store/app'
 import { isStreaming, useChat } from '../store/chat'
-import { ModelPicker } from './ModelPicker'
 
 export function Composer(): ReactElement {
   const conversation = useChat((s) => s.conversation)
@@ -160,7 +159,6 @@ export function Composer(): ReactElement {
               </DM.Content>
             </DM.Portal>
           </DM.Root>
-          <ModelPicker value={modelId} onChange={(id) => void setModel(id)} settings={settings} onSettings={(p) => void updateSettings(p)} />
           <span className="grow" />
           {streaming ? (
             <button type="button" className="send" title="Stop (Esc)" onClick={() => void stop()}>

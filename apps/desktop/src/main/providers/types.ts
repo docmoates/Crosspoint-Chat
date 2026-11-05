@@ -1,4 +1,3 @@
-import type { ProviderKind } from '@shared/admin-contract'
 import type { ModelPricing, StreamEvent, ThinkingLevel } from '@shared/ipc'
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never
@@ -28,20 +27,10 @@ export interface StreamOptions {
 }
 
 /** Raw model record from a provider's model list, before tags/allowlist. */
-export interface CatalogModel {
-  id: string
-  name: string
-  context: number | null
-  pricing: ModelPricing
-  capabilities: { vision: boolean; tools: boolean; reasoning: boolean }
-}
-
 export interface ChatProvider {
   readonly id: string
-  readonly kind: ProviderKind
   readonly label: string
   stream(messages: ChatMessage[], options: StreamOptions): AsyncIterable<ProviderStreamEvent>
-  listModels(signal?: AbortSignal): Promise<CatalogModel[]>
 }
 
 /** Thrown by adapters for HTTP failures so the fallback chain can decide whether to retry elsewhere. */

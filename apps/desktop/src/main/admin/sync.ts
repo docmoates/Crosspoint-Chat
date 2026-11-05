@@ -1,11 +1,11 @@
 import { EventEmitter } from 'node:events'
-import type { AdminConfig, AdminProvider } from '@shared/admin-contract'
+import type { AdminConfig } from '@shared/admin-contract'
 import { EMPTY_APP_CONFIG, type AppConfig, type PairingStatus } from '@shared/ipc'
 import type { SecureFile } from '../secure-file'
 import { AdminApiError, type AdminClient } from './client'
 import type { PairingService } from './pairing'
 
-/** What `%APPDATA%\Crosspoint\config.bin` holds (encrypted): the full admin config, keys included. */
+/** What `%APPDATA%\Crosspoint\config.bin` holds (encrypted): the admin config. */
 export interface CachedConfig {
   config: AdminConfig
   fetchedAt: string
@@ -29,7 +29,7 @@ interface SyncEvents {
 }
 
 /**
- * Keeps the admin config in main memory (keys never leave this process), polls every 60 s with
+ * Keeps the admin config in main memory, polls every 60 s with
  * If-None-Match, caches it encrypted for offline use, and wipes everything on 401.
  */
 export class ConfigSync extends EventEmitter<SyncEvents> {
@@ -46,13 +46,9 @@ export class ConfigSync extends EventEmitter<SyncEvents> {
     this.loadCache()
   }
 
-  /** Full config with keys. Main process only. */
+  /** Full config. Main process only. */
   get full(): AdminConfig | null {
     return this.config
-  }
-
-  provider(id: string): AdminProvider | null {
-    return this.config?.providers.find((p) => p.id === id) ?? null
   }
 
   sanitized(): AppConfig {
@@ -129,7 +125,7 @@ export class ConfigSync extends EventEmitter<SyncEvents> {
         this.deps.pairing.setDeviceName(res.config.device.name)
         this.persist()
         if (before !== res.config.config_version) {
-          this.deps.onAudit?.('sync', `config v${res.config.config_version} received (${res.config.providers.length} providers)`)
+          this.deps.onAudit?.('sync', `config v${res.config.config_version} received`)
         }
         this.emit('config', this.sanitized())
       }
@@ -173,21 +169,10 @@ export class ConfigSync extends EventEmitter<SyncEvents> {
   }
 }
 
-/** The renderer's view: no api keys. Unknown admin keys (e.g. mcp_servers) are dropped here. */
+/** The renderer's view. Unknown admin keys (e.g. mcp_servers) are dropped here. */
 export function sanitizeConfig(c: AdminConfig): AppConfig {
   return {
     config_version: c.config_version,
-    providers: c.providers.map((p) => ({
-      id: p.id,
-      kind: p.kind,
-      label: p.label,
-      base_url: p.base_url,
-      enabled: p.enabled,
-      hasKey: typeof p.api_key === 'string' && p.api_key.length > 0
-    })),
-    search: { hasBraveKey: !!c.search.brave_api_key, monthly_quota: c.search.monthly_quota ?? null },
-    allowed_models: [...c.allowed_models],
-    default_models: { chat: c.default_models.chat ?? null, helper: c.default_models.helper ?? null },
     limits: {
       monthly_usd: c.limits.monthly_usd ?? null,
       daily_usd: c.limits.daily_usd ?? null,

@@ -6,16 +6,12 @@ import { DataSection } from './settings/Data'
 import { AboutSection, DeviceSection, GeneralSection } from './settings/General'
 import { HealthSection } from './settings/Health'
 import { MemorySection } from './settings/Memory'
-import { ModelsSection } from './settings/Models'
-import { ProvidersSection } from './settings/Providers'
 import { UsageSection } from './settings/Usage'
 
 const TABS: { tab: SettingsTab; label: string }[] = [
   { tab: 'general', label: 'General' },
   { tab: 'health', label: 'Health' },
   { tab: 'device', label: 'Device' },
-  { tab: 'providers', label: 'Providers' },
-  { tab: 'models', label: 'Models and tags' },
   { tab: 'memory', label: 'Memory' },
   { tab: 'usage', label: 'Usage' },
   { tab: 'data', label: 'Data and audit' },
@@ -51,8 +47,6 @@ export function SettingsPage(): ReactElement {
           {tab === 'general' && <GeneralSection />}
           {tab === 'health' && <HealthSection />}
           {tab === 'device' && <DeviceSection />}
-          {tab === 'providers' && <ProvidersSection />}
-          {tab === 'models' && <ModelsSection />}
           {tab === 'memory' && <MemorySection />}
           {tab === 'usage' && <UsageSection />}
           {tab === 'data' && <DataSection />}

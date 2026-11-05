@@ -63,38 +63,6 @@ export function HealthSection(): ReactElement {
         </button>
       ),
     })
-    if (report.providers.length === 0) {
-      rows.push({
-        id: 'providers',
-        label: 'Cloud providers',
-        status: 'warn',
-        detail: 'No providers configured',
-        fix: 'Add a provider key in admin, then sync.',
-        action: (
-          <button type="button" className="btn sm" onClick={() => void api.app.openExternal(adminUrl(host, '/integrations'))}>
-            Open admin
-          </button>
-        ),
-      })
-    }
-    for (const p of report.providers) {
-      rows.push({
-        id: `provider:${p.id}`,
-        label: p.label,
-        status: p.ok ? 'ok' : 'bad',
-        detail: p.ok ? `${p.kind}${p.latencyMs != null ? ` · ${p.latencyMs} ms` : ''}` : `${p.kind} · ${p.error ?? 'failed'}`,
-        fix: p.fix,
-        action: p.ok ? undefined : (
-          <button
-            type="button"
-            className="btn sm"
-            onClick={() => void api.app.openExternal(adminUrl(host, p.id.startsWith('custom:') ? '/endpoints' : '/integrations'))}
-          >
-            Edit in admin
-          </button>
-        ),
-      })
-    }
     rows.push({
       id: 'db',
       label: 'Database',
@@ -183,7 +151,7 @@ export function HealthSection(): ReactElement {
       )}
       {!report && running && (
         <div className="status-row">
-          <Spinner /> Checking admin, providers, database and disk…
+          <Spinner /> Checking the server, database and disk…
         </div>
       )}
     </section>

@@ -13,7 +13,6 @@ const FONT_SIZES = ['12', '13', '14', '15', '16', '18'] as const
 
 export function GeneralSection(): ReactElement {
   const { settings, setSettings } = useApp()
-  const models = useConfig((s) => s.models)
   const [cap, setCap] = useState(settings.dailyCapUsd != null ? String(settings.dailyCapUsd) : '')
   useEffect(() => setCap(settings.dailyCapUsd != null ? String(settings.dailyCapUsd) : ''), [settings.dailyCapUsd])
 
@@ -80,7 +79,7 @@ export function GeneralSection(): ReactElement {
         </div>
         <div className="setting">
           <div className="grow">
-            Reply details<small>{settings.replyDetails === 'full' ? 'Model, provider and cost under each reply' : 'Replies show the text only'}</small>
+            Reply details<small>{settings.replyDetails === 'full' ? 'Name and cost under each reply' : 'Replies show the text only'}</small>
           </div>
           <Seg<LocalSettings['replyDetails']>
             label="Reply details"
@@ -91,25 +90,6 @@ export function GeneralSection(): ReactElement {
               { value: 'compact', label: 'Compact' },
             ]}
           />
-        </div>
-        <div className="setting">
-          <div className="grow">
-            Default model on this PC<small>Overrides the admin default for new chats</small>
-          </div>
-          <select
-            className="input"
-            style={{ width: 'auto', maxWidth: 260 }}
-            value={settings.defaultModelOverride ?? ''}
-            onChange={(e) => void setSettings({ defaultModelOverride: e.target.value || null })}
-            aria-label="Default model"
-          >
-            <option value="">Use the admin default</option>
-            {models.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
         </div>
         <div className="setting">
           <div className="grow">

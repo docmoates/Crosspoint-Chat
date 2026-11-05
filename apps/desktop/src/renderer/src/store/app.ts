@@ -9,8 +9,6 @@ export type SettingsTab =
   | 'general'
   | 'health'
   | 'device'
-  | 'providers'
-  | 'models'
   | 'memory'
   | 'usage'
   | 'data'

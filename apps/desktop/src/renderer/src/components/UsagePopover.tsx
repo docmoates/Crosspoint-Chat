@@ -2,7 +2,7 @@ import * as Popover from '@radix-ui/react-popover'
 import { useState, type ReactElement } from 'react'
 import { api, errorText } from '../lib/api'
 import { num, perM, usd } from '../lib/utils'
-import type { ModelInfo, UsageDetail, UsageInfo } from '../lib/types'
+import type { UsageDetail, UsageInfo } from '../lib/types'
 import { Spinner } from './ui/primitives'
 
 export function usageLine(u: UsageInfo | undefined): string {
@@ -13,15 +13,13 @@ export function usageLine(u: UsageInfo | undefined): string {
   return parts.join(' · ')
 }
 
-function Explain(props: { d: UsageDetail; model: ModelInfo | undefined }): ReactElement {
-  const { d, model } = props
-  // Main attaches the catalog list price; the renderer's model list is only a fallback.
-  const pricing = d.pricing ?? model?.pricing ?? null
+function Explain(props: { d: UsageDetail }): ReactElement {
+  const { d } = props
+  const pricing = d.pricing
   const pin = pricing?.in ?? null
   const pout = pricing?.out ?? null
   const uncached = Math.max(0, d.tokensIn - d.cachedTokens)
   const rows: { label: string; value: string }[] = [
-    { label: 'Model', value: `${model?.name ?? d.model} · ${d.provider}` },
     { label: 'Input tokens', value: num(d.tokensIn) },
   ]
   if (d.cachedTokens) rows.push({ label: '  of which cached', value: num(d.cachedTokens) })
@@ -71,13 +69,11 @@ function Explain(props: { d: UsageDetail; model: ModelInfo | undefined }): React
 export function UsagePopover(props: {
   messageId: string | undefined
   usage: UsageInfo | undefined
-  models: ModelInfo[]
 }): ReactElement | null {
   const [detail, setDetail] = useState<UsageDetail | null | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
   const line = usageLine(props.usage)
   if (!line) return null
-  const model = props.models.find((m) => m.id === (detail?.model ?? props.usage?.model))
   return (
     <Popover.Root
       onOpenChange={(open) => {
@@ -106,7 +102,7 @@ export function UsagePopover(props: {
           )}
           {error && <div className="notice error">{error}</div>}
           {detail === null && <div className="muted text-[12.5px]">No usage was recorded for this message.</div>}
-          {detail && <Explain d={detail} model={model} />}
+          {detail && <Explain d={detail} />}
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>

@@ -42,7 +42,7 @@ export function PairingPage(): ReactElement {
         <div>
           <h1 style={{ fontSize: 22 }}>Pair this PC</h1>
           <p className="muted" style={{ margin: '6px 0 0' }}>
-            Keys, models and limits come from your admin site. Create a pairing code there, then enter it here. You only do
+            Your messages go through your admin site. Create a pairing code there, then enter it here. You only do
             this once.
           </p>
         </div>

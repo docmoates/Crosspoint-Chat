@@ -14,7 +14,7 @@ import type { Artifact } from '../lib/types'
 const NO_ARTIFACTS: Artifact[] = []
 
 function EmptyChat(): ReactElement {
-  const models = useConfig((s) => s.models)
+  const ready = useConfig((s) => s.config !== null && s.config.config_version > 0)
   const configError = useConfig((s) => s.error)
   const draft = useChat((s) => s.draft)
   const project = useProjects((s) => s.projects.find((p) => p.id === draft.projectId))
@@ -28,9 +28,9 @@ function EmptyChat(): ReactElement {
         </span>
         {project ? `New chat in ${project.name}` : 'What can I help with?'}
       </div>
-      {models.length === 0 ? (
+      {!ready ? (
         <p className="muted max-w-md text-[13px]">
-          No models are available yet. Models come from admin after a sync.{' '}
+          Not connected to the server yet.{' '}
           {configError && <span className="faint">({configError}) </span>}
           <button type="button" className="note-link underline" style={{ color: 'var(--accent)' }} onClick={() => void syncNow()}>
             Sync now
@@ -57,7 +57,6 @@ export function ChatPage(): ReactElement {
   const busy = useChat(isStreaming)
   const artifactsVersion = useChat((s) => s.artifactsVersion)
   const { send, regenerate } = useChat.getState()
-  const models = useConfig((s) => s.models)
   const projects = useProjects((s) => s.projects)
   const app = useApp()
   const artifacts = useArtifacts()
@@ -101,7 +100,7 @@ export function ChatPage(): ReactElement {
   }, [messages])
 
   const onResend = useCallback((text: string, m: UIMessage) => void send(text, m.attachments ?? []), [send])
-  const onRegenerate = useCallback((key: string, modelId?: string) => void regenerate(key, modelId), [regenerate])
+  const onRegenerate = useCallback((key: string) => void regenerate(key), [regenerate])
   const onOpenArtifact = useCallback((id: string) => useArtifacts.getState().openArtifact(id), [])
 
   const project = projects.find((p) => p.id === conversation?.projectId)
@@ -169,7 +168,6 @@ export function ChatPage(): ReactElement {
                 key={m.key}
                 m={m}
                 question={questions.get(m.key)}
-                models={models}
                 busy={busy}
                 artifacts={(m.id && byMessage.get(m.id)) || NO_ARTIFACTS}
                 activeArtifactId={app.artifactPaneOpen ? artifacts.selectedId : null}

@@ -30,16 +30,6 @@ const api: CrosspointApi = {
     get: () => invoke(C.config.get),
     onChange: (cb) => subscribe<AppConfig>(Events.configChange, cb)
   },
-  models: {
-    list: () => invoke(C.models.list),
-    refresh: () => invoke(C.models.refresh),
-    setTags: (modelId, tags) => invoke(C.models.setTags, modelId, tags),
-    tags: {
-      list: () => invoke(C.models.tagsList),
-      save: (t) => invoke(C.models.tagsSave, t),
-      remove: (id) => invoke(C.models.tagsRemove, id)
-    }
-  },
   chat: {
     send: (input) => invoke(C.chat.send, input),
     stop: (runId) => invoke(C.chat.stop, runId),

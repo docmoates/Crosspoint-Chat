@@ -15,14 +15,12 @@ import {
 } from 'lucide-react'
 import { memo, useState, type ReactElement } from 'react'
 import { bytes, cn } from '../lib/utils'
-import type { Artifact, ModelInfo } from '../lib/types'
+import type { Artifact } from '../lib/types'
 import type { UIMessage } from '../store/chat'
 import { useApp } from '../store/app'
-import { defaultChatModel, providerLabel, useConfig } from '../store/config'
 import { useKnowledgeCard } from '../store/knowledge'
 import { KnowledgeCardView } from './KnowledgeCard'
 import { CopyButton, Markdown } from './Markdown'
-import { modelName } from './ModelPicker'
 import { Spinner } from './ui/primitives'
 import { UsagePopover } from './UsagePopover'
 
@@ -221,7 +219,6 @@ function Notices(props: { notices: UIMessage['notices'] }): ReactElement | null 
 
 function AssistantMessage(props: {
   m: UIMessage
-  models: ModelInfo[]
   artifacts: Artifact[]
   activeArtifactId: string | null
   canRegenerate: boolean
@@ -229,21 +226,17 @@ function AssistantMessage(props: {
   onRegenerate: (modelId?: string) => void
   onOpenArtifact: (id: string) => void
 }): ReactElement {
-  const { m, models } = props
+  const { m } = props
   const knowledge = useKnowledgeCard(m.error ? undefined : props.question)
-  const config = useConfig((s) => s.config)
   const full = useApp((s) => s.settings.replyDetails) === 'full'
-  const shownModelId = m.modelId ?? defaultChatModel(config)
-  const model = models.find((x) => x.id === shownModelId)
   const waiting = m.streaming && !m.content && !m.thinking && !m.error
   return (
     <div className="msg assistant">
       {full && (
         <div className="meta">
           <span className="model">
-            <Hexagon className="ic-sm" /> {shownModelId ? modelName(models, shownModelId) : 'Assistant'}
+            <Hexagon className="ic-sm" /> Crosspoint
           </span>
-          {(m.provider ?? model?.provider) && <span>· via {providerLabel(config, m.provider ?? model?.provider ?? '')}</span>}
           {m.stopped && <span>· stopped</span>}
         </div>
       )}
@@ -254,7 +247,7 @@ function AssistantMessage(props: {
         {m.content && <Markdown text={m.content} />}
         {waiting && (
           <div className="status-row">
-            <Spinner /> Waiting for the model…
+            <Spinner /> Waiting for a reply…
           </div>
         )}
         {m.error && (
@@ -294,29 +287,9 @@ function AssistantMessage(props: {
               <button type="button" title="Regenerate" onClick={() => props.onRegenerate()}>
                 <RotateCcw className="ic-sm" />
               </button>
-              {models.length > 1 && (
-                <DM.Root>
-                  <DM.Trigger asChild>
-                    <button type="button" title="Regenerate with another model" style={{ width: 18 }}>
-                      <ChevronDown className="ic-xs" />
-                    </button>
-                  </DM.Trigger>
-                  <DM.Portal>
-                    <DM.Content className="menu" side="top" align="start" sideOffset={4} style={{ maxHeight: 360 }}>
-                      <div className="eyebrow">Regenerate with</div>
-                      {models.map((x) => (
-                        <DM.Item key={x.id} className="menu-item" onSelect={() => props.onRegenerate(x.id)}>
-                          {x.name}
-                          <span className="right">{providerLabel(config, x.provider)}</span>
-                        </DM.Item>
-                      ))}
-                    </DM.Content>
-                  </DM.Portal>
-                </DM.Root>
-              )}
             </>
           )}
-          {full && <UsagePopover messageId={m.id} usage={m.usage} models={models} />}
+          {full && <UsagePopover messageId={m.id} usage={m.usage} />}
         </div>
       )}
     </div>
@@ -325,7 +298,6 @@ function AssistantMessage(props: {
 
 export const MessageView = memo(function MessageView(props: {
   m: UIMessage
-  models: ModelInfo[]
   busy: boolean
   artifacts: Artifact[]
   activeArtifactId: string | null
@@ -341,7 +313,6 @@ export const MessageView = memo(function MessageView(props: {
   return (
     <AssistantMessage
       m={props.m}
-      models={props.models}
       artifacts={props.artifacts}
       activeArtifactId={props.activeArtifactId}
       canRegenerate={Boolean(props.m.id) && !props.busy}

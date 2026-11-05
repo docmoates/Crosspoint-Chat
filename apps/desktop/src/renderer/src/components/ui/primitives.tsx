@@ -2,7 +2,6 @@ import * as RSwitch from '@radix-ui/react-switch'
 import * as RTooltip from '@radix-ui/react-tooltip'
 import type { CSSProperties, ReactElement, ReactNode } from 'react'
 import { cn } from '../../lib/utils'
-import type { Tag } from '../../lib/types'
 
 export function Switch(props: {
   checked: boolean
@@ -71,23 +70,6 @@ export function Soon(props: { className?: string; children?: ReactNode }): React
 export function Spinner(props: { size?: number }): ReactElement {
   const s = props.size ?? 12
   return <span className="spin" style={{ width: s, height: s, borderWidth: s < 10 ? 1.5 : 2 }} aria-hidden />
-}
-
-export function TagPill(props: { tag: Tag | undefined; name?: string; onClick?: () => void; title?: string }): ReactElement {
-  const name = props.tag?.name ?? props.name ?? ''
-  const style = props.tag?.color ? ({ ['--tc' as string]: props.tag.color } as CSSProperties) : undefined
-  if (props.onClick) {
-    return (
-      <button type="button" className="mtag" style={style} onClick={props.onClick} title={props.title}>
-        {name}
-      </button>
-    )
-  }
-  return (
-    <span className="mtag" style={style} title={props.title}>
-      {name}
-    </span>
-  )
 }
 
 export function Empty(props: { title: string; children?: ReactNode; action?: ReactNode }): ReactElement {

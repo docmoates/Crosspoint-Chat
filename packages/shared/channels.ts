@@ -15,14 +15,6 @@ export const Channels = {
     syncNow: channel('pairing', 'syncNow')
   },
   config: { get: channel('config', 'get') },
-  models: {
-    list: channel('models', 'list'),
-    refresh: channel('models', 'refresh'),
-    setTags: channel('models', 'setTags'),
-    tagsList: channel('models.tags', 'list'),
-    tagsSave: channel('models.tags', 'save'),
-    tagsRemove: channel('models.tags', 'remove')
-  },
   chat: { send: channel('chat', 'send'), stop: channel('chat', 'stop'), regenerate: channel('chat', 'regenerate') },
   conversations: {
     list: channel('conversations', 'list'),

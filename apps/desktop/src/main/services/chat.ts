@@ -1,14 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import type { AdminConfig } from '@shared/admin-contract'
 import type { AttachmentRef, ChatSendInput, ChatSettings, Message, MessagePart, StreamEvent, UsageInfo } from '@shared/ipc'
-import { IMAGE_TOKEN_ESTIMATE, computeCost, estimateCost, estimateTokens } from '../providers/cost'
-import type { ProviderRegistry } from '../providers/registry'
-import { ProviderError, isAbortError, toProviderError, type ChatMessage, type ChatContentPart, type ProviderStreamEvent } from '../providers/types'
+import { IMAGE_TOKEN_ESTIMATE, estimateTokens } from '../providers/cost'
+import { ProviderError, isAbortError, toProviderError, type ChatProvider, type ChatMessage, type ChatContentPart, type ProviderStreamEvent } from '../providers/types'
 import type { ArtifactStore } from './artifacts'
 import type { AuditLog } from './audit'
 import { VISION_MIME, type FileStore } from './files'
 import { textOf, type Library } from './library'
-import type { ModelCatalog, ResolvedModel } from './models'
 import type { SettingsService } from './settings'
 import type { UsageService } from './usage'
 
@@ -17,8 +15,8 @@ export interface ChatDeps {
   files: FileStore
   artifacts: ArtifactStore
   usage: UsageService
-  catalog: ModelCatalog
-  registry: ProviderRegistry
+  /** The admin server, which picks the model. Null when not paired. */
+  gateway: () => ChatProvider | null
   settings: SettingsService
   audit: AuditLog
   config: () => AdminConfig | null
@@ -30,13 +28,15 @@ interface RunContext {
   conversationId: string
   messageId: string
   parentId: string
-  modelId: string
   settings: ChatSettings
   controller: AbortController
 }
 
 const PROJECT_CONTEXT_MAX_CHARS = 300_000
-const EXPECTED_OUTPUT_TOKENS = 1_000
+/** The server chooses the real model for these. */
+const AUTO_MODEL = 'auto'
+const TITLE_MODEL = 'system:title'
+const GATEWAY_ID = 'crosspoint'
 const DEFAULT_TITLE_WORDS = 6
 
 export class ChatError extends Error {
@@ -57,8 +57,7 @@ export class ChatService {
 
   async send(input: ChatSendInput): Promise<{ messageId: string; runId: string }> {
     const conv = this.d.library.getConversation(input.conversationId)
-    const modelId = this.pickModel(input.modelId ?? conv.modelId)
-    if (input.modelId && input.modelId !== conv.modelId) this.d.library.updateConversation(conv.id, { modelId: input.modelId })
+    this.requirePaired()
 
     const attachments: AttachmentRef[] = []
     for (const a of input.attachments ?? []) {
@@ -86,10 +85,10 @@ export class ChatService {
     })
     for (const a of attachments) this.d.files.linkAttachment(a.id, conv.id, userId)
 
-    return this.startRun(conv.id, userId, modelId, { ...conv.settings, ...(input.settings ?? {}) })
+    return this.startRun(conv.id, userId, { ...conv.settings, ...(input.settings ?? {}) })
   }
 
-  async regenerate(messageId: string, modelId?: string): Promise<{ runId: string }> {
+  async regenerate(messageId: string): Promise<{ runId: string }> {
     const msg = this.d.library.getMessage(messageId)
     let parentId: string
     let createdAt: string | undefined
@@ -108,8 +107,8 @@ export class ChatService {
       throw new ChatError('Only chat messages can be regenerated.', 'bad_role')
     }
     const conv = this.d.library.getConversation(msg.conversationId)
-    const chosen = this.pickModel(modelId ?? msg.modelId ?? conv.modelId)
-    const { runId } = await this.startRun(conv.id, parentId, chosen, conv.settings, createdAt ?? new Date(Date.parse(msg.createdAt) + 1).toISOString())
+    this.requirePaired()
+    const { runId } = await this.startRun(conv.id, parentId, conv.settings, createdAt ?? new Date(Date.parse(msg.createdAt) + 1).toISOString())
     return { runId }
   }
 
@@ -121,22 +120,16 @@ export class ChatService {
     for (const r of this.runs.values()) r.controller.abort()
   }
 
-  private pickModel(preferred: string | null | undefined): string {
-    const cfg = this.d.config()
-    if (!cfg) throw new ChatError('Pair this device with admin first; models and keys come from there.', 'not_paired')
-    const id = preferred || this.d.settings.get().defaultModelOverride || cfg.default_models.chat
-    if (!id) throw new ChatError('Choose a model first. No default chat model is set in admin.', 'no_model')
-    return id
+  private requirePaired(): void {
+    if (!this.d.config()) throw new ChatError('Pair this device with admin first.', 'not_paired')
   }
 
   private async startRun(
     conversationId: string,
     parentId: string,
-    modelId: string,
     settings: ChatSettings,
     createdAt?: string
   ): Promise<{ messageId: string; runId: string }> {
-    const resolved = this.d.catalog.resolve(modelId)
     const messageId = randomUUID()
     const runId = randomUUID()
     this.d.library.insertMessage({
@@ -144,19 +137,19 @@ export class ChatService {
       conversationId,
       role: 'assistant',
       parts: [],
-      modelId,
-      provider: resolved?.providerId ?? null,
+      modelId: AUTO_MODEL,
+      provider: GATEWAY_ID,
       status: 'streaming',
       usage: null,
       costUsd: null,
       parentId,
       ...(createdAt ? { createdAt } : {})
     })
-    const ctx: RunContext = { runId, conversationId, messageId, parentId, modelId, settings, controller: new AbortController() }
+    const ctx: RunContext = { runId, conversationId, messageId, parentId, settings, controller: new AbortController() }
     this.runs.set(runId, ctx)
     // Let the renderer receive { messageId, runId } before the first event.
     setImmediate(() => {
-      void this.run(ctx, resolved)
+      void this.run(ctx)
         .catch((err) => this.failRun(ctx, err instanceof Error ? err.message : String(err)))
         .finally(() => this.runs.delete(runId))
     })
@@ -177,7 +170,7 @@ export class ChatService {
     this.emit(ctx, { type: 'done', finishReason: 'error' })
   }
 
-  private async run(ctx: RunContext, resolved: ResolvedModel | null): Promise<void> {
+  private async run(ctx: RunContext): Promise<void> {
     const notices: MessagePart[] = []
     const notice = (level: 'info' | 'warn' | 'error', message: string, code?: string): void => {
       notices.push({ type: 'notice', level, message, ...(code ? { code } : {}) })
@@ -192,7 +185,8 @@ export class ChatService {
 
     const cfg = this.d.config()
     if (!cfg) return fail('This device is not paired with admin.', 'not_paired')
-    if (!resolved) return fail(`Model "${ctx.modelId}" is not available on this device. Check allowed models and providers in admin.`, 'model_unavailable')
+    const provider = this.d.gateway()
+    if (!provider) return fail('This device is not paired with admin.', 'not_paired')
 
     const limit = this.d.usage.checkLimits(cfg.limits, this.d.settings.get().dailyCapUsd)
     if (limit.blocked) return fail(limit.blocked.message, limit.blocked.code)
@@ -200,7 +194,7 @@ export class ChatService {
     let history: ChatMessage[]
     let system: string | undefined
     try {
-      history = this.buildHistory(ctx, resolved)
+      history = this.buildHistory(ctx)
       system = this.buildSystem(ctx)
     } catch (err) {
       return fail(err instanceof Error ? err.message : String(err), 'prompt_failed')
@@ -209,81 +203,44 @@ export class ChatService {
     const promptTokens =
       estimateTokens(system ?? '') +
       history.reduce((n, m) => n + m.content.reduce((k, p) => k + (p.type === 'text' ? estimateTokens(p.text) : IMAGE_TOKEN_ESTIMATE), 0), 0)
-    const estimate = estimateCost(resolved.info?.pricing, promptTokens, Math.min(ctx.settings.maxTokens ?? EXPECTED_OUTPUT_TOKENS, EXPECTED_OUTPUT_TOKENS))
-    const warnAt = cfg.limits.per_message_warn_usd
-    if (warnAt != null && estimate > warnAt) {
-      notice('warn', `This message is estimated at about $${estimate.toFixed(2)}, above the $${warnAt.toFixed(2)} warning level.`, 'cost_warning')
-    }
-
-    const candidates = [resolved, ...this.d.catalog.fallbacks(resolved)]
     let text = ''
     let thinking = ''
     const toolCalls: MessagePart[] = []
     let usage: UsageInfo | null = null
     let finish: Extract<StreamEvent, { type: 'done' }>['finishReason'] = 'stop'
-    let used: ResolvedModel = resolved
     let failure: ProviderError | null = null
-    let attempted = false
 
-    for (let i = 0; i < candidates.length; i++) {
-      const cand = candidates[i]!
-      const provider = this.d.registry.get(cand.providerId)
-      if (!provider) continue
-      attempted = true
-      used = cand
-      failure = null
-      usage = null
-      let produced = false
-      this.d.audit.append('outbound', `chat request to ${provider.label} (${cand.model})`)
-      try {
-        const stream = provider.stream(history, {
-          model: cand.model,
-          system,
-          maxTokens: ctx.settings.maxTokens,
-          temperature: ctx.settings.temperature,
-          thinking: ctx.settings.thinking,
-          supportsReasoning: cand.info?.capabilities.reasoning ?? false,
-          pricing: cand.info?.pricing,
-          signal: ctx.controller.signal
-        })
-        for await (const ev of stream) {
-          if (ev.type === 'text') {
-            produced = true
-            text += ev.delta
-            this.emit(ctx, ev)
-          } else if (ev.type === 'thinking') {
-            produced = true
-            thinking += ev.delta
-            this.emit(ctx, ev)
-          } else if (ev.type === 'tool_call') {
-            produced = true
-            toolCalls.push({ type: 'tool_call', id: ev.id, name: ev.name, input: ev.input })
-            this.emit(ctx, ev)
-          } else if (ev.type === 'usage') {
-            usage = ev.usage
-          } else if (ev.type === 'done') {
-            finish = ev.finishReason
-          } else if (ev.type === 'error') {
-            throw new ProviderError(ev.message, null, cand.providerId)
-          } else {
-            this.emit(ctx, ev)
-          }
+    this.d.audit.append('outbound', 'chat request to the Crosspoint server')
+    try {
+      const stream = provider.stream(history, {
+        model: AUTO_MODEL,
+        system,
+        maxTokens: ctx.settings.maxTokens,
+        signal: ctx.controller.signal
+      })
+      for await (const ev of stream) {
+        if (ev.type === 'text') {
+          text += ev.delta
+          this.emit(ctx, ev)
+        } else if (ev.type === 'thinking') {
+          thinking += ev.delta
+          this.emit(ctx, ev)
+        } else if (ev.type === 'tool_call') {
+          toolCalls.push({ type: 'tool_call', id: ev.id, name: ev.name, input: ev.input })
+          this.emit(ctx, ev)
+        } else if (ev.type === 'usage') {
+          usage = ev.usage
+        } else if (ev.type === 'done') {
+          finish = ev.finishReason
+        } else if (ev.type === 'error') {
+          throw new ProviderError(ev.message, null, GATEWAY_ID)
+        } else {
+          this.emit(ctx, ev)
         }
-        break
-      } catch (err) {
-        if (ctx.controller.signal.aborted || isAbortError(err)) break
-        failure = toProviderError(err, cand.providerId, provider.label)
-        const next = candidates.slice(i + 1).find((c) => this.d.registry.get(c.providerId))
-        if (!produced && failure.retryable && next) {
-          const nextLabel = this.d.registry.get(next.providerId)?.label ?? next.providerId
-          notice('info', `${provider.label} failed (${failure.status ?? 'no response'}); retrying on ${nextLabel} with ${next.model}.`, 'fallback')
-          continue
-        }
-        break
       }
+    } catch (err) {
+      if (!ctx.controller.signal.aborted && !isAbortError(err)) failure = toProviderError(err, GATEWAY_ID, provider.label)
     }
-
-    if (!attempted) return fail(`Provider "${resolved.providerId}" is disabled or has no key in admin.`, 'provider_unavailable')
 
     const stopped = ctx.controller.signal.aborted
     if (stopped) finish = 'stopped'
@@ -292,12 +249,13 @@ export class ChatService {
     if (!usage && (text || thinking) && stopped) {
       const tokensOut = estimateTokens(text + thinking)
       usage = {
-        provider: used.providerId,
-        model: used.model,
+        provider: GATEWAY_ID,
+        model: AUTO_MODEL,
         tokensIn: promptTokens,
         tokensOut,
         cachedTokens: 0,
-        costUsd: computeCost(used.info?.pricing, { tokensIn: promptTokens, tokensOut, cachedTokens: 0 })
+        // The server records the real cost of a stopped reply.
+        costUsd: 0
       }
       this.d.usage.record({ ...usage, kind: 'chat', conversationId: ctx.conversationId, messageId: ctx.messageId, estimated: true })
       this.emit(ctx, { type: 'usage', usage })
@@ -312,15 +270,13 @@ export class ChatService {
     parts.push(...toolCalls)
 
     if (failure && !text && !stopped) {
-      this.d.audit.append('error', `chat failed on ${used.providerId}: ${failure.status ?? 'network'}`)
+      this.d.audit.append('error', `chat failed: ${failure.status ?? 'network'}`)
       parts.push({ type: 'notice', level: 'error', message: failure.message, code: 'provider_error' })
       this.d.library.updateMessage(ctx.messageId, {
         parts,
         status: 'error',
         usage,
-        costUsd: usage?.costUsd ?? null,
-        modelId: used.modelId,
-        provider: used.providerId
+        costUsd: usage?.costUsd ?? null
       })
       this.emit(ctx, { type: 'error', code: 'provider_error', message: failure.message })
       this.emit(ctx, { type: 'done', finishReason: 'error' })
@@ -336,9 +292,7 @@ export class ChatService {
       parts,
       status: stopped ? 'stopped' : failure ? 'error' : 'complete',
       usage,
-      costUsd: usage?.costUsd ?? null,
-      modelId: used.modelId,
-      provider: used.providerId
+      costUsd: usage?.costUsd ?? null
     })
     if (text) {
       try {
@@ -352,11 +306,10 @@ export class ChatService {
     this.emit(ctx, { type: 'done', finishReason: finish, ...(title ? { title } : {}) })
   }
 
-  private buildHistory(ctx: RunContext, resolved: ResolvedModel): ChatMessage[] {
+  private buildHistory(ctx: RunContext): ChatMessage[] {
     const all = this.d.library.listMessages(ctx.conversationId)
     const parentIdx = all.findIndex((m) => m.id === ctx.parentId)
     const slice = parentIdx >= 0 ? all.slice(0, parentIdx + 1) : all.filter((m) => m.id !== ctx.messageId)
-    const vision = resolved.info?.capabilities.vision ?? true
     const out: ChatMessage[] = []
     for (const m of slice) {
       if (m.id === ctx.messageId || m.role === 'system') continue
@@ -365,13 +318,13 @@ export class ChatService {
         if (t.trim()) out.push({ role: 'assistant', content: [{ type: 'text', text: t }] })
         continue
       }
-      out.push({ role: 'user', content: this.userContent(m, vision) })
+      out.push({ role: 'user', content: this.userContent(m) })
     }
     while (out.length && out[0]!.role === 'assistant') out.shift()
     return out
   }
 
-  private userContent(m: Message, vision: boolean): ChatContentPart[] {
+  private userContent(m: Message): ChatContentPart[] {
     const content: ChatContentPart[] = []
     const docs: string[] = []
     for (const p of m.parts) {
@@ -382,8 +335,8 @@ export class ChatService {
         continue
       }
       if (a.kind === 'image') {
-        if (vision && VISION_MIME.has(a.mime)) content.push({ type: 'image', mime: a.mime, base64: this.d.files.readBase64(a.path) })
-        else docs.push(`[image ${a.name} attached; this model cannot view images]`)
+        if (VISION_MIME.has(a.mime)) content.push({ type: 'image', mime: a.mime, base64: this.d.files.readBase64(a.path) })
+        else docs.push(`[image ${a.name} attached; this image type is not supported]`)
       } else if (a.text) {
         docs.push(`<attachment name="${a.name.replace(/"/g, "'")}">\n${a.text}\n</attachment>`)
       } else {
@@ -419,7 +372,7 @@ export class ChatService {
     return sections.length ? sections.join('\n\n') : undefined
   }
 
-  /** After the first assistant reply: a short title from `default_models.helper`, else the first words. */
+  /** After the first assistant reply: a short title from the server's title route, else the first words. */
   private async maybeTitle(ctx: RunContext, reply: string): Promise<string | undefined> {
     if (this.d.library.conversationTitleSource(ctx.conversationId) !== 'none') return undefined
     const msgs = this.d.library.listMessages(ctx.conversationId)
@@ -429,10 +382,8 @@ export class ChatService {
     const fallback = firstWords(userText) || firstUser?.parts.find((p) => p.type === 'attachment')?.attachment.name || 'New chat'
 
     let title: string | undefined
-    const helperId = this.d.config()?.default_models.helper
-    const helper = helperId ? this.d.catalog.resolve(helperId) : null
-    const provider = helper ? this.d.registry.get(helper.providerId) : null
-    if (helper && provider) {
+    const provider = this.d.gateway()
+    if (provider) {
       try {
         let out = ''
         let usage: UsageInfo | null = null
@@ -444,12 +395,12 @@ export class ChatService {
               content: [
                 {
                   type: 'text',
-                  text: `Write a title of 2 to 6 words for this conversation. Reply with the title only, no quotes.\n\nUser: ${userText.slice(0, 2_000)}\n\nAssistant: ${reply.slice(0, 1_000)}`
+                  text: `User: ${userText.slice(0, 2_000)}\n\nAssistant: ${reply.slice(0, 1_000)}`
                 }
               ]
             }
           ],
-          { model: helper.model, maxTokens: 40, pricing: helper.info?.pricing, signal }
+          { model: TITLE_MODEL, maxTokens: 40, signal }
         )) {
           if (ev.type === 'text') out += ev.delta
           else if (ev.type === 'usage') usage = ev.usage

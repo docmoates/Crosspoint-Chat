@@ -15,7 +15,6 @@ import {
   PasteDataSchema,
   ProjectCreateSchema,
   ProjectPatchSchema,
-  TagSchema,
   UrlSchema
 } from '@shared/ipc'
 import type { Core } from './core'
@@ -88,18 +87,11 @@ export function registerIpc(core: Core, opts: { isTrustedUrl: (url: string) => b
   // config
   h(Channels.config.get, none, () => core.sync.sanitized())
 
-  // models
-  h(Channels.models.list, none, () => core.catalog.list())
-  h(Channels.models.refresh, none, () => core.catalog.refresh(true))
-  h(Channels.models.setTags, z.tuple([IdSchema, z.array(IdSchema).max(100)]), (modelId, tags) => core.catalog.setTags(modelId, tags))
-  h(Channels.models.tagsList, none, () => core.catalog.listTags())
-  h(Channels.models.tagsSave, z.tuple([TagSchema]), (t) => core.catalog.saveTag(t))
-  h(Channels.models.tagsRemove, id, (tagId) => core.catalog.removeTag(tagId))
 
   // chat
   h(Channels.chat.send, z.tuple([ChatSendInputSchema]), (input) => core.chat.send(input))
   h(Channels.chat.stop, id, (runId) => core.chat.stop(runId))
-  h(Channels.chat.regenerate, z.tuple([IdSchema, IdSchema.optional()]), (messageId, modelId) => core.chat.regenerate(messageId, modelId))
+  h(Channels.chat.regenerate, z.tuple([IdSchema, IdSchema.optional()]), (messageId) => core.chat.regenerate(messageId))
 
   // conversations
   h(Channels.conversations.list, z.tuple([ConversationListQuerySchema]), (q) => core.library.listConversations(q))
@@ -176,13 +168,7 @@ export function registerIpc(core: Core, opts: { isTrustedUrl: (url: string) => b
   // usage
   h(Channels.usage.summary, none, () => core.usage.summary())
   h(Channels.usage.forMessage, id, (mid) => {
-    const d = core.usage.forMessage(mid)
-    if (!d) return null
-    const models = core.catalog.cachedList()
-    const m =
-      models.find((x) => x.id === d.model) ??
-      models.find((x) => x.provider === d.provider && (x.id === `${d.provider}:${d.model}` || x.id.endsWith(`/${d.model}`)))
-    return { ...d, pricing: m ? m.pricing : null }
+    return core.usage.forMessage(mid)
   })
 
   // settings
@@ -198,7 +184,6 @@ export function registerIpc(core: Core, opts: { isTrustedUrl: (url: string) => b
       client: core.client,
       pairing: core.pairing,
       sync: core.sync,
-      registry: core.registry,
       updateState: () => core.updater.current
     })
   )

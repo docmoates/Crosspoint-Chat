@@ -1,14 +1,15 @@
 import { app, safeStorage } from 'electron'
 import { hostname, release } from 'node:os'
 import type { AppConfig, PairingStatus, StreamEvent, UpdateState } from '@shared/ipc'
-import { AuditEventSchema, AUDIT_BATCH_MAX } from '@shared/admin-contract'
+import { adminUrl, AuditEventSchema, AUDIT_BATCH_MAX, DEFAULT_GATEWAY_PATH } from '@shared/admin-contract'
 import { postSplitting } from './admin/batch'
 import { AdminApiError, AdminClient } from './admin/client'
 import { PairingService, type DeviceRecord } from './admin/pairing'
 import { ConfigSync, type CachedConfig } from './admin/sync'
 import { openDatabase, type DB } from './db'
 import { appPaths } from './paths'
-import { ProviderRegistry } from './providers/registry'
+import { OpenAICompatProvider } from './providers/openai-compat'
+import type { ChatProvider } from './providers/types'
 import { SecureFile } from './secure-file'
 import { ArtifactStore } from './services/artifacts'
 import { AuditLog } from './services/audit'
@@ -16,7 +17,6 @@ import { ChatService } from './services/chat'
 import { FileStore } from './services/files'
 import { KnowledgeService, SqliteKnowledgeCache } from './services/knowledge'
 import { Library } from './services/library'
-import { ModelCatalog } from './services/models'
 import { SettingsService } from './services/settings'
 import { UsageService } from './services/usage'
 import { Updater } from './updates'
@@ -45,8 +45,6 @@ export interface Core {
   library: Library
   pairing: PairingService
   sync: ConfigSync
-  registry: ProviderRegistry
-  catalog: ModelCatalog
   usage: UsageService
   knowledge: KnowledgeService
   files: FileStore
@@ -73,20 +71,27 @@ export function createCore(events: CoreEvents): Core {
     deviceInfo: () => ({ name: hostname(), os: process.platform === 'win32' ? windowsVersionLabel() : `${process.platform} ${release()}`, appVersion: app.getVersion() })
   })
 
-  let registry: ProviderRegistry | null = null
-  let catalog: ModelCatalog | null = null
+  // The only upstream: this device's token against the admin server, which picks the model and holds the keys.
+  let gatewayCache: { fingerprint: string; provider: ChatProvider } | null = null
   const sync = new ConfigSync({
     client,
     pairing,
     cache: new SecureFile<CachedConfig>(paths.configFile, safeStorage),
     onAudit: (kind, summary) => audit.append(kind, summary),
     onWipe: () => {
-      registry?.clear()
-      catalog?.clearCache()
+      gatewayCache = null
     }
   })
-  registry = new ProviderRegistry(() => sync.full?.providers ?? [], app.getVersion())
-  catalog = new ModelCatalog(db, registry, () => sync.full)
+  const gateway = (): ChatProvider | null => {
+    const rec = pairing.device
+    if (!rec) return null
+    const baseUrl = adminUrl(rec.host, sync.full?.gateway.path ?? DEFAULT_GATEWAY_PATH)
+    const fingerprint = `${baseUrl}|${rec.token}`
+    if (gatewayCache?.fingerprint !== fingerprint) {
+      gatewayCache = { fingerprint, provider: new OpenAICompatProvider({ id: 'crosspoint', label: 'Crosspoint', baseUrl, apiKey: rec.token }) }
+    }
+    return gatewayCache.provider
+  }
 
   const usage = new UsageService(
     db,
@@ -119,8 +124,7 @@ export function createCore(events: CoreEvents): Core {
     files,
     artifacts,
     usage,
-    catalog,
-    registry,
+    gateway,
     settings,
     audit,
     config: () => sync.full,
@@ -130,9 +134,7 @@ export function createCore(events: CoreEvents): Core {
 
   sync.on('status', events.pairingStatus)
   sync.on('config', (c) => {
-    registry?.clear()
     events.configChange(c)
-    void catalog?.refresh().catch(() => undefined)
   })
 
   let auditTimer: NodeJS.Timeout | null = null
@@ -166,7 +168,6 @@ export function createCore(events: CoreEvents): Core {
     usage.start()
     auditTimer = setInterval(() => void postAuditSummary(), 60 * 60 * 1000)
     setTimeout(() => void postAuditSummary(), 30_000)
-    void catalog!.refresh().catch(() => undefined)
     setTimeout(() => void updater.check(), 15_000)
   }
 
@@ -182,6 +183,6 @@ export function createCore(events: CoreEvents): Core {
     }
   }
 
-  return { paths, db, client, audit, settings, library, pairing, sync, registry, catalog, usage, knowledge, files, artifacts, chat, updater, start, stop }
+  return { paths, db, client, audit, settings, library, pairing, sync, usage, knowledge, files, artifacts, chat, updater, start, stop }
 }
 

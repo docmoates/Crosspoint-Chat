@@ -7,7 +7,6 @@ import { AdminApiError, AdminClient, parseRetryAfter, toAdminError, type FetchLi
 import { PairingService, type DeviceRecord } from '../src/main/admin/pairing'
 import { ConfigSync, type CachedConfig } from '../src/main/admin/sync'
 import { openDatabase, type DB } from '../src/main/db'
-import { usable } from '../src/main/providers/registry'
 import { SecureFile, type StringCipher } from '../src/main/secure-file'
 import { ArtifactStore, previewDocument } from '../src/main/services/artifacts'
 import { Library } from '../src/main/services/library'
@@ -184,13 +183,5 @@ describe('main-side surfaces for the renderer', () => {
     s.set({ fontSize: 16 })
     expect(s.get().fontSize).toBe(16)
     expect(() => s.set({ fontSize: 40 })).toThrow()
-  })
-
-  it('skips disabled, keyless or malformed providers (contract note 5)', () => {
-    const base = { id: 'c', kind: 'openai-compatible' as const, label: 'C', base_url: 'https://x.test/v1', api_key: 'k', enabled: true }
-    expect(usable(base)).toBe(true)
-    expect(usable({ ...base, enabled: false })).toBe(false)
-    expect(usable({ ...base, api_key: '' })).toBe(false)
-    expect(usable({ ...base, base_url: '' })).toBe(false)
   })
 })

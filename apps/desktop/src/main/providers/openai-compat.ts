@@ -1,10 +1,8 @@
 import OpenAI from 'openai'
-import type { ProviderKind } from '@shared/admin-contract'
 import type { ThinkingLevel } from '@shared/ipc'
-import { OPENAI_CACHE, computeCost, perTokenToPerMillion, roundUsd } from './cost'
+import { OPENAI_CACHE, computeCost, roundUsd } from './cost'
 import {
   toProviderError,
-  type CatalogModel,
   type ChatMessage,
   type ChatProvider,
   type ProviderStreamEvent,
@@ -13,11 +11,9 @@ import {
 
 export interface OpenAICompatConfig {
   id: string
-  kind: Extract<ProviderKind, 'openrouter' | 'openai-compatible'>
   label: string
   baseUrl: string
   apiKey: string
-  appVersion?: string
   /** For tests. */
   client?: OpenAI
 }
@@ -160,7 +156,6 @@ const EFFORT: Record<Exclude<ThinkingLevel, 'off'>, 'low' | 'medium' | 'high'> =
 
 export class OpenAICompatProvider implements ChatProvider {
   readonly id: string
-  readonly kind: OpenAICompatConfig['kind']
   readonly label: string
   private readonly client: OpenAI
   private readonly isOpenRouter: boolean
@@ -168,9 +163,8 @@ export class OpenAICompatProvider implements ChatProvider {
 
   constructor(cfg: OpenAICompatConfig) {
     this.id = cfg.id
-    this.kind = cfg.kind
     this.label = cfg.label
-    this.isOpenRouter = cfg.kind === 'openrouter' || /openrouter\.ai/i.test(cfg.baseUrl)
+    this.isOpenRouter = /openrouter\.ai/i.test(cfg.baseUrl)
     this.isOpenAIDirect = /^https:\/\/api\.openai\.com\//i.test(cfg.baseUrl)
     const defaultHeaders: Record<string, string> = {}
     if (this.isOpenRouter) {
@@ -233,43 +227,5 @@ export class OpenAICompatProvider implements ChatProvider {
       throw toProviderError(err, this.id, this.label)
     }
     yield* mapper.end()
-  }
-
-  async listModels(signal?: AbortSignal): Promise<CatalogModel[]> {
-    try {
-      const page = (await this.client.get('/models', { signal })) as { data?: RawCompatModel[] }
-      return (page.data ?? []).map((m) => toCatalogModel(m, this.isOpenRouter)).filter((m): m is CatalogModel => m !== null)
-    } catch (err) {
-      throw toProviderError(err, this.id, this.label)
-    }
-  }
-}
-
-interface RawCompatModel {
-  id?: string
-  name?: string
-  context_length?: number
-  pricing?: { prompt?: string | number; completion?: string | number }
-  architecture?: { input_modalities?: string[]; modality?: string }
-  supported_parameters?: string[]
-}
-
-const NON_CHAT = /(embed|embedding|tts|whisper|dall-e|moderation|transcribe|realtime|audio|image|davinci|babbage|search)/i
-
-export function toCatalogModel(m: RawCompatModel, isOpenRouter: boolean): CatalogModel | null {
-  if (!m.id) return null
-  if (!isOpenRouter && NON_CHAT.test(m.id)) return null
-  const modalities = m.architecture?.input_modalities ?? (m.architecture?.modality ? m.architecture.modality.split('->')[0]?.split('+') : undefined)
-  const params = m.supported_parameters ?? []
-  return {
-    id: m.id,
-    name: m.name ?? m.id,
-    context: typeof m.context_length === 'number' ? m.context_length : null,
-    pricing: { in: perTokenToPerMillion(m.pricing?.prompt), out: perTokenToPerMillion(m.pricing?.completion) },
-    capabilities: {
-      vision: modalities ? modalities.includes('image') : /vision|gpt-4o|gpt-4\.1|gpt-5|o3|o4/i.test(m.id),
-      tools: isOpenRouter ? params.includes('tools') : true,
-      reasoning: isOpenRouter ? params.includes('reasoning') || params.includes('include_reasoning') : /^(o\d|gpt-5)/i.test(m.id)
-    }
   }
 }

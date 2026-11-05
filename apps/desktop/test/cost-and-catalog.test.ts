@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { ANTHROPIC_CACHE, computeCost, estimateCost, perTokenToPerMillion } from '../src/main/providers/cost'
 import { detectArtifacts } from '../src/main/services/artifacts'
 import { cleanTitle, firstWords } from '../src/main/services/chat'
-import { anthropicToOpenRouter, equivalenceKey, isAllowed } from '../src/main/services/models'
 
 describe('cost', () => {
   it('prices fresh, cached and output tokens per million', () => {
@@ -22,22 +21,6 @@ describe('cost', () => {
     expect(perTokenToPerMillion('0.000003')).toBe(3)
     expect(perTokenToPerMillion('-1')).toBeNull()
     expect(perTokenToPerMillion(undefined)).toBeNull()
-  })
-})
-
-describe('catalog helpers', () => {
-  it('applies the admin allowlist', () => {
-    expect(isAllowed('openai/gpt-4o', [])).toBe(true)
-    expect(isAllowed('openai/gpt-4o', ['openai/gpt-4o'])).toBe(true)
-    expect(isAllowed('custom:lab:llama', ['llama'], 'llama')).toBe(true)
-    expect(isAllowed('anthropic/claude-opus-5.5', ['anthropic/*'])).toBe(true)
-    expect(isAllowed('openai/gpt-4o', ['anthropic/*', ' '])).toBe(false)
-  })
-
-  it('matches the same model across providers for fallback', () => {
-    expect(anthropicToOpenRouter('claude-sonnet-4-5')).toBe('claude-sonnet-4.5')
-    expect(equivalenceKey('anthropic/claude-sonnet-4.5', 'openrouter', 'openrouter')).toBe(equivalenceKey('claude-sonnet-4-5', 'anthropic', 'anthropic'))
-    expect(equivalenceKey('openai/gpt-4o', 'openrouter', 'openrouter')).toBe(equivalenceKey('openai:gpt-4o', 'openai-compatible', 'openai'))
   })
 })
 

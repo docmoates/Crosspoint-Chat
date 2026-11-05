@@ -56,27 +56,6 @@ export type PairResponse = z.infer<typeof PairResponseSchema>
 
 // ---------- config ----------
 
-export const ProviderKindSchema = z.enum(['openrouter', 'anthropic', 'openai-compatible'])
-export type ProviderKind = z.infer<typeof ProviderKindSchema>
-
-export const AdminProviderSchema = z.looseObject({
-  id: z.string().min(1),
-  kind: ProviderKindSchema,
-  label: z.string(),
-  // Not .url(): one disabled or half-configured endpoint must not make the whole config unparseable
-  // (contract note 5). The app skips providers whose base_url does not parse.
-  base_url: z.string(),
-  api_key: z.string().nullable().optional(),
-  enabled: z.boolean().default(true)
-})
-export type AdminProvider = z.infer<typeof AdminProviderSchema>
-
-export const AdminSearchSchema = z.looseObject({
-  brave_api_key: z.string().nullable().optional(),
-  monthly_quota: z.number().nullable().optional()
-})
-export type AdminSearch = z.infer<typeof AdminSearchSchema>
-
 export const LimitsSchema = z.looseObject({
   monthly_usd: z.number().nullable().default(null),
   daily_usd: z.number().nullable().default(null),
@@ -91,11 +70,9 @@ export const SpendSchema = z.looseObject({
 })
 export type Spend = z.infer<typeof SpendSchema>
 
-export const DefaultModelsSchema = z.looseObject({
-  chat: z.string().nullable().default(null),
-  helper: z.string().nullable().default(null)
-})
-export type DefaultModels = z.infer<typeof DefaultModelsSchema>
+/** Where the app sends messages. Models, prompts and keys stay on the server. */
+export const DEFAULT_GATEWAY_PATH = '/api/devices/me/v1'
+export const GatewaySchema = z.looseObject({ path: z.string().default(DEFAULT_GATEWAY_PATH) })
 
 export const AdminDeviceSchema = z.looseObject({
   id: z.string(),
@@ -107,10 +84,7 @@ export const AdminDeviceSchema = z.looseObject({
 export const AdminConfigSchema = z.looseObject({
   config_version: z.number().int().nonnegative(),
   device: AdminDeviceSchema,
-  providers: z.array(AdminProviderSchema).default([]),
-  search: AdminSearchSchema.default({ brave_api_key: null, monthly_quota: null }),
-  allowed_models: z.array(z.string()).default([]),
-  default_models: DefaultModelsSchema.default({ chat: null, helper: null }),
+  gateway: GatewaySchema.default({ path: DEFAULT_GATEWAY_PATH }),
   limits: LimitsSchema.default({ monthly_usd: null, daily_usd: null, per_message_warn_usd: null }),
   spend: SpendSchema.default({ month_usd: 0, today_usd: 0 })
 })

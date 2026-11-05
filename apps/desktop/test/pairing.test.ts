@@ -24,12 +24,9 @@ const json = (status: number, body: unknown, headers: Record<string, string> = {
 const CONFIG = {
   config_version: 7,
   device: { id: 'a1b2c3d4e5f6', name: 'DESKTOP-TEST', created_at: '2026-11-01T00:00:00Z', last_seen_at: null },
-  providers: [{ id: 'openrouter', kind: 'openrouter', label: 'OpenRouter', base_url: 'https://openrouter.ai/api/v1', api_key: 'sk-or-secret', enabled: true }],
-  search: { brave_api_key: 'brave-secret', monthly_quota: 2000 },
+  gateway: { path: '/api/devices/me/v1' },
   // Older admin builds still send mcp_servers and sub-chat limits; the parser must ignore them.
   mcp_servers: [{ id: 'gh', name: 'GitHub', transport: 'http', url: 'https://x/mcp', headers: { Authorization: 'Bearer h' }, enabled: true }],
-  allowed_models: [],
-  default_models: { chat: 'anthropic/claude-sonnet-4.5', helper: 'openai/gpt-4o-mini' },
   limits: { monthly_usd: 100, daily_usd: 5, per_message_warn_usd: 0.5, sub_chat_usd: 2, sub_chat_steps: 20 },
   spend: { month_usd: 12.34, today_usd: 0.56, month: '2026-11' }
 }
@@ -130,22 +127,21 @@ describe('config sync', () => {
     return { ...ctx, calls, cache, sync, wiped }
   }
 
-  it('pulls config, keeps keys in main only, sends If-None-Match next time and caches encrypted', async () => {
+  it('pulls config, sends If-None-Match next time and caches encrypted', async () => {
     let n = 0
     const { sync, calls, cache } = await paired(async () => (n++ === 0 ? json(200, CONFIG) : new Response(null, { status: 304 })))
     await sync.syncNow()
-    expect(sync.full?.providers[0]?.api_key).toBe('sk-or-secret')
+    expect(sync.full?.gateway.path).toBe('/api/devices/me/v1')
     const view = sync.sanitized()
     expect(JSON.stringify(view)).not.toMatch(/secret|Bearer/)
-    expect(view.providers[0]).toEqual({ id: 'openrouter', kind: 'openrouter', label: 'OpenRouter', base_url: 'https://openrouter.ai/api/v1', enabled: true, hasKey: true })
-    expect(view.search.hasBraveKey).toBe(true)
+    expect(view.limits.monthly_usd).toBe(100)
 
     await sync.syncNow()
     const second = new Headers(calls.at(-1)!.init?.headers)
     expect(second.get('if-none-match')).toBe('"7"')
     expect(second.get('authorization')).toBe(`Bearer ${TOKEN}`)
     expect(sync.status()).toMatchObject({ paired: true, device: { id: 'a1b2c3d4e5f6', name: 'DESKTOP-TEST' } })
-    expect(readFileSync(cache.path).includes(Buffer.from('sk-or-secret'))).toBe(false)
+    expect(readFileSync(cache.path).includes(Buffer.from(TOKEN))).toBe(false)
     expect(cache.read()?.config.config_version).toBe(7)
   })
 
