@@ -63,7 +63,7 @@ describe('data sync', () => {
     expect(a.library.listMessages(conv.id)).toEqual([])
   })
 
-  it('keeps a chat's messages when the chat row arrives again after them', async () => {
+  it('keeps messages when the chat row arrives again after them', async () => {
     const s = fakeServer()
     const a = device(s.remote, 'a')
     const conv = a.library.createConversation({ title: 'Trip' })
