@@ -418,6 +418,17 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
 
 <style>
 /* Added for the current app version */
+details.codebox{display:block;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);overflow:hidden}
+details.codebox>summary{list-style:none;display:flex;align-items:center;gap:8px;padding:6px 12px;font-size:12px;color:var(--fg-3);cursor:pointer;user-select:none}
+details.codebox>summary::-webkit-details-marker{display:none}
+details.codebox>summary:hover,details.codebox[open]>summary{color:var(--fg-2)}
+details.codebox>summary svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+details.codebox>summary .copy{margin-left:auto;display:inline-flex;align-items:center;gap:4px;color:var(--fg-2)}
+details.codebox>summary .chev{width:12px;height:12px;transition:transform .15s;opacity:.7}
+details.codebox[open]>summary .chev{transform:rotate(90deg)}
+details.codebox[open]>summary{border-bottom:1px solid var(--line)}
+details.codebox pre.code{border:0;border-radius:0}
+
 details.activity,details.step{display:block}
 details.activity{font-size:13px;color:var(--fg-3)}
 details.activity>summary,details.step>summary{list-style:none;display:flex;width:fit-content;align-items:center;gap:8px;padding:3px 8px 3px 2px;border-radius:6px;cursor:pointer;color:var(--fg-3);user-select:none}
@@ -538,7 +549,7 @@ body.pairing #s-pair{display:block}
 
               <p>OpenRouter takes a single <code>reasoning</code> object with either <code>effort</code> or <code>max_tokens</code>, and streams the reasoning text back as <code>delta.reasoning</code>. Usage arrives in the last chunk when you set <code>stream_options.include_usage</code>. Here is the adapter:</p>
 
-              <pre class="code"><span class="bar"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg> openrouter.ts <button title="Copy"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg> Copy</button></span><span class="src"><span class="k">export</span> <span class="k">async function</span>* <span class="f">stream</span>(req: ChatRequest): AsyncIterable&lt;ChatEvent&gt; {
+              <details class="codebox"><summary><svg viewBox="0 0 24 24"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg><span>openrouter.ts</span><span class="faint">19 lines</span><button class="copy" title="Copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg> Copy</button><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary><pre class="code"><span class="src"><span class="k">export</span> <span class="k">async function</span>* <span class="f">stream</span>(req: ChatRequest): AsyncIterable&lt;ChatEvent&gt; {
   <span class="k">const</span> res = <span class="k">await</span> fetch(<span class="s">`${BASE}/chat/completions`</span>, {
     method: <span class="s">"POST"</span>,
     headers: { Authorization: <span class="s">`Bearer ${key}`</span>, <span class="s">"Content-Type"</span>: <span class="s">"application/json"</span> },
@@ -556,7 +567,7 @@ body.pairing #s-pair{display:block}
     <span class="k">if</span> (chunk.usage)  <span class="k">yield</span> { type: <span class="s">"usage"</span>, ...chunk.usage };
   }
   <span class="k">yield</span> { type: <span class="s">"done"</span> };
-}</span></pre>
+}</span></pre></details>
 
               <button class="artifact-chip" data-toggle-art>
                 <span class="ic"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 4 3 5-7"/></svg></span>
@@ -980,6 +991,8 @@ body.pairing #s-pair{display:block}
     const m=sel.closest('tr').dataset.model; (modelTags[m]=modelTags[m]||[]).push(sel.value); renderAllTags();
   });
   renderAllTags();
+  // Chat dropdowns always start closed, whatever state a previewer saved.
+  $$('#s-chat details').forEach(d=>{d.open=false;});
   const h=(location.hash||'').slice(1);
   if(h==='pair')document.body.classList.add('pairing'); else if(screens[h])show(h);
 })();

@@ -1,4 +1,4 @@
-import { Check, Code2, Copy } from 'lucide-react'
+import { Check, ChevronRight, Code2, Copy } from 'lucide-react'
 import { memo, useState, type ReactElement, type ReactNode } from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import rehypeHighlight from 'rehype-highlight'
@@ -44,22 +44,38 @@ function CodeBlock(props: { children?: ReactNode }): ReactElement {
   const lang = /language-([\w+-]+)/.exec(className)?.[1] ?? ''
   const raw = textOf(props.children).replace(/\n$/, '')
   const lines = raw.split('\n').length
-  const long = lines > 24
+  // Anything longer than a few lines is a dropdown that starts closed; short snippets stay inline.
+  const foldable = lines > 8
   const [open, setOpen] = useState(false)
+  const closed = foldable && !open
   return (
-    <div className={long && !open ? 'code collapsed' : 'code'}>
-      <div className="bar">
+    <div className={closed ? 'code collapsed' : 'code'}>
+      <div
+        className={foldable ? 'bar foldable' : 'bar'}
+        role={foldable ? 'button' : undefined}
+        tabIndex={foldable ? 0 : undefined}
+        aria-expanded={foldable ? open : undefined}
+        onClick={foldable ? () => setOpen((v) => !v) : undefined}
+        onKeyDown={
+          foldable
+            ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setOpen((v) => !v)
+                }
+              }
+            : undefined
+        }
+      >
         <Code2 className="ic-sm" />
         {lang || 'code'}
-        {long && <span className="faint">{lines} lines</span>}
-        <CopyButton text={raw} label />
+        {foldable && <span className="faint">{lines} lines</span>}
+        <span onClick={(e) => e.stopPropagation()} style={{ marginLeft: 'auto', display: 'inline-flex' }}>
+          <CopyButton text={raw} label />
+        </span>
+        {foldable && <ChevronRight className="chev ic-sm" />}
       </div>
       <pre>{props.children}</pre>
-      {long && (
-        <button type="button" className="code-more" onClick={() => setOpen((v) => !v)}>
-          {open ? 'Show less' : `Show all ${lines} lines`}
-        </button>
-      )}
     </div>
   )
 }
