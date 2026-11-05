@@ -43,14 +43,23 @@ function CodeBlock(props: { children?: ReactNode }): ReactElement {
       : ''
   const lang = /language-([\w+-]+)/.exec(className)?.[1] ?? ''
   const raw = textOf(props.children).replace(/\n$/, '')
+  const lines = raw.split('\n').length
+  const long = lines > 24
+  const [open, setOpen] = useState(false)
   return (
-    <div className="code">
+    <div className={long && !open ? 'code collapsed' : 'code'}>
       <div className="bar">
         <Code2 className="ic-sm" />
         {lang || 'code'}
+        {long && <span className="faint">{lines} lines</span>}
         <CopyButton text={raw} label />
       </div>
       <pre>{props.children}</pre>
+      {long && (
+        <button type="button" className="code-more" onClick={() => setOpen((v) => !v)}>
+          {open ? 'Show less' : `Show all ${lines} lines`}
+        </button>
+      )}
     </div>
   )
 }

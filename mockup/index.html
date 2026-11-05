@@ -418,6 +418,20 @@ th{border-top:0;color:var(--fg-3);font-weight:500;font-size:12px}
 
 <style>
 /* Added for the current app version */
+details.activity,details.step{display:block}
+details.activity{font-size:13px;color:var(--fg-3)}
+details.activity>summary,details.step>summary{list-style:none;display:flex;width:fit-content;align-items:center;gap:8px;padding:3px 8px 3px 2px;border-radius:6px;cursor:pointer;color:var(--fg-3);user-select:none}
+details.activity>summary::-webkit-details-marker,details.step>summary::-webkit-details-marker{display:none}
+details.activity>summary svg,details.step>summary svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+details.activity>summary:hover,details.step>summary:hover,details.activity[open]>summary{color:var(--fg-2)}
+details.activity .chev,details.step .chev{transition:transform .15s;opacity:.7;width:12px;height:12px}
+details.activity[open]>summary .chev,details.step[open]>summary .chev{transform:rotate(90deg)}
+.steps{margin:4px 0 2px 7px;padding-left:14px;border-left:2px solid var(--line);display:flex;flex-direction:column;gap:2px}
+details.step{font-size:12.5px}
+.step-body{padding:4px 0 8px 22px;font-size:12.5px;color:var(--fg-2);white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto}
+.step-body pre{margin:2px 0 8px;padding:8px 10px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;font:12px/1.45 var(--mono);white-space:pre-wrap}
+.step-label{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3)}
+
 .notice{display:flex;gap:8px;align-items:flex-start;padding:9px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel-2);font-size:13px}
 .notice.error{border-color:var(--bad);color:var(--bad)}
 .notice svg{width:16px;height:16px;flex:none;margin-top:1px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -515,9 +529,11 @@ body.pairing #s-pair{display:block}
           <div class="msg assistant">
             <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg> Claude Sonnet 5.5</span> · via OpenRouter</div>
             <div class="body">
-              <details class="block thinking">
-                <summary><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg> Thought for 14 seconds <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary>
-                <div class="inner">The interface wants an AsyncIterable of typed events. OpenRouter follows the OpenAI Chat Completions shape, so I will wrap the SSE stream and map delta.tool_calls into tool_call events, buffering arguments by index until finish_reason arrives. Usage comes in the final chunk when stream_options.include_usage is set.</div>
+              <details class="activity">
+                <summary><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>Thought for 14 s</span><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary>
+                <div class="steps">
+                  <details class="step"><summary>Thinking<svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary><div class="step-body">The interface wants an AsyncIterable of typed events. OpenRouter follows the OpenAI Chat Completions shape, so I will wrap the SSE stream and map delta.tool_calls into tool_call events, buffering arguments by index until finish_reason arrives. Usage comes in the final chunk when stream_options.include_usage is set.</div></details>
+                </div>
               </details>
 
               <p>OpenRouter takes a single <code>reasoning</code> object with either <code>effort</code> or <code>max_tokens</code>, and streams the reasoning text back as <code>delta.reasoning</code>. Usage arrives in the last chunk when you set <code>stream_options.include_usage</code>. Here is the adapter:</p>
@@ -561,11 +577,11 @@ body.pairing #s-pair{display:block}
           <div class="msg assistant">
             <div class="meta"><span class="model"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg> Claude Sonnet 5.5</span> · via OpenRouter</div>
             <div class="body">
-              <details class="block">
-                <summary><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.4 2.4-2.4-.6-.6-2.4z"/></svg> Used <code>read_file</code> <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary>
-                <div class="inner mono" style="font-size:12px">{ "path": "packages/providers/src/registry.ts" }
-
-→ export const registry = new Map&lt;string, ChatProvider&gt;()</div>
+              <details class="activity">
+                <summary><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.4 2.4-2.4-.6-.6-2.4z"/></svg><span>Used 1 tool</span><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary>
+                <div class="steps">
+                  <details class="step"><summary><code>read_file</code><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary><div class="step-body"><div class="step-label">Input</div><pre>{ "path": "packages/providers/src/registry.ts" }</pre><div class="step-label">Result</div><pre>export const registry = new Map&lt;string, ChatProvider&gt;()</pre></div></details>
+                </div>
               </details>
               <p>Done. <code>registry.get(model).stream()</code> is now wrapped in a fallback chain that catches 429 and moves to Anthropic direct, then to the custom endpoint.</p>
             </div>

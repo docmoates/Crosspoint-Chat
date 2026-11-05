@@ -51,6 +51,7 @@ function stringify(v: unknown): string {
 function UserMessage(props: { m: UIMessage; busy: boolean; onResend: (text: string) => void }): ReactElement {
   const { m } = props
   const [editing, setEditing] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const [text, setText] = useState(m.content)
   if (editing) {
     return (
@@ -87,10 +88,20 @@ function UserMessage(props: { m: UIMessage; busy: boolean; onResend: (text: stri
       </div>
     )
   }
+  const long = m.content.length > 600 || m.content.split('\n').length > 10
   return (
     <div className="msg user">
       <Attachments m={m} />
-      {m.content && <div className="bubble">{m.content}</div>}
+      {m.content && (
+        <div className={cn('bubble', long && !expanded && 'clamp')}>
+          {m.content}
+          {long && (
+            <button type="button" className="more" onClick={() => setExpanded((v) => !v)}>
+              {expanded ? 'Show less' : 'Show more'}
+            </button>
+          )}
+        </div>
+      )}
       <div className="actions">
         <button
           type="button"
@@ -109,22 +120,99 @@ function UserMessage(props: { m: UIMessage; busy: boolean; onResend: (text: stri
   )
 }
 
-function Thinking(props: { m: UIMessage }): ReactElement | null {
+const CLIP = 4000
+
+function clip(v: unknown): string {
+  const s = stringify(v)
+  return s.length > CLIP ? `${s.slice(0, CLIP)}\n… ${s.length - CLIP} more characters` : s
+}
+
+/** One collapsed line per reply: "Thought for 14 s · Used 2 tools". Open it to see each step, and open a step for its detail. */
+function Activity(props: { m: UIMessage }): ReactElement | null {
   const { m } = props
-  if (!m.thinking) return null
-  const live = m.streaming && !m.content
-  const label = live
-    ? 'Thinking…'
-    : m.thinkingMs != null
-      ? `Thought for ${Math.max(1, Math.round(m.thinkingMs / 1000))} second${Math.round(m.thinkingMs / 1000) > 1 ? 's' : ''}`
-      : 'Thinking'
+  const hasThinking = Boolean(m.thinking)
+  if (!hasThinking && m.tools.length === 0) return null
+  const running = m.tools.find((t) => !t.done)
+  const failed = m.tools.filter((t) => t.isError).length
+  const thinkingLive = m.streaming && !m.content && !running
+  const secs = m.thinkingMs != null ? Math.max(1, Math.round(m.thinkingMs / 1000)) : null
+  const parts: string[] = []
+  if (hasThinking) parts.push(thinkingLive ? 'Thinking…' : secs != null ? `Thought for ${secs} s` : 'Thought')
+  if (m.tools.length > 0) {
+    parts.push(running ? `Using ${running.name}…` : `Used ${m.tools.length} tool${m.tools.length === 1 ? '' : 's'}`)
+  }
+  const busy = Boolean(running) || thinkingLive
   return (
-    <details className="block thinking" open={live || undefined}>
+    <details className="activity">
       <summary>
-        {live ? <Spinner /> : <Lightbulb className="ic-sm" />} {label}
+        {busy ? <Spinner /> : hasThinking ? <Lightbulb className="ic-sm" /> : <Wrench className="ic-sm" />}
+        <span>{parts.join(' · ')}</span>
+        {failed > 0 && <span className="bad">· {failed} failed</span>}
         <ChevronRight className="chev ic-sm" />
       </summary>
-      <div className="inner">{m.thinking}</div>
+      <div className="steps">
+        {hasThinking && (
+          <details className="step">
+            <summary>
+              <Lightbulb className="ic-xs" /> Thinking
+              <ChevronRight className="chev ic-xs" />
+            </summary>
+            <div className="step-body">{m.thinking}</div>
+          </details>
+        )}
+        {m.tools.map((t) => (
+          <details className="step" key={t.id}>
+            <summary>
+              {t.done ? <Wrench className="ic-xs" /> : <Spinner />} <code>{t.name}</code>
+              {t.isError && <span className="bad">failed</span>}
+              {!t.done && <span className="faint">running</span>}
+              <ChevronRight className="chev ic-xs" />
+            </summary>
+            <div className="step-body">
+              <div className="step-label">Input</div>
+              <pre>{clip(t.input) || '(none)'}</pre>
+              {t.output != null && (
+                <>
+                  <div className="step-label">Result</div>
+                  <pre>{clip(t.output)}</pre>
+                </>
+              )}
+            </div>
+          </details>
+        ))}
+      </div>
+    </details>
+  )
+}
+
+function NoticeRow(props: { n: UIMessage['notices'][number] }): ReactElement {
+  const { n } = props
+  return (
+    <div className={cn('notice', n.level === 'warn' && 'warn', n.level === 'error' && 'error')}>
+      {n.level === 'info' ? <Info className="ic-sm" /> : <AlertTriangle className="ic-sm" />}
+      <div className="flex-1">{n.text}</div>
+    </div>
+  )
+}
+
+/** One notice shows inline; several fold into a single dropdown. */
+function Notices(props: { notices: UIMessage['notices'] }): ReactElement | null {
+  const { notices } = props
+  if (notices.length === 0) return null
+  if (notices.length === 1) return <NoticeRow n={notices[0] as UIMessage['notices'][number]} />
+  const worst = notices.some((n) => n.level === 'error') ? 'error' : notices.some((n) => n.level === 'warn') ? 'warn' : 'info'
+  return (
+    <details className="activity">
+      <summary>
+        {worst === 'info' ? <Info className="ic-sm" /> : <AlertTriangle className="ic-sm" />}
+        <span>{notices.length} notices</span>
+        <ChevronRight className="chev ic-sm" />
+      </summary>
+      <div className="steps">
+        {notices.map((n, i) => (
+          <NoticeRow key={i} n={n} />
+        ))}
+      </div>
     </details>
   )
 }
@@ -156,26 +244,8 @@ function AssistantMessage(props: {
         </div>
       )}
       <div className="body">
-        <Thinking m={m} />
-        {m.tools.map((t) => (
-          <details className="block" key={t.id}>
-            <summary>
-              {t.done ? <Wrench className="ic-sm" /> : <Spinner />} {t.done ? 'Used' : 'Using'} <code>{t.name}</code>
-              {t.isError && <span style={{ color: 'var(--bad)' }}>· failed</span>}
-              <ChevronRight className="chev ic-sm" />
-            </summary>
-            <div className="inner mono text-[12px]">
-              {stringify(t.input)}
-              {t.output != null && `\n\n→ ${stringify(t.output)}`}
-            </div>
-          </details>
-        ))}
-        {m.notices.map((n, i) => (
-          <div key={i} className={cn('notice', n.level === 'warn' && 'warn', n.level === 'error' && 'error')}>
-            {n.level === 'info' ? <Info className="ic-sm" /> : <AlertTriangle className="ic-sm" />}
-            <div className="flex-1">{n.text}</div>
-          </div>
-        ))}
+        <Activity m={m} />
+        <Notices notices={m.notices} />
         {m.content && <Markdown text={m.content} />}
         {waiting && (
           <div className="status-row">
